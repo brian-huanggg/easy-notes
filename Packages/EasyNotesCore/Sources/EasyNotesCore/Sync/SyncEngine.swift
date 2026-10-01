@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 
 /// 同步引擎：只看 file id、path、內容 hash 與版本，合併交給各 DocumentKind。
 ///
@@ -7,6 +8,14 @@ import Foundation
 /// 狀態存在 `.easynotes/sync.sqlite`，合併基準存在 `.easynotes/cache/base/<hash>`，
 /// 兩者都可以刪掉：基準會從內容定址的 Storage 重新下載。
 public actor SyncEngine {
+    /// 刪除後可還原的天數；伺服器端的 pg_cron 同樣以 30 天清除
+    public static let retentionDays = 30
+    static let log = Logger(subsystem: "app.easynotes", category: "sync")
+
+    public enum RestoreError: Error, LocalizedError {
+        case changedOnServer
+        public var errorDescription: String? { "這個檔案在其他裝置上有新的變更，請同步後再試" }
+    }
     public struct Status: Sendable, Equatable {
         public var isSyncing = false
         /// 待上傳的檔案數
@@ -95,6 +104,7 @@ public actor SyncEngine {
                 status.lastError = nil
             } catch {
                 status.lastError = "\(error)"
+                Self.log.error("sync failed: \(error, privacy: .public)")
             }
             status.isSyncing = false
             await publish()
@@ -108,6 +118,41 @@ public actor SyncEngine {
             r.path = newPath + r.path.dropFirst(oldPath.count)
             try state.save(r)
         }
+    }
+
+    // MARK: 最近刪除
+
+    /// 30 天內在任何裝置上刪除、本地也不存在的檔案，最新刪除的在前
+    public func recentlyDeleted() async throws -> [RemoteFile] {
+        let since = Date().addingTimeInterval(-Double(Self.retentionDays) * 86_400)
+        return try await backend.deletedFiles(since: since).filter { file in
+            guard let r = state.records[file.id] else { return true }
+            return r.localDeleted
+        }
+    }
+
+    /// 以同一個 file id 還原到原路徑（被佔用時改用衝突副本的命名），回傳還原後的路徑
+    @discardableResult
+    public func restore(_ file: RemoteFile) async throws -> String {
+        let data = try await content(hash: file.hash)
+        var path = file.path
+        if FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) {
+            path = conflictPath(for: path)
+        }
+        let request = CommitRequest(id: file.id, baseVersion: file.version, path: path, hash: file.hash,
+                                    size: data.count, deleted: false, deviceID: deviceID)
+        guard let version = try await backend.commit(request) else { throw RestoreError.changedOnServer }
+        Self.log.info("restore \(path, privacy: .public) v\(version)")
+        var r = SyncRecord(id: file.id, path: path, hash: file.hash, mtime: 0, size: data.count)
+        try write(data, to: path, record: &r)
+        r.baseVersion = version
+        r.baseHash = file.hash
+        r.basePath = path
+        try cacheBase(data, hash: file.hash)
+        try state.save(r)
+        await publish()
+        await hooks.didChange(path, nil, data)
+        return path
     }
 
     private func publish() async {
@@ -314,7 +359,8 @@ public actor SyncEngine {
                 }
                 let request = CommitRequest(id: r.id, baseVersion: baseVersion, path: r.basePath ?? r.path,
                                             hash: baseHash, size: r.size, deleted: true, deviceID: deviceID)
-                if try await backend.commit(request) != nil {
+                if let version = try await backend.commit(request) {
+                    Self.log.info("commit delete \(request.path, privacy: .public) v\(version)")
                     try state.remove(r.id)
                 } else {
                     rejected += 1
@@ -329,6 +375,7 @@ public actor SyncEngine {
             let request = CommitRequest(id: r.id, baseVersion: r.baseVersion, path: r.path, hash: r.hash,
                                         size: data.count, deleted: false, deviceID: deviceID)
             if let version = try await backend.commit(request) {
+                Self.log.info("commit \(r.path, privacy: .public) v\(version) \(data.count) bytes")
                 try cacheBase(data, hash: r.hash)
                 let oldBase = r.baseHash
                 r.baseVersion = version

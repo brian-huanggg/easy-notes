@@ -49,6 +49,10 @@ actor FakeBackend: SyncBackend {
         rows.values.filter { $0.updatedAt > cursor ?? .distantPast }.sorted { $0.updatedAt < $1.updatedAt }
     }
 
+    func deletedFiles(since: Date) async throws -> [RemoteFile] {
+        rows.values.filter { $0.deleted }.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
     func setFailNextCommit() { failNextCommit = true }
 }
 
@@ -210,6 +214,44 @@ struct SyncEngineTests {
         try await converge(mac, ipad)
         #expect(mac.read("a.note") == "x 改\n")
         #expect(await backend.rows.values.first?.deleted == false)
+    }
+
+    @Test func deletedFileCanBeRestoredOnAnyDevice() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("重要內容\n", "a.note")
+        try await converge(mac, ipad)
+        let id = try #require(await backend.rows.keys.first)
+        try mac.delete("a.note")
+        try await converge(mac, ipad)
+        #expect(!ipad.exists("a.note"))
+
+        // iPad 從「最近刪除」還原：同一個 file id，Mac 也拿回來
+        let deleted = try await ipad.engine.recentlyDeleted()
+        #expect(deleted.map(\.id) == [id])
+        #expect(try await ipad.engine.restore(deleted[0]) == "a.note")
+        #expect(ipad.read("a.note") == "重要內容\n")
+        #expect(try await ipad.engine.recentlyDeleted().isEmpty)
+        try await converge(mac, ipad)
+        #expect(mac.read("a.note") == "重要內容\n")
+        #expect(await backend.rows[id]?.deleted == false)
+        #expect(await backend.rows.count == 1)
+    }
+
+    @Test func restoreIntoOccupiedPathUsesConflictName() async throws {
+        let mac = try Device("Mac", backend: backend)
+        try mac.write("舊\n", "a.note")
+        await mac.sync()
+        try mac.delete("a.note")
+        await mac.sync()
+        try mac.write("新\n", "a.note")
+        await mac.sync()
+        let deleted = try #require(try await mac.engine.recentlyDeleted().first)
+        let path = try await mac.engine.restore(deleted)
+        #expect(path.hasPrefix("a (衝突 Mac "))
+        #expect(mac.read(path) == "舊\n")
+        #expect(mac.read("a.note") == "新\n")
+        await mac.sync()
+        #expect(await mac.engine.currentStatus.pending == 0)
     }
 
     @Test func interruptedCommitIsRetried() async throws {

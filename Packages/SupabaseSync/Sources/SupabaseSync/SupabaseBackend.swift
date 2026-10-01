@@ -49,6 +49,17 @@ public struct SupabaseBackend: SyncBackend {
         }
     }
 
+    public func deletedFiles(since: Date) async throws -> [RemoteFile] {
+        let rows: [Row] = try await client.from("files")
+            .select("id, path, hash, size, version, deleted, device_id, updated_at")
+            .eq("deleted", value: true)
+            .gt("updated_at", value: since.formatted(.iso8601))
+            .order("updated_at", ascending: false)
+            .limit(Self.pageSize)
+            .execute().value
+        return rows.map(\.remote)
+    }
+
     /// Storage 政策比對 `auth.uid()::text`，是小寫的 uuid
     private func objectPath(_ hash: String) async throws -> String {
         "\(try await client.auth.session.user.id.uuidString.lowercased())/\(hash)"
