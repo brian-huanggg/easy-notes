@@ -15,6 +15,8 @@ public actor SyncEngine {
         public var lastError: String?
         /// 最近一輪產生的衝突副本
         public var conflicts: [String] = []
+
+        public init() {}
     }
 
     /// 同步要動到本地檔案時通知 App（編輯器、索引、檔案樹）

@@ -30,6 +30,11 @@ final class VaultStore: DocumentSession {
     @ObservationIgnored private var lastWritten: [String: Data] = [:]
     @ObservationIgnored private var watcher: VaultWatcher?
 
+    /// 本地內容有變動（App 內編輯或外部工具）：同步層據此排程上傳
+    @ObservationIgnored var onLocalChange: (() -> Void)?
+    /// App 內改名或搬移：同步層直接更新路徑，保留 file id
+    @ObservationIgnored var onMove: ((_ from: String, _ to: String) -> Void)?
+
     init(plugins: PluginRegistry, kinds: KindRegistry, root: URL = VaultStore.defaultRoot()) {
         self.plugins = plugins
         fs = VaultFS(root: root, kinds: kinds)
@@ -44,8 +49,11 @@ final class VaultStore: DocumentSession {
         if let open = UserDefaults.standard.string(forKey: "EasyNotesOpen") { selection = open }
         if let query = UserDefaults.standard.string(forKey: "EasyNotesSearch") { searchText = query }
         #endif
-        watcher = VaultWatcher(root: root) { [weak self] in
-            Task { await self?.syncIndex() }
+        watcher = VaultWatcher(root: root) { [weak self] paths in
+            Task {
+                await self?.syncIndex(paths: paths)
+                self?.onLocalChange?()
+            }
         }
         for controller in plugins.controllers { controller.attach(self) }
     }
@@ -89,6 +97,7 @@ final class VaultStore: DocumentSession {
                 try await writer.write(data, to: path)
                 try await index?.update(path, data: data)
                 scheduleDerivedRefresh()
+                onLocalChange?()
             } catch {
                 report(error)
             }
@@ -98,11 +107,11 @@ final class VaultStore: DocumentSession {
     // MARK: 外部修改
 
     /// 比對磁碟與索引：外部新增、修改、刪除的檔案會更新索引、檔案樹，並推送到開啟中的編輯器。
-    /// macOS 由 FSEvents 觸發；iOS 在回到前景時觸發。
-    func syncIndex() async {
+    /// macOS 由 FSEvents 觸發，只重掃事件帶來的 `paths`；iOS 在回到前景時完整比對（`paths` 為 nil）。
+    func syncIndex(paths: Set<String>? = nil) async {
         guard let index else { return }
         do {
-            let changed = try await index.sync()
+            let changed = if let paths { try await index.sync(paths: paths) } else { try await index.sync() }
             guard !changed.isEmpty else { return }
             refresh()
             if let current = selection, changed.contains(current) {
@@ -136,7 +145,10 @@ final class VaultStore: DocumentSession {
             let path = try fs.create(kind: kind, title: title, in: currentFolder)
             refresh()
             selection = path
-            Task { await syncIndex() }
+            Task {
+                await syncIndex(paths: [path])
+                onLocalChange?()
+            }
         } catch { report(error) }
     }
 
@@ -160,6 +172,7 @@ final class VaultStore: DocumentSession {
         do {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
             let newPath = try fs.rename(path, to: name)
+            onMove?(path, newPath)
             for editor in editors { editor.close(path: path) }
             refresh()
             if selection == path { selection = newPath }
@@ -176,6 +189,7 @@ final class VaultStore: DocumentSession {
                 }
             }
             await syncIndex()
+            onLocalChange?()
         } catch { report(error) }
     }
 
@@ -187,7 +201,34 @@ final class VaultStore: DocumentSession {
             if selection == path { selection = nil }
             refresh()
             await syncIndex()
+            onLocalChange?()
         } catch { report(error) }
+    }
+
+    // MARK: 同步
+
+    /// 同步要改寫、搬移或刪除檔案前：讓編輯器把未存的變更寫回，同步層才能讀到最新內容再合併
+    func prepareForSync(_ path: String) async {
+        await flushEditors()
+    }
+
+    /// 同步改寫、搬移或刪除了本地檔案：更新檔案樹、索引與編輯器
+    func applySyncChange(path: String, oldPath: String?, data: Data?) async {
+        refresh()
+        if let oldPath {
+            for editor in editors { editor.close(path: oldPath) }
+            if selection == oldPath { selection = path }
+        }
+        if let data {
+            lastWritten[path] = data
+            for editor in editors {
+                if path == selection { editor.externalChange(path: path, data: data) } else { editor.close(path: path) }
+            }
+        } else if oldPath == nil {
+            for editor in editors { editor.close(path: path) }
+            if selection == path { selection = nil }
+        }
+        await syncIndex(paths: Set([path] + (oldPath.map { [$0] } ?? [])))
     }
 
     /// [[連結]]：找到就開啟，找不到就在目前資料夾建立預設類型（第一個註冊的外掛）
