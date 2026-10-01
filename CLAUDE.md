@@ -20,5 +20,7 @@ https://claude.ai/code/artifact/7320e690-9586-41ee-88ac-17192f62f8c5
 ```sh
 (cd web && npm install && npm run build)    # 修改 web/src 後
 xcodegen generate                           # 修改 project.yml 後
-(cd Packages/EasyNotesCore && swift test)   # 核心單元測試
+(cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
+./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
+supabase db push                            # 把 supabase/migrations 套到雲端專案
 ```
