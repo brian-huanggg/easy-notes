@@ -20,6 +20,26 @@ public final class PluginRegistry {
         public let defaultName: String
     }
 
+    /// 把 Vault 外的檔案複製進來（匯入 PDF、CSV…）；可選的類型 = 該 Kind 的副檔名
+    public struct ImportCommand: Identifiable {
+        public var id: String { title }
+        public let title: String
+        public let kind: any DocumentKind.Type
+        public let symbol: String
+        public let shortcut: KeyboardShortcut?
+    }
+
+    /// 外掛加在側邊欄的項目（例如 Flashcards 的 Review），App 不寫死
+    public struct Panel: Identifiable {
+        public let id: String
+        public let title: String
+        public let symbol: String
+        /// 側邊欄右側的計數（例如待複習卡片數）；nil = 不顯示。`tint` 為計數的顏色
+        public let badge: @MainActor () -> Int?
+        public let badgeTint: ColorToken?
+        public let content: @MainActor () -> AnyView
+    }
+
     public struct MenuItem: Identifiable {
         public var id: String { title }
         public let title: String
@@ -45,6 +65,8 @@ public final class PluginRegistry {
     private var tints: [String: KindTint] = [:]
     private var editors: [String: (String) -> AnyView] = [:]
     public private(set) var newFileCommands: [NewFileCommand] = []
+    public private(set) var importCommands: [ImportCommand] = []
+    public private(set) var panels: [Panel] = []
     public private(set) var controllers: [any EditorController] = []
     public private(set) var menus: [Menu] = []
 
@@ -69,6 +91,25 @@ public final class PluginRegistry {
                            shortcut: KeyboardShortcut? = nil, defaultName: String) {
         newFileCommands.append(NewFileCommand(title: title, kind: kind, symbol: symbol, shortcut: shortcut,
                                               defaultName: defaultName))
+    }
+
+    /// 新增選單中的「匯入…」；選到的檔案原樣複製進目前所在的資料夾
+    public func addImport(_ title: String, kind: any DocumentKind.Type, symbol: String,
+                          shortcut: KeyboardShortcut? = nil) {
+        importCommands.append(ImportCommand(title: title, kind: kind, symbol: symbol, shortcut: shortcut))
+    }
+
+    /// 側邊欄項目；選取時在內容區顯示 `content`。`id` 在所有外掛間不可重複
+    public func addPanel(id: String, title: String, symbol: String, badgeTint: ColorToken? = nil,
+                         badge: @escaping @MainActor () -> Int? = { nil },
+                         content: @escaping @MainActor () -> some View) {
+        precondition(!panels.contains { $0.id == id }, "重複註冊的 panel：\(id)")
+        panels.append(Panel(id: id, title: title, symbol: symbol, badge: badge, badgeTint: badgeTint,
+                            content: { AnyView(content()) }))
+    }
+
+    public func panel(id: String) -> Panel? {
+        panels.first { $0.id == id }
     }
 
     public func addController(_ controller: any EditorController) {

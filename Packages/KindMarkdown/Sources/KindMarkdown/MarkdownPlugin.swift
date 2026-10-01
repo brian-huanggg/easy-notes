@@ -21,7 +21,8 @@ public enum MarkdownPlugin: EasyNotesPlugin {
             [
                 .init("項目清單") { editor.exec("bullet") },
                 .init("待辦事項", shortcut: KeyboardShortcut("l", modifiers: [.command, .shift])) { editor.exec("task") },
-                .init("[[連結]]", shortcut: KeyboardShortcut("k")) { editor.exec("link") },
+                // ⌘K 是外殼的快速開啟
+                .init("[[連結]]", shortcut: KeyboardShortcut("k", modifiers: [.command, .shift])) { editor.exec("link") },
             ],
         ])
     }

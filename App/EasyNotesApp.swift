@@ -14,6 +14,7 @@ private let plugins: [any EasyNotesPlugin.Type] = [
 struct EasyNotesApp: App {
     @State private var store: VaultStore
     @State private var sync: SyncCoordinator
+    @State private var shell = ShellState()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -31,6 +32,7 @@ struct EasyNotesApp: App {
             ContentView()
                 .environment(store)
                 .environment(sync)
+                .environment(shell)
                 .environment(\.documentSession, store)
         }
         .onChange(of: scenePhase) { _, phase in
@@ -45,14 +47,33 @@ struct EasyNotesApp: App {
             }
         }
         .commands {
-            CommandGroup(after: .newItem) {
-                ForEach(store.plugins.newFileCommands) { command in
-                    Button(command.title) { store.create(command.kind, title: command.defaultName) }
-                        .keyboardShortcut(command.shortcut)
-                }
+            CommandGroup(replacing: .newItem) {
+                NewDocumentItems(store: store, shell: shell)
+            }
+            CommandMenu("前往") {
+                Button("快速開啟…") { shell.showQuickOpen = true }
+                    .keyboardShortcut("k")
+                Divider()
+                Button("上一頁") { store.goBack() }
+                    .keyboardShortcut("[")
+                    .disabled(store.backStack.isEmpty)
+                Button("下一頁") { store.goForward() }
+                    .keyboardShortcut("]")
+                    .disabled(store.forwardStack.isEmpty)
+                Divider()
+                Button("所有文件") { store.navigate(.all) }
+                Button("最近") { store.navigate(.recents) }
             }
             PluginMenus(menus: store.plugins.menus)
         }
+
+        #if os(macOS)
+        Settings {
+            MeView()
+                .environment(store)
+                .environment(sync)
+        }
+        #endif
     }
 }
 

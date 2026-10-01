@@ -6,6 +6,20 @@ public struct SearchHit: Identifiable, Hashable, Sendable {
     public let title: String
     /// 以 `\u{1}` … `\u{2}` 標記命中文字，UI 端轉成粗體
     public let snippet: String
+
+    public init(path: String, title: String, snippet: String) {
+        self.path = path
+        self.title = title
+        self.snippet = snippet
+    }
+}
+
+/// 索引中的一個檔案（列表頁、側邊欄計數用）
+public struct IndexedFile: Identifiable, Hashable, Sendable {
+    public var id: String { path }
+    public let path: String
+    public let title: String
+    public let mtime: Date
 }
 
 public struct TagCount: Identifiable, Hashable, Sendable {
@@ -213,6 +227,23 @@ public actor VaultIndex {
     public func tags() throws -> [TagCount] {
         try db.query("SELECT tag, COUNT(DISTINCT path) FROM tags GROUP BY tag COLLATE NOCASE ORDER BY tag COLLATE NOCASE") {
             TagCount(tag: $0.text(0), count: $0.int(1))
+        }
+    }
+
+    /// 所有已索引的檔案，最近修改的在前
+    public func files() throws -> [IndexedFile] {
+        try db.query("SELECT path, title, mtime FROM files ORDER BY mtime DESC") {
+            IndexedFile(path: $0.text(0), title: $0.text(1), mtime: Date(timeIntervalSince1970: $0.double(2)))
+        }
+    }
+
+    /// 帶有標籤 `tag`（含子標籤 `tag/…`）的檔案，最近修改的在前
+    public func files(taggedWith tag: String) throws -> [IndexedFile] {
+        try db.query("""
+            SELECT DISTINCT f.path, f.title, f.mtime FROM tags t JOIN files f ON f.path = t.path
+            WHERE t.tag = ? COLLATE NOCASE OR t.tag LIKE ? ORDER BY f.mtime DESC
+            """, [.text(tag), .text(tag + "/%")]) {
+            IndexedFile(path: $0.text(0), title: $0.text(1), mtime: Date(timeIntervalSince1970: $0.double(2)))
         }
     }
 

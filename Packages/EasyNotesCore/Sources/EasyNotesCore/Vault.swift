@@ -113,6 +113,23 @@ public struct VaultFS: Sendable {
         return path
     }
 
+    /// 把 Vault 外的檔案複製進 `folder`，同名時加上編號；回傳相對路徑
+    public func importFile(from source: URL, in folder: String = "") throws -> String {
+        let base = source.deletingPathExtension().lastPathComponent
+        let ext = source.pathExtension
+        func name(_ n: Int) -> String {
+            let stem = n == 1 ? base : "\(base) \(n)"
+            return ext.isEmpty ? stem : "\(stem).\(ext)"
+        }
+        var n = 1
+        while FileManager.default.fileExists(atPath: url(for: join(folder, name(n))).path(percentEncoded: false)) { n += 1 }
+        let path = join(folder, name(n))
+        let target = url(for: path)
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: source, to: target)
+        return path
+    }
+
     public func createFolder(named name: String, in folder: String = "") throws -> String {
         let path = join(folder, name)
         try FileManager.default.createDirectory(at: url(for: path), withIntermediateDirectories: true)
