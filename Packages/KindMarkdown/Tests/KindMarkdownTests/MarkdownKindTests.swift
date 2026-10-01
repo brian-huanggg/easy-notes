@@ -25,3 +25,17 @@ struct MarkdownIndexTests {
         #expect(entry.title == "隨手記")
     }
 }
+
+struct MarkdownMergeTests {
+    @Test func mergesNonOverlappingEdits() throws {
+        let base = Data("# A\n\n一\n\n二\n".utf8)
+        let merged = try #require(MarkdownKind.merge(base: base, local: Data("# A\n\n一改\n\n二\n".utf8),
+                                                     remote: Data("# A\n\n一\n\n二改\n".utf8)))
+        #expect(String(decoding: merged, as: UTF8.self) == "# A\n\n一改\n\n二改\n")
+    }
+
+    @Test func withoutBaseOnlyIdenticalContentMerges() {
+        #expect(MarkdownKind.merge(base: nil, local: Data("a".utf8), remote: Data("a".utf8)) == Data("a".utf8))
+        #expect(MarkdownKind.merge(base: nil, local: Data("a".utf8), remote: Data("b".utf8)) == nil)
+    }
+}

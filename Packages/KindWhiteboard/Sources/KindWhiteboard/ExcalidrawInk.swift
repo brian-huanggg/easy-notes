@@ -81,6 +81,39 @@ public struct ExcalidrawScene {
         try JSONSerialization.data(withJSONObject: raw, options: [.prettyPrinted, .sortedKeys])
     }
 
+    // MARK: 合併
+
+    /// 與 Excalidraw 官方協作相同：依元素 id 取 version 較高者，同 version 取 versionNonce 較小者。
+    /// 刪除是墓碑（`isDeleted`），所以只在一邊出現的元素一定是新增的，直接保留。
+    /// 順序沿用本地，遠端新增的元素依遠端順序附加在後；`files` 取聯集，`appState` 用本地。
+    public static func merge(local: ExcalidrawScene, remote: ExcalidrawScene) -> ExcalidrawScene {
+        let remoteByID = Dictionary(remote.elements.compactMap { el in (el["id"] as? String).map { ($0, el) } },
+                                    uniquingKeysWith: { a, _ in a })
+        var seen = Set<String>()
+        var result: [[String: Any]] = local.elements.map { el in
+            guard let id = el["id"] as? String else { return el }
+            seen.insert(id)
+            guard let other = remoteByID[id] else { return el }
+            return wins(other, over: el) ? other : el
+        }
+        result += remote.elements.filter { el in
+            guard let id = el["id"] as? String else { return false }
+            return !seen.contains(id)
+        }
+        var merged = local
+        merged.raw["elements"] = result
+        let localFiles = local.raw["files"] as? [String: Any] ?? [:]
+        let remoteFiles = remote.raw["files"] as? [String: Any] ?? [:]
+        merged.raw["files"] = localFiles.merging(remoteFiles) { mine, _ in mine }
+        return merged
+    }
+
+    private static func wins(_ a: [String: Any], over b: [String: Any]) -> Bool {
+        let va = number(a["version"]) ?? 0, vb = number(b["version"]) ?? 0
+        if va != vb { return va > vb }
+        return (number(a["versionNonce"]) ?? 0) < (number(b["versionNonce"]) ?? 0)
+    }
+
     // MARK: freedraw ⇄ InkStroke
 
     public var inkStrokes: [InkStroke] {
@@ -221,6 +254,13 @@ public enum InkKind: DocumentKind {
             .filter { $0["type"] as? String == "text" && $0["isDeleted"] as? Bool != true }
             .compactMap { $0["text"] as? String }
         return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: texts.joined(separator: "\n"))
+    }
+
+    /// 依元素 id + version 合併，不需要 base；任一邊不是合法的 .excalidraw 才交給衝突副本
+    public static func merge(base: Data?, local: Data, remote: Data) -> Data? {
+        if local == remote { return local }
+        guard let l = try? ExcalidrawScene(data: local), let r = try? ExcalidrawScene(data: remote) else { return nil }
+        return try? ExcalidrawScene.merge(local: l, remote: r).data()
     }
 }
 

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Vault 中的一個節點（資料夾或檔案）。以相對路徑作為身分，跨裝置同步時也用它。
+/// Vault 中的一個節點（資料夾或檔案）。UI 以相對路徑識別；跨裝置同步另有穩定的 file id（見 SyncEngine）。
 public struct VaultNode: Identifiable, Hashable, Sendable {
     public var id: String { path }
     public let path: String

@@ -26,6 +26,12 @@ public enum MarkdownKind: DocumentKind {
         )
     }
 
+    /// diff3 以行為單位合併；沒有共同基準（兩台裝置各自新建同名檔）時只接受完全相同的內容
+    public static func merge(base: Data?, local: Data, remote: Data) -> Data? {
+        guard let base else { return local == remote ? local : nil }
+        return Diff3.merge(base: base, local: local, remote: remote)
+    }
+
     public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
         let text = String(decoding: data, as: UTF8.self)
         let updated = renameLinks(in: text, from: oldName, to: newName)
