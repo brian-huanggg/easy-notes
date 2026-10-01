@@ -34,7 +34,8 @@ final class SyncCoordinator {
     @ObservationIgnored private var pendingSince: Date?
     @ObservationIgnored private var channel: RealtimeChannelV2?
     @ObservationIgnored private var isActive = true
-    @ObservationIgnored private var nonce: String?
+    /// 只記最後一個會和 Apple 實際送出的 token 對不上（首次登入 nonce mismatch），所以全部記下，完成時依 token 反查。
+    @ObservationIgnored private var nonces: [String: String] = [:]
 
     static let idleDelay: Duration = .seconds(3)
     static let maxDelay: TimeInterval = 30
@@ -66,9 +67,10 @@ final class SyncCoordinator {
 
     func prepare(_ request: ASAuthorizationAppleIDRequest) {
         let raw = (0..<32).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined()
-        nonce = raw
+        let hashed = SHA256.hash(data: Data(raw.utf8)).map { String(format: "%02x", $0) }.joined()
+        nonces[hashed] = raw
         request.requestedScopes = [.email]
-        request.nonce = SHA256.hash(data: Data(raw.utf8)).map { String(format: "%02x", $0) }.joined()
+        request.nonce = hashed
     }
 
     func complete(_ result: Result<ASAuthorization, Error>) async {
@@ -76,12 +78,16 @@ final class SyncCoordinator {
         switch result {
         case .success(let authorization):
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let token = credential.identityToken.flatMap({ String(data: $0, encoding: .utf8) }),
-                  let nonce
+                  let token = credential.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
             else {
                 authError = "Apple 沒有回傳登入憑證"
                 return
             }
+            guard let nonce = Self.nonceClaim(token).flatMap({ nonces[$0] }) else {
+                authError = "登入憑證與這次登入要求不符，請再試一次"
+                return
+            }
+            nonces = [:]
             do {
                 try await supabase.auth.signInWithIdToken(credentials: .init(provider: .apple, idToken: token, nonce: nonce))
             } catch {
@@ -90,6 +96,18 @@ final class SyncCoordinator {
         case .failure(let error):
             if (error as? ASAuthorizationError)?.code != .canceled { authError = error.localizedDescription }
         }
+    }
+
+    /// identity token（JWT）payload 裡的 nonce claim，即 Apple 收到的 SHA256(nonce)
+    private static func nonceClaim(_ jwt: String) -> String? {
+        let parts = jwt.split(separator: ".")
+        guard parts.count == 3 else { return nil }
+        var base64 = parts[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
+        guard let data = Data(base64Encoded: base64),
+              let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return payload["nonce"] as? String
     }
 
     func signOut() async {
