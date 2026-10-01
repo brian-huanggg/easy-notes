@@ -100,6 +100,9 @@ struct SidebarView: View {
         .navigationTitle("EasyNotes")
         .toolbar {
             ToolbarItem {
+                SyncStatusButton()
+            }
+            ToolbarItem {
                 Menu {
                     ForEach(store.plugins.newFileCommands) { command in
                         Button(command.title, systemImage: command.symbol) {

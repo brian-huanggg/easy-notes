@@ -72,6 +72,50 @@ public actor VaultIndex {
         return changed
     }
 
+    /// 只重掃事件帶來的路徑（FSEvents、同步）。資料夾會展開成其下的檔案；不存在的路徑連同其下的索引一併移除。
+    /// 回傳新增、修改、刪除的檔案路徑。
+    @discardableResult
+    public func sync(paths: Set<String>) throws -> Set<String> {
+        var targets = Set<String>()
+        for path in paths where !path.isEmpty {
+            targets.formUnion(try db.query("SELECT path FROM files WHERE path = ? OR path LIKE ? ESCAPE '\\'",
+                                           [.text(path), .text(Self.likePrefix(path))]) { $0.text(0) })
+            var isDir: ObjCBool = false
+            let url = fs.url(for: path)
+            guard FileManager.default.fileExists(atPath: url.path(percentEncoded: false), isDirectory: &isDir) else { continue }
+            if isDir.boolValue {
+                let walker = FileManager.default.enumerator(at: url, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
+                while let child = walker?.nextObject() as? URL { targets.insert(fs.path(for: child)) }
+            } else {
+                targets.insert(path)
+            }
+        }
+        var changed = Set<String>()
+        try db.transaction {
+            for path in targets {
+                let old = try db.query("SELECT mtime, size FROM files WHERE path = ?", [.text(path)]) {
+                    (mtime: $0.double(0), size: $0.int(1))
+                }.first
+                guard fs.kinds.kind(for: path) != nil, let stat = try? fs.fileStat(path) else {
+                    if old != nil {
+                        try removeRows(path)
+                        changed.insert(path)
+                    }
+                    continue
+                }
+                if let old, old.mtime == stat.mtime, old.size == stat.size { continue }
+                try indexFile(path, data: try fs.read(path), mtime: stat.mtime, size: stat.size)
+                changed.insert(path)
+            }
+        }
+        return changed
+    }
+
+    private static func likePrefix(_ path: String) -> String {
+        path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_") + "/%"
+    }
+
     /// App 寫入檔案後立即更新該檔索引（不必等下一次 sync）
     public func update(_ path: String, data: Data) throws {
         let stat = try fs.fileStat(path)

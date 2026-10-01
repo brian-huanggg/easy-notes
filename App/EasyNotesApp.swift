@@ -13,6 +13,7 @@ private let plugins: [any EasyNotesPlugin.Type] = [
 @main
 struct EasyNotesApp: App {
     @State private var store: VaultStore
+    @State private var sync: SyncCoordinator
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -20,20 +21,27 @@ struct EasyNotesApp: App {
         for plugin in plugins { plugin.register(in: registry) }
         let kinds: KindRegistry
         do { kinds = try registry.makeKinds() } catch { fatalError("外掛註冊衝突：\(error)") }
-        _store = State(initialValue: VaultStore(plugins: registry, kinds: kinds))
+        let store = VaultStore(plugins: registry, kinds: kinds)
+        _store = State(initialValue: store)
+        _sync = State(initialValue: SyncCoordinator(store: store))
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(store)
+                .environment(sync)
                 .environment(\.documentSession, store)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await store.syncIndex() } // 在「檔案」App 或其他裝置改過的檔案
+                Task { await store.syncIndex() } // 在「檔案」App 改過的檔案
+                sync.scenePhaseChanged(active: true)
             } else {
-                Task { await store.flushEditors() }
+                Task {
+                    await store.flushEditors()
+                    sync.scenePhaseChanged(active: false)
+                }
             }
         }
         .commands {
