@@ -9,6 +9,9 @@ options:
 packages:
   EasyNotesCore:
     path: Packages/EasyNotesCore
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.55.0
 
 settings:
   base:
@@ -30,6 +33,8 @@ targets:
         buildPhase: resources
     dependencies:
       - package: EasyNotesCore
+      - package: Supabase
+        product: Supabase
     info:
       path: App/Info.plist
       properties:
