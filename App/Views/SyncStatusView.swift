@@ -1,59 +1,73 @@
 import AuthenticationServices
 import EasyNotesCore
+import EasyNotesUI
 import SwiftUI
 
-/// 側邊欄工具列的同步狀態：已同步 / 同步中 / 待上傳 / 衝突 / 錯誤，點開可登入、立即同步、查看衝突副本
-struct SyncStatusButton: View {
+/// 同步狀態的顯示：已同步 / 同步中 / 待上傳 / 衝突 / 錯誤 / 未登入
+extension SyncCoordinator {
+    var statusSymbol: String {
+        guard case .signedIn = account else { return "icloud.slash" }
+        if !conflicts.isEmpty { return "exclamationmark.triangle" }
+        if status.isSyncing { return "arrow.triangle.2.circlepath.icloud" }
+        if status.lastError != nil { return "exclamationmark.icloud" }
+        if status.pending > 0 { return "icloud.and.arrow.up" }
+        return "checkmark.icloud"
+    }
+
+    var statusTitle: String {
+        guard case .signedIn = account else { return "未登入，不會同步" }
+        if !conflicts.isEmpty { return "\(conflicts.count) 個衝突副本" }
+        if status.isSyncing { return "同步中" }
+        if status.lastError != nil { return "同步失敗" }
+        if status.pending > 0 { return "\(status.pending) 個檔案待上傳" }
+        return "已同步"
+    }
+
+    /// 「2 分鐘前」；未登入或從未同步時為 nil
+    var statusDetail: String? {
+        guard case .signedIn = account, let last = status.lastSynced else { return nil }
+        return last.formatted(.relative(presentation: .named))
+    }
+
+    var statusTint: ColorToken {
+        guard case .signedIn = account else { return Palette.textTertiary }
+        if !conflicts.isEmpty || status.lastError != nil { return Palette.cardLearn }
+        if status.isSyncing || status.pending > 0 { return Palette.accent }
+        return Palette.cardDue
+    }
+
+    var accountEmail: String? {
+        if case .signedIn(let email) = account { email } else { nil }
+    }
+}
+
+/// 側邊欄底部的同步狀態列，點開可登入、立即同步、查看衝突副本
+struct SyncStatusRow: View {
     @Environment(SyncCoordinator.self) private var sync
     @State private var showPanel = false
-    @State private var showDeleted = false
 
     var body: some View {
         Button {
             showPanel.toggle()
         } label: {
-            Label(title, systemImage: symbol)
+            StatusRow(sync.statusTitle, detail: sync.statusDetail, symbol: sync.statusSymbol, tint: sync.statusTint)
         }
-        .help(title)
+        .buttonStyle(.plain)
+        .help(sync.statusTitle)
         .popover(isPresented: $showPanel) {
-            SyncPanel(close: { showPanel = false }, showDeleted: {
-                showPanel = false
-                showDeleted = true
-            })
-            .frame(minWidth: 280)
-            .padding()
-            .presentationCompactAdaptation(.popover)
+            SyncPanel(close: { showPanel = false })
+                .frame(minWidth: 280)
+                .padding()
+                .presentationCompactAdaptation(.popover)
         }
-        .sheet(isPresented: $showDeleted) {
-            RecentlyDeletedView()
-        }
-    }
-
-    private var symbol: String {
-        guard case .signedIn = sync.account else { return "icloud.slash" }
-        if !sync.conflicts.isEmpty { return "exclamationmark.triangle" }
-        if sync.status.isSyncing { return "arrow.triangle.2.circlepath.icloud" }
-        if sync.status.lastError != nil { return "exclamationmark.icloud" }
-        if sync.status.pending > 0 { return "icloud.and.arrow.up" }
-        return "checkmark.icloud"
-    }
-
-    private var title: String {
-        guard case .signedIn = sync.account else { return "未登入，不會同步" }
-        if !sync.conflicts.isEmpty { return "\(sync.conflicts.count) 個衝突副本" }
-        if sync.status.isSyncing { return "同步中" }
-        if sync.status.lastError != nil { return "同步失敗" }
-        if sync.status.pending > 0 { return "\(sync.status.pending) 個檔案待上傳" }
-        return "已同步"
     }
 }
 
-private struct SyncPanel: View {
+struct SyncPanel: View {
     @Environment(SyncCoordinator.self) private var sync
     @Environment(VaultStore.self) private var store
     @Environment(\.colorScheme) private var colorScheme
-    let close: () -> Void
-    let showDeleted: () -> Void
+    var close: () -> Void = {}
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -73,8 +87,6 @@ private struct SyncPanel: View {
                 Label(email ?? "已登入", systemImage: "person.crop.circle").font(.callout)
                 status
                 if !sync.conflicts.isEmpty { conflicts }
-                Button("最近刪除…", systemImage: "trash") { showDeleted() }
-                    .buttonStyle(.borderless)
                 HStack {
                     Button("立即同步", systemImage: "arrow.clockwise") { sync.syncNow() }
                         .disabled(sync.status.isSyncing)
@@ -120,7 +132,7 @@ private struct SyncPanel: View {
 }
 
 /// 30 天內刪除的檔案（任何裝置刪的都在這裡），可用同一個 file id 還原
-private struct RecentlyDeletedView: View {
+struct RecentlyDeletedView: View {
     @Environment(SyncCoordinator.self) private var sync
     @Environment(\.dismiss) private var dismiss
     @State private var files: [RemoteFile]?

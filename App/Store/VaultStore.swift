@@ -11,9 +11,22 @@ final class VaultStore: DocumentSession {
     let fs: VaultFS
     @ObservationIgnored let plugins: PluginRegistry
     private(set) var tree: [VaultNode] = []
-    var selection: String? {
-        didSet { if selection != oldValue { refreshBacklinks() } }
+    /// 目前位置；`navigate` 會記入上一頁 / 下一頁的歷史
+    private(set) var route: Route = .all {
+        didSet { if route != oldValue { refreshBacklinks() } }
     }
+    private(set) var backStack: [Route] = []
+    private(set) var forwardStack: [Route] = []
+    /// 開啟中的檔案；設為 nil 時回到它所在的資料夾（不記入歷史）
+    var selection: String? {
+        get { route.filePath }
+        set {
+            if let newValue { navigate(.file(newValue)) }
+            else if route.filePath != nil { replace(with: currentFolder.isEmpty ? .all : .folder(currentFolder)) }
+        }
+    }
+    /// 索引中的所有檔案，最近修改的在前（列表頁、側邊欄計數）
+    private(set) var files: [IndexedFile] = []
     var searchText = "" {
         didSet { runSearch() }
     }
@@ -42,11 +55,13 @@ final class VaultStore: DocumentSession {
         index = try? VaultIndex(fs: fs)
         seedIfNeeded()
         refresh()
-        selection = tree.first { !$0.isFolder }?.path
-        Task { await syncIndex() }
+        Task {
+            await syncIndex()
+            scheduleDerivedRefresh()
+        }
         #if DEBUG
         // UI 測試用：xcrun simctl launch … -EasyNotesOpen <path> -EasyNotesSearch <query>
-        if let open = UserDefaults.standard.string(forKey: "EasyNotesOpen") { selection = open }
+        if let open = UserDefaults.standard.string(forKey: "EasyNotesOpen") { route = .file(open) }
         if let query = UserDefaults.standard.string(forKey: "EasyNotesSearch") { searchText = query }
         #endif
         watcher = VaultWatcher(root: root) { [weak self] paths in
@@ -77,6 +92,60 @@ final class VaultStore: DocumentSession {
 
     func refresh() {
         do { tree = try fs.scan() } catch { report(error) }
+    }
+
+    // MARK: 導覽
+
+    func navigate(_ target: Route) {
+        guard target != route else { return }
+        backStack.append(route)
+        forwardStack.removeAll()
+        route = target
+    }
+
+    /// 換掉目前位置但不記入歷史（iPhone 的導覽堆疊、刪除後回到資料夾）
+    func replace(with target: Route) {
+        route = target
+    }
+
+    func goBack() {
+        while let previous = backStack.popLast() {
+            guard exists(previous) else { continue }
+            forwardStack.append(route)
+            route = previous
+            return
+        }
+    }
+
+    func goForward() {
+        while let next = forwardStack.popLast() {
+            guard exists(next) else { continue }
+            backStack.append(route)
+            route = next
+            return
+        }
+    }
+
+    private func exists(_ route: Route) -> Bool {
+        switch route {
+        case .file(let path), .folder(let path):
+            FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false))
+        default: true
+        }
+    }
+
+    /// 改名、搬移後，目前位置與歷史中指向舊路徑的項目一併更新
+    private func routesMoved(from: String, to: String) {
+        route = route.moved(from: from, to: to)
+        backStack = backStack.map { $0.moved(from: from, to: to) }
+        forwardStack = forwardStack.map { $0.moved(from: from, to: to) }
+    }
+
+    /// 刪除後，目前位置若在被刪的路徑下，回到上一層
+    private func routesDeleted(_ path: String) {
+        guard route.points(into: path) else { return }
+        let parent = (path as NSString).deletingLastPathComponent
+        route = parent.isEmpty ? .all : .folder(parent)
     }
 
     // MARK: 讀寫
@@ -122,7 +191,7 @@ final class VaultStore: DocumentSession {
                         for editor in editors { editor.externalChange(path: current, data: data) }
                     }
                 } else {
-                    selection = nil
+                    routesDeleted(current)
                 }
             }
             scheduleDerivedRefresh()
@@ -133,11 +202,13 @@ final class VaultStore: DocumentSession {
 
     // MARK: 檔案操作
 
-    /// 新檔案放在目前選取的資料夾（或選取檔案所在的資料夾）
+    /// 新檔案放在目前所在的資料夾（或開啟中檔案所在的資料夾）；其他頁面放在 Vault 根目錄
     var currentFolder: String {
-        guard let selection else { return "" }
-        if isFolder(selection) { return selection }
-        return (selection as NSString).deletingLastPathComponent
+        switch route {
+        case .folder(let path): path
+        case .file(let path): (path as NSString).deletingLastPathComponent
+        default: ""
+        }
     }
 
     func create(_ kind: any DocumentKind.Type, title: String) {
@@ -154,9 +225,31 @@ final class VaultStore: DocumentSession {
 
     func createFolder() {
         do {
-            let path = try fs.createFolder(named: uniqueFolderName(), in: currentFolder)
+            let path = try fs.createFolder(named: uniqueFolderName(in: currentFolder), in: currentFolder)
             refresh()
-            selection = path
+            navigate(.folder(path))
+        } catch { report(error) }
+    }
+
+    /// 新增第一層資料夾（側邊欄 Spaces 的 +）
+    func createSpace() {
+        do {
+            let path = try fs.createFolder(named: uniqueFolderName(in: ""), in: "")
+            refresh()
+            navigate(.folder(path))
+        } catch { report(error) }
+    }
+
+    /// 把 Vault 外的檔案（匯入 PDF、CSV…）複製進目前所在的資料夾
+    func importFile(_ url: URL) async {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let path = try fs.importFile(from: url, in: currentFolder)
+            refresh()
+            await syncIndex(paths: [path])
+            navigate(.file(path))
+            onLocalChange?()
         } catch { report(error) }
     }
 
@@ -175,7 +268,7 @@ final class VaultStore: DocumentSession {
             onMove?(path, newPath)
             for editor in editors { editor.close(path: path) }
             refresh()
-            if selection == path { selection = newPath }
+            routesMoved(from: path, to: newPath)
 
             for source in sources {
                 let src = source == path ? newPath : source
@@ -198,7 +291,7 @@ final class VaultStore: DocumentSession {
         do {
             try fs.trash(path)
             for editor in editors { editor.close(path: path) }
-            if selection == path { selection = nil }
+            routesDeleted(path)
             refresh()
             await syncIndex()
             onLocalChange?()
@@ -217,7 +310,7 @@ final class VaultStore: DocumentSession {
         refresh()
         if let oldPath {
             for editor in editors { editor.close(path: oldPath) }
-            if selection == oldPath { selection = path }
+            routesMoved(from: oldPath, to: path)
         }
         if let data {
             lastWritten[path] = data
@@ -226,7 +319,7 @@ final class VaultStore: DocumentSession {
             }
         } else if oldPath == nil {
             for editor in editors { editor.close(path: path) }
-            if selection == path { selection = nil }
+            routesDeleted(path)
         }
         await syncIndex(paths: Set([path] + (oldPath.map { [$0] } ?? [])))
     }
@@ -252,10 +345,10 @@ final class VaultStore: DocumentSession {
             && isDir.boolValue
     }
 
-    private func uniqueFolderName() -> String {
+    private func uniqueFolderName(in folder: String) -> String {
         var name = "新資料夾"
         var n = 2
-        while FileManager.default.fileExists(atPath: fs.url(for: currentFolder.isEmpty ? name : "\(currentFolder)/\(name)").path(percentEncoded: false)) {
+        while FileManager.default.fileExists(atPath: fs.url(for: folder.isEmpty ? name : "\(folder)/\(name)").path(percentEncoded: false)) {
             name = "新資料夾 \(n)"
             n += 1
         }
@@ -294,11 +387,32 @@ final class VaultStore: DocumentSession {
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled, let index else { return }
             tags = (try? await index.tags()) ?? []
+            files = (try? await index.files()) ?? []
             let targets = (try? await index.linkTargets()) ?? []
             for editor in editors { editor.linkTargetsChanged(targets) }
             refreshBacklinks()
             if !searchText.isEmpty { runSearch() }
         }
+    }
+
+    // MARK: 列表
+
+    /// `folder` 之下（含子資料夾）的檔案數
+    func fileCount(in folder: String) -> Int {
+        files.count { $0.path.hasPrefix(folder + "/") }
+    }
+
+    func files(taggedWith tag: String) async -> [IndexedFile] {
+        (try? await index?.files(taggedWith: tag)) ?? []
+    }
+
+    /// 顯示名稱：去掉已註冊的副檔名
+    func displayName(_ path: String) -> String {
+        fs.kinds.displayName(path)
+    }
+
+    func kindID(_ path: String) -> String? {
+        fs.kinds.kind(for: path)?.id
     }
 
     private func report(_ error: Error) {

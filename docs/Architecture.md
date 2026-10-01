@@ -161,11 +161,12 @@ registry.addEditor(for: MarkdownKind.id) { path in MarkdownEditorView(path: path
 registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil", shortcut: "n", defaultName: "未命名")
 registry.addController(MarkdownEditor.shared)
 registry.addMenu("格式", sections: [[...], [...]])          // App 以 Commands 呈現，最多 4 個頂層選單
+registry.addImport("匯入 PDF…", kind: PDFKind.self, symbol: "doc.richtext", shortcut: "o")  // 新增選單的匯入；檔案複製進目前資料夾
+registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badge: { dueCount }) { ReviewView() }  // 側邊欄項目
 registry.kinds                                                // → KindRegistry，交給 VaultFS、VaultIndex
 // 之後的 Phase：
 registry.addIndexContributor(CardExtractor())                  // Flashcards：從 md 抽出卡片
 registry.addPreview(for: MarkdownKind.id, MarkdownPreview())   // ![[x]] 嵌入、白板筆記卡片
-registry.addPanel(ReviewPanel())                               // 側邊欄面板、指令
 ```
 
 2026-10-01 決定：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。

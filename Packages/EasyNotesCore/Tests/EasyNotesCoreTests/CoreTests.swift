@@ -67,3 +67,51 @@ struct VaultTests {
         #expect(try vault.scan().first?.children?.count == 2)
     }
 }
+
+/// 以空白分隔、`#` 開頭的詞當作標籤
+enum TaggedKind: DocumentKind {
+    static let id = "tagged"
+    static let fileExtensions = ["tag"]
+    static func template(title: String) -> Data { Data() }
+    static func index(_ data: Data, fileName: String) -> IndexEntry {
+        let text = String(decoding: data, as: UTF8.self)
+        let tags = text.split(whereSeparator: \.isWhitespace).filter { $0.hasPrefix("#") }.map { String($0.dropFirst()) }
+        return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: text, tags: tags)
+    }
+}
+
+struct LibraryTests {
+    @Test func importFileKeepsNameAndAvoidsCollisions() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let vault = VaultFS(root: root.appending(path: "vault"), kinds: try KindRegistry([TextKind.self]))
+        let outside = root.appending(path: "講義.txt")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data("內容".utf8).write(to: outside)
+
+        #expect(try vault.importFile(from: outside, in: "課程") == "課程/講義.txt")
+        #expect(try vault.importFile(from: outside, in: "課程") == "課程/講義 2.txt")
+        #expect(try vault.read("課程/講義 2.txt") == Data("內容".utf8))
+        #expect(FileManager.default.fileExists(atPath: outside.path(percentEncoded: false)))
+    }
+
+    @Test func filesByRecencyAndTag() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let vault = VaultFS(root: root, kinds: try KindRegistry([TaggedKind.self]))
+        try vault.write(Data("#swift/ui".utf8), to: "a.tag")
+        try vault.write(Data("#swift".utf8), to: "b.tag")
+        try vault.write(Data("#reading".utf8), to: "c.tag")
+        let old = Date(timeIntervalSince1970: 1_000_000)
+        try FileManager.default.setAttributes([.modificationDate: old], ofItemAtPath: vault.url(for: "a.tag").path(percentEncoded: false))
+
+        let index = try VaultIndex(fs: vault)
+        try await index.sync()
+        let files = try await index.files()
+        #expect(files.count == 3)
+        #expect(files.last?.path == "a.tag")
+        #expect(files.last?.mtime == old)
+        #expect(Set(try await index.files(taggedWith: "swift").map(\.path)) == ["a.tag", "b.tag"])
+        #expect(try await index.files(taggedWith: "reading").map(\.path) == ["c.tag"])
+    }
+}

@@ -119,7 +119,7 @@
 - [x] Mobile Spaces `sulbD`：「Personal · Pro」、Starred → Pinned、Shared、「3 shared」、「daily」、Edit
 - [x] `C/M Doc Row`「12 blocks」、`Format Bar` 的 ✨
 - [x] 空 Vault `xGsaX` 的「Open Folder…」：Vault 位置已固定為 `~/Documents/EasyNotes`，改為「在 Finder 中顯示」或刪除
-- [ ] 補畫：iPad 版面、⌘K 快速開啟、反向連結 inspector、`[[` 自動完成、游標所在行顯示原始 md 的狀態、衝突提示、Me / 設定 / 同步面板、Sign in with Apple
+- [ ] 補畫：iPad 版面、⌘K 快速開啟、`[[` 自動完成、游標所在行顯示原始 md 的狀態、衝突提示、Me / 設定 / 同步面板、Sign in with Apple
 - [x] Phase 3 畫面（`rHTaT`、`b2AjRQ`）：刪除 Share、columns、「Add Cards」、🔊、🚩（Phase 3 開工前處理即可）
 
 ### 2.5a 設計系統
@@ -134,13 +134,21 @@
 
 ### 2.5b 外殼與導覽
 
-- [ ] Desktop / iPad 側邊欄：Vault 標頭、搜尋（⌘K）、All Documents、Recents、Pinned、Spaces（可展開的檔案樹，檔案用類型圖示）、Tags、Recently Deleted、同步狀態、Settings
-- [ ] PluginRegistry 新增 `addPanel`，讓外掛加側邊欄項目，App 不寫死 Review
-- [ ] ⌘K 快速開啟：取代目前側邊欄的 `.searchable`，重用 FTS5 搜尋與 `HitRow`
-- [ ] 工具列：上一頁 / 下一頁、麵包屑（資料夾 / 檔名）、網格 / 列表、排序、在 Finder 中顯示、New Document 選單
-- [ ] New Document 選單與快捷鍵：新筆記 ⌘N、新白板 ⇧⌘N、匯入 PDF、匯入 CSV、新資料夾，項目來自 `addNewFile` / `addImport`
-- [ ] iPhone：底部分頁（Docs / Search / Spaces / Me），取代 `NavigationSplitView` 的摺疊行為
-- [ ] 反向連結：保留 inspector，套用新樣式
+- [x] Desktop / iPad 側邊欄：Vault 標頭、搜尋（⌘K）、All Documents、Recents、Pinned、Spaces（可展開的檔案樹，檔案用類型圖示）、Tags、Recently Deleted、同步狀態、Settings
+- [x] PluginRegistry 新增 `addPanel`，讓外掛加側邊欄項目，App 不寫死 Review
+- [x] ⌘K 快速開啟：取代目前側邊欄的 `.searchable`，重用 FTS5 搜尋與 `HitRow`
+- [x] 工具列：上一頁 / 下一頁、麵包屑（資料夾 / 檔名）、網格 / 列表、排序、在 Finder 中顯示、New Document 選單
+- [x] New Document 選單與快捷鍵：新筆記 ⌘N、新白板 ⇧⌘N、匯入 PDF、匯入 CSV、新資料夾，項目來自 `addNewFile` / `addImport`
+- [x] iPhone：底部分頁（Docs / Search / Spaces / Me），取代 `NavigationSplitView` 的摺疊行為
+- [x] ~~反向連結：保留 inspector，套用新樣式~~ → 2026-10-02 決定移除反向連結 inspector（索引仍保留反向連結資料）
+
+2026-10-02：外殼改為 `Route`（所有文件 / 最近 / 釘選 / 資料夾 / 標籤 / 檔案 / 外掛面板）＋上一頁 / 下一頁歷史（⌘[ / ⌘]），App 啟動時顯示所有文件。列表頁目前是 2.5c 的骨架（標題 + 統計、子資料夾、網格 / 列表、依修改時間或名稱排序，縮圖用佔位）。補充決定：
+
+- 介面語言統一為繁體中文：App 宣告 `zh-Hant` 在地化，系統選單（檔案、編輯、顯示方式、視窗、輔助說明）也是中文；側邊欄的 Spaces / Tags 顯示為「空間」「標籤」。
+- ⌘K 給快速開啟，Markdown 的「[[連結]]」改為 ⇧⌘K；新資料夾 ⇧⌘F。
+- 移除 Markdown 編輯器工具列上 Spike S1 的載入時間（benchmark）顯示。
+- 側邊欄的「釘選」已有入口，但釘選資料要等下方待決事項（frontmatter 或 `pins.json`）決定後在 2.5c 接上，目前顯示空狀態。
+- 匯入的目的地暫定為目前所在的資料夾（列表頁在 Vault 根目錄）。
 
 ### 2.5c 文件列表
 
@@ -165,7 +173,7 @@
 
 - [x] 字型 → 實作用系統字型（SF Pro + 蘋方-繁），Pen 的 Inter 只是替代
 - [ ] 釘選存 frontmatter 會改動檔案（mtime、同步）；若不想讓釘選觸發同步，改存 `.easynotes/pins.json`（需要集合型合併）
-- [ ] 設計稿的「關聯頁面」是內文還是自動產生的區塊？建議當作內文樣式（`[[連結]]` 獨占一行），反向連結仍放 inspector
+- [ ] 設計稿的「關聯頁面」是內文還是自動產生的區塊？建議當作內文樣式（`[[連結]]` 獨占一行）；反向連結 inspector 已於 2026-10-02 移除
 - [ ] 匯入 PDF / CSV 的目的地：目前所在資料夾，或固定的 `Inbox/`？
 
 驗收測試：

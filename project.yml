@@ -5,6 +5,8 @@ options:
     iOS: "18.0"
     macOS: "15.0"
   createIntermediateGroups: true
+  # 介面只有繁體中文；系統內建選單（檔案、編輯、顯示方式、視窗、輔助說明）也跟著用中文
+  developmentLanguage: zh-Hant
 
 packages:
   EasyNotesCore:
@@ -51,6 +53,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: EasyNotes
+        CFBundleDevelopmentRegion: zh-Hant
+        CFBundleLocalizations: [zh-Hant]
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
