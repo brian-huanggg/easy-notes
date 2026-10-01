@@ -1,0 +1,57 @@
+name: EasyNotes
+options:
+  bundleIdPrefix: app.easynotes
+  deploymentTarget:
+    iOS: "18.0"
+    macOS: "15.0"
+  createIntermediateGroups: true
+
+packages:
+  EasyNotesCore:
+    path: Packages/EasyNotesCore
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  EasyNotes:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: App
+        excludes:
+          - Resources/Editor
+      # 以資料夾參照加入，保留 Editor/ 目錄結構（index.html + editor.js）
+      - path: App/Resources/Editor
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: EasyNotesCore
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: EasyNotes
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # iOS「檔案」App 可看到 Vault
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: true
+        LSApplicationCategoryType: public.app-category.productivity
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.easynotes.EasyNotes
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        # Prototype：macOS 不開沙盒，Vault 直接放在 ~/Documents/EasyNotes
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        ENABLE_PREVIEWS: YES

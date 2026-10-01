@@ -1,0 +1,19 @@
+# Build output
+.build/
+Packages/*/.build/
+DerivedData/
+
+# Node
+web/node_modules/
+
+# Xcode / SwiftPM user state
+xcuserdata/
+*.xcuserstate
+.swiftpm/
+
+# Secrets
+.env
+.env.*
+
+# macOS
+.DS_Store

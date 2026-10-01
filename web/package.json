@@ -1,0 +1,23 @@
+{
+  "name": "easynotes-editor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --minify --format=iife --target=safari17 --outfile=../App/Resources/Editor/editor.js",
+    "dev": "esbuild src/main.ts --bundle --format=iife --target=safari17 --sourcemap=inline --outfile=../App/Resources/Editor/editor.js --watch"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.13",
+    "@lezer/highlight": "^1.2.5",
+    "@lezer/markdown": "^1.7.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
