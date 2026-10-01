@@ -1,4 +1,5 @@
 import EasyNotesCore
+import EasyNotesUI
 import SwiftUI
 
 struct ContentView: View {
@@ -17,7 +18,7 @@ struct ContentView: View {
     @ViewBuilder
     private var detail: some View {
         if let path = store.selection, !store.isFolder(path) {
-            EditorRegistry.editor(for: path, store: store)
+            editor(for: path)
                 .navigationTitle(((path as NSString).lastPathComponent as NSString).deletingPathExtension)
                 #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
@@ -39,6 +40,16 @@ struct ContentView: View {
         } else {
             ContentUnavailableView("選擇或建立一篇筆記", systemImage: "note.text",
                                    description: Text("所有筆記都存在 \(store.fs.root.path(percentEncoded: false))"))
+        }
+    }
+
+    /// 編輯器由各外掛向 PluginRegistry 註冊
+    @ViewBuilder
+    private func editor(for path: String) -> some View {
+        if let editor = store.plugins.editor(for: store.fs.kinds.kind(for: path)?.id, path: path) {
+            editor
+        } else {
+            ContentUnavailableView("不支援的檔案類型", systemImage: "doc.questionmark")
         }
     }
 }
@@ -90,8 +101,11 @@ struct SidebarView: View {
         .toolbar {
             ToolbarItem {
                 Menu {
-                    Button("新筆記", systemImage: "square.and.pencil") { store.create(MarkdownKind.self, title: "未命名") }
-                    Button("新手寫", systemImage: "pencil.tip") { store.create(InkKind.self, title: "手寫") }
+                    ForEach(store.plugins.newFileCommands) { command in
+                        Button(command.title, systemImage: command.symbol) {
+                            store.create(command.kind, title: command.defaultName)
+                        }
+                    }
                     Button("新資料夾", systemImage: "folder.badge.plus") { store.createFolder() }
                 } label: {
                     Label("新增", systemImage: "plus")
@@ -129,10 +143,7 @@ struct SidebarView: View {
 
     private func icon(for node: VaultNode) -> String {
         if node.isFolder { return "folder" }
-        switch DocumentKinds.kind(for: store.fs.url(for: node.path))?.id {
-        case InkKind.id: return "pencil.tip"
-        default: return "doc.text"
-        }
+        return store.plugins.symbol(for: store.fs.kinds.kind(for: node.path)?.id)
     }
 }
 

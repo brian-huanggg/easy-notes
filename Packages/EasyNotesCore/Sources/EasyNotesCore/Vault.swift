@@ -16,11 +16,13 @@ public struct VaultNode: Identifiable, Hashable, Sendable {
 /// 檔案系統操作。檔案即真相：這裡沒有任何資料庫，索引都能由檔案重建。
 public struct VaultFS: Sendable {
     public let root: URL
+    public let kinds: KindRegistry
     /// App 設定與快取（類似 .obsidian/），不顯示在檔案樹中
     public static let metaFolder = ".easynotes"
 
-    public init(root: URL) {
+    public init(root: URL, kinds: KindRegistry) {
         self.root = root
+        self.kinds = kinds
     }
 
     public func url(for path: String) -> URL {
@@ -50,7 +52,7 @@ public struct VaultFS: Sendable {
                 return VaultNode(path: path(for: url), name: url.lastPathComponent, isFolder: true,
                                  children: try children(of: url))
             }
-            guard DocumentKinds.kind(for: url) != nil else { return nil }
+            guard kinds.kind(for: url) != nil else { return nil }
             return VaultNode(path: path(for: url), name: url.lastPathComponent, isFolder: false, children: nil)
         }
         .sorted { lhs, rhs in
@@ -145,7 +147,7 @@ public struct VaultFS: Sendable {
         guard !q.isEmpty else { return [] }
         return try allFiles().filter { node in
             if node.displayName.localizedCaseInsensitiveContains(q) { return true }
-            guard let kind = DocumentKinds.kind(for: url(for: node.path)),
+            guard let kind = kinds.kind(for: node.path),
                   let data = try? read(node.path) else { return false }
             return kind.index(data, fileName: node.name).plainText.localizedCaseInsensitiveContains(q)
         }

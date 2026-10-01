@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --minify --format=iife --target=safari17 --outfile=../App/Resources/Editor/editor.js",
-    "dev": "esbuild src/main.ts --bundle --format=iife --target=safari17 --sourcemap=inline --outfile=../App/Resources/Editor/editor.js --watch"
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

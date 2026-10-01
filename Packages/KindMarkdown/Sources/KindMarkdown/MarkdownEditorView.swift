@@ -1,21 +1,22 @@
+import EasyNotesUI
 import SwiftUI
 
 struct MarkdownEditorView: View {
     let path: String
-    @Environment(VaultStore.self) private var store
-    private let host = WebEditorHost.shared
+    @Environment(\.documentSession) private var session
+    private let editor = MarkdownEditor.shared
 
     var body: some View {
-        WebEditorContainer(host: host)
+        WebEditorContainer(host: editor.host)
             .task(id: path) {
-                host.load(id: path, text: store.readText(path))
+                editor.load(id: path, text: session?.readText(path) ?? "")
             }
             .toolbar {
                 ToolbarItemGroup {
                     Menu {
-                        Button("Benchmark 1 萬行") { host.benchmark(lines: 10_000) }
-                        Button("Benchmark 5 萬行") { host.benchmark(lines: 50_000) }
-                        Button("重新載入目前筆記") { host.load(id: path, text: store.readText(path)) }
+                        Button("Benchmark 1 萬行") { editor.benchmark(lines: 10_000) }
+                        Button("Benchmark 5 萬行") { editor.benchmark(lines: 50_000) }
+                        Button("重新載入目前筆記") { editor.load(id: path, text: session?.readText(path) ?? "") }
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "gauge.with.dots.needle.33percent")
@@ -28,6 +29,6 @@ struct MarkdownEditorView: View {
     }
 
     private var loadLabel: String {
-        host.lastLoadMs.map { String(format: "%.1f ms", $0) } ?? "–"
+        editor.lastLoadMs.map { String(format: "%.1f ms", $0) } ?? "–"
     }
 }

@@ -1,30 +1,32 @@
-import EasyNotesCore
+import EasyNotesUI
 import PencilKit
 import SwiftUI
 
-/// 手寫：PencilKit 輸入，存成 Excalidraw freedraw（見 EasyNotesCore/Ink）。
+/// 手寫：PencilKit 輸入，存成 Excalidraw freedraw（見 ExcalidrawInk）。
 /// 非 freedraw 元素（例如在 excalidraw.com 加的圖形）會原封不動保留。
 struct InkEditorView: View {
     let path: String
-    @Environment(VaultStore.self) private var store
+    @Environment(\.documentSession) private var session
 
     var body: some View {
-        #if os(iOS)
-        InkCanvas(path: path, store: store)
-            .ignoresSafeArea(edges: .bottom)
-        #else
-        InkPreview(scene: (try? ExcalidrawScene(data: store.readData(path))) ?? ExcalidrawScene())
-        #endif
+        if let session {
+            #if os(iOS)
+            InkCanvas(path: path, session: session)
+                .ignoresSafeArea(edges: .bottom)
+            #else
+            InkPreview(scene: (try? ExcalidrawScene(data: session.readData(path))) ?? ExcalidrawScene())
+            #endif
+        }
     }
 }
 
 #if os(iOS)
 private struct InkCanvas: UIViewRepresentable {
     let path: String
-    let store: VaultStore
+    let session: any DocumentSession
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(path: path, store: store)
+        Coordinator(path: path, session: session)
     }
 
     func makeUIView(context: Context) -> PKCanvasView {
@@ -58,15 +60,15 @@ private struct InkCanvas: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, PKCanvasViewDelegate {
         let path: String
-        let store: VaultStore
+        let session: any DocumentSession
         let toolPicker = PKToolPicker()
         var scene: ExcalidrawScene
         private var saveTask: Task<Void, Never>?
 
-        init(path: String, store: VaultStore) {
+        init(path: String, session: any DocumentSession) {
             self.path = path
-            self.store = store
-            scene = (try? ExcalidrawScene(data: store.readData(path))) ?? ExcalidrawScene()
+            self.session = session
+            scene = (try? ExcalidrawScene(data: session.readData(path))) ?? ExcalidrawScene()
         }
 
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
@@ -84,7 +86,7 @@ private struct InkCanvas: UIViewRepresentable {
             let before = try? scene.data()
             scene.update(from: drawing)
             guard let data = try? scene.data(), data != before else { return }
-            store.write(data, to: path)
+            session.write(data, to: path)
         }
     }
 }
