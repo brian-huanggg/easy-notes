@@ -1,12 +1,15 @@
 import EasyNotesCore
+import EasyNotesUI
 import Foundation
 import Observation
 
 /// App 層的 Vault 狀態：檔案樹、選取、搜尋、反向連結、標籤。
 /// 所有內容都存在檔案裡；索引（SQLite）只是可重建的加速結構。
+/// 不認識任何檔案類型：類型相關的行為交給 DocumentKind，編輯器狀態交給各外掛的 EditorController。
 @MainActor @Observable
-final class VaultStore {
+final class VaultStore: DocumentSession {
     let fs: VaultFS
+    @ObservationIgnored let plugins: PluginRegistry
     private(set) var tree: [VaultNode] = []
     var selection: String? {
         didSet { if selection != oldValue { refreshBacklinks() } }
@@ -27,8 +30,9 @@ final class VaultStore {
     @ObservationIgnored private var lastWritten: [String: Data] = [:]
     @ObservationIgnored private var watcher: VaultWatcher?
 
-    init(root: URL = VaultStore.defaultRoot()) {
-        fs = VaultFS(root: root)
+    init(plugins: PluginRegistry, kinds: KindRegistry, root: URL = VaultStore.defaultRoot()) {
+        self.plugins = plugins
+        fs = VaultFS(root: root, kinds: kinds)
         writer = VaultWriter(fs: fs)
         index = try? VaultIndex(fs: fs)
         seedIfNeeded()
@@ -43,6 +47,14 @@ final class VaultStore {
         watcher = VaultWatcher(root: root) { [weak self] in
             Task { await self?.syncIndex() }
         }
+        for controller in plugins.controllers { controller.attach(self) }
+    }
+
+    private var editors: [any EditorController] { plugins.controllers }
+
+    /// 讓編輯器把尚未回報的變更寫回；改名、刪除、進入背景前呼叫
+    func flushEditors() async {
+        for editor in editors { await editor.flush() }
     }
 
     /// macOS：~/Documents/EasyNotes（Finder 與其他編輯器可直接開啟）
@@ -96,9 +108,9 @@ final class VaultStore {
             if let current = selection, changed.contains(current) {
                 if FileManager.default.fileExists(atPath: fs.url(for: current).path(percentEncoded: false)) {
                     let data = readData(current)
-                    if data != lastWritten[current], DocumentKinds.kind(for: fs.url(for: current))?.id == MarkdownKind.id {
+                    if data != lastWritten[current] {
                         lastWritten[current] = data
-                        WebEditorHost.shared.applyRemote(id: current, text: String(decoding: data, as: UTF8.self))
+                        for editor in editors { editor.externalChange(path: current, data: data) }
                     }
                 } else {
                     selection = nil
@@ -140,7 +152,7 @@ final class VaultStore {
     func rename(_ path: String, to newName: String) async {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        await WebEditorHost.shared.flush()
+        await flushEditors()
         let ext = (path as NSString).pathExtension
         let name = isFolder(path) || ext.isEmpty || trimmed.hasSuffix("." + ext) ? trimmed : "\(trimmed).\(ext)"
         let oldTitle = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
@@ -148,45 +160,49 @@ final class VaultStore {
         do {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
             let newPath = try fs.rename(path, to: name)
-            WebEditorHost.shared.close(id: path)
+            for editor in editors { editor.close(path: path) }
             refresh()
             if selection == path { selection = newPath }
 
             for source in sources {
                 let src = source == path ? newPath : source
-                let text = readText(src)
-                let updated = MarkdownKind.renameLinks(in: text, from: oldTitle, to: newTitle)
-                guard updated != text else { continue }
-                let data = Data(updated.utf8)
+                guard let kind = fs.kinds.kind(for: src),
+                      let data = kind.renameLinks(in: readData(src), from: oldTitle, to: newTitle) else { continue }
                 lastWritten[src] = data
                 try fs.write(data, to: src)
-                if src == selection { WebEditorHost.shared.applyRemote(id: src, text: updated) }
-                else { WebEditorHost.shared.close(id: src) }
+                for editor in editors {
+                    if src == selection { editor.externalChange(path: src, data: data) }
+                    else { editor.close(path: src) }
+                }
             }
             await syncIndex()
         } catch { report(error) }
     }
 
     func delete(_ path: String) async {
-        await WebEditorHost.shared.flush()
+        await flushEditors()
         do {
             try fs.trash(path)
-            WebEditorHost.shared.close(id: path)
+            for editor in editors { editor.close(path: path) }
             if selection == path { selection = nil }
             refresh()
             await syncIndex()
         } catch { report(error) }
     }
 
-    /// [[連結]]：找到就開啟，找不到就在目前資料夾建立
+    /// [[連結]]：找到就開啟，找不到就在目前資料夾建立預設類型（第一個註冊的外掛）
     func openLink(_ target: String) {
         do {
             if let path = try fs.resolveLink(target) {
                 selection = path
-            } else {
-                create(MarkdownKind.self, title: target)
+            } else if let kind = plugins.defaultKind {
+                create(kind, title: target)
             }
         } catch { report(error) }
+    }
+
+    func search(_ query: String) {
+        searchText = query
     }
 
     func isFolder(_ path: String) -> Bool {
@@ -237,7 +253,8 @@ final class VaultStore {
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled, let index else { return }
             tags = (try? await index.tags()) ?? []
-            WebEditorHost.shared.setLinkTargets((try? await index.linkTargets()) ?? [])
+            let targets = (try? await index.linkTargets()) ?? []
+            for editor in editors { editor.linkTargetsChanged(targets) }
             refreshBacklinks()
             if !searchText.isEmpty { runSearch() }
         }
@@ -256,7 +273,9 @@ final class VaultStore {
         for (path, content) in Seed.files {
             try? fs.write(Data(content.utf8), to: path)
         }
-        try? fs.write(InkKind.template(title: "手寫測試"), to: "Spike/手寫測試.excalidraw")
+        for (path, title) in Seed.templates {
+            if let kind = fs.kinds.kind(for: path) { try? fs.write(kind.template(title: title), to: path) }
+        }
         try? fs.write(Data(), to: "\(VaultFS.metaFolder)/seeded")
     }
 }

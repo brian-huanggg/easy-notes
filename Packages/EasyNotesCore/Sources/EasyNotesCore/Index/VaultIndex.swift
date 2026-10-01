@@ -87,9 +87,9 @@ public actor VaultIndex {
     private func indexFile(_ path: String, data: Data, mtime: Double, size: Int) throws {
         try removeRows(path)
         let url = fs.url(for: path)
-        guard let kind = DocumentKinds.kind(for: url) else { return }
+        guard let kind = fs.kinds.kind(for: url) else { return }
         let entry = kind.index(data, fileName: url.lastPathComponent)
-        let name = Self.displayName(path)
+        let name = fs.kinds.displayName(path)
         try db.run("INSERT INTO files(path, name, title, mtime, size) VALUES(?, ?, ?, ?, ?)",
                    [.text(path), .text(name), .text(entry.title), .double(mtime), .int(size)])
         try db.run("INSERT INTO fts(path, title, body) VALUES(?, ?, ?)",
@@ -151,7 +151,7 @@ public actor VaultIndex {
 
     /// 連到 `path` 的筆記，附上含有連結的那一行
     public func backlinks(to path: String) throws -> [SearchHit] {
-        let name = Self.displayName(path)
+        let name = fs.kinds.displayName(path)
         return try db.query("""
             SELECT DISTINCT l.src, f.title, x.body FROM links l
             JOIN files f ON f.path = l.src JOIN fts x ON x.path = l.src
@@ -178,15 +178,6 @@ public actor VaultIndex {
     }
 
     // MARK: 工具
-
-    static func displayName(_ path: String) -> String {
-        var name = (path as NSString).lastPathComponent
-        while !(name as NSString).pathExtension.isEmpty,
-              DocumentKinds.all.contains(where: { $0.fileExtensions.contains((name as NSString).pathExtension.lowercased()) }) {
-            name = (name as NSString).deletingPathExtension
-        }
-        return name
-    }
 
     /// 片段只給人看：去掉 Markdown 語法，`[[目標|別名]]` 顯示別名。保留命中標記。
     static func clean(_ snippet: String) -> String {

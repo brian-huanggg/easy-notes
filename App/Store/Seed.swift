@@ -1,4 +1,9 @@
 enum Seed {
+    /// 由對應的外掛產生空白範本（外掛沒註冊就略過）
+    static let templates: [(path: String, title: String)] = [
+        ("Spike/手寫測試.excalidraw", "手寫測試"),
+    ]
+
     static let files: [(String, String)] = [
         ("歡迎使用 EasyNotes.md", """
         # 歡迎使用 EasyNotes

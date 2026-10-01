@@ -1,3 +1,4 @@
+import EasyNotesCore
 import Foundation
 
 public enum MarkdownKind: DocumentKind {
@@ -23,6 +24,12 @@ public enum MarkdownKind: DocumentKind {
             links: matches(of: #"\[\[([^\]\n|]+)(?:\|[^\]\n]*)?\]\]"#, in: body),
             tags: matches(of: #"(?<![\p{L}\p{N}_#&/])#([\p{L}\p{N}_/-]+)"#, in: body)
         )
+    }
+
+    public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
+        let text = String(decoding: data, as: UTF8.self)
+        let updated = renameLinks(in: text, from: oldName, to: newName)
+        return updated == text ? nil : Data(updated.utf8)
     }
 
     /// 筆記改名時更新 `[[舊名]]` / `[[舊名|別名]]` / `![[舊名]]`，保留別名，不分大小寫

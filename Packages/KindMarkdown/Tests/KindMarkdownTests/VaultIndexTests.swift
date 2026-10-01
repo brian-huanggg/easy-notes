@@ -1,10 +1,21 @@
 import Foundation
 import Testing
 @testable import EasyNotesCore
+@testable import KindMarkdown
+
+/// 外掛之間不互相 import：用一個沒有內文的類型代替白板
+private enum SketchKind: DocumentKind {
+    static let id = "sketch"
+    static let fileExtensions = ["sketch"]
+    static func template(title: String) -> Data { Data("{}".utf8) }
+    static func index(_ data: Data, fileName: String) -> IndexEntry {
+        IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: "")
+    }
+}
 
 struct VaultIndexTests {
     let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    var fs: VaultFS { VaultFS(root: root) }
+    var fs: VaultFS { VaultFS(root: root, kinds: try! KindRegistry([MarkdownKind.self, SketchKind.self])) }
 
     func write(_ path: String, _ text: String) throws {
         try fs.write(Data(text.utf8), to: path)
@@ -14,7 +25,7 @@ struct VaultIndexTests {
         try write("生物/葉綠體.md", "# 葉綠體\n行光合作用的胞器。\n#生物/植物")
         try write("生物/光合作用.md", "# 光合作用\n發生在 [[葉綠體]]，產生葡萄糖。\n#生物")
         try write("日記.md", "今天讀了 [[葉綠體|綠色的那個]] 和 [[不存在]]。")
-        try fs.write(InkKind.template(title: "草稿"), to: "草稿.excalidraw")
+        try fs.write(SketchKind.template(title: "草稿"), to: "草稿.sketch")
         return try VaultIndex(fs: fs)
     }
 
@@ -59,8 +70,8 @@ struct VaultIndexTests {
 
         try await Task.sleep(for: .milliseconds(20))
         try write("日記.md", "改寫了，現在提到粒線體")
-        try FileManager.default.removeItem(at: fs.url(for: "草稿.excalidraw"))
-        #expect(try await index.sync() == ["日記.md", "草稿.excalidraw"])
+        try FileManager.default.removeItem(at: fs.url(for: "草稿.sketch"))
+        #expect(try await index.sync() == ["日記.md", "草稿.sketch"])
         #expect(try await index.search("粒線體").map(\.path) == ["日記.md"])
         #expect(try await index.backlinks(to: "生物/葉綠體.md").map(\.path) == ["生物/光合作用.md"])
     }
@@ -69,5 +80,6 @@ struct VaultIndexTests {
         let text = "見 [[葉綠體]]、[[葉綠體|綠色]]、![[葉綠體]]、[[葉綠體素]]"
         #expect(MarkdownKind.renameLinks(in: text, from: "葉綠體", to: "Chloroplast")
             == "見 [[Chloroplast]]、[[Chloroplast|綠色]]、![[Chloroplast]]、[[葉綠體素]]")
+        #expect(MarkdownKind.renameLinks(in: Data(text.utf8), from: "不存在", to: "x") == nil)
     }
 }

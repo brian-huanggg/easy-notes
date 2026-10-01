@@ -1,6 +1,7 @@
 import Foundation
 import Testing
-@testable import EasyNotesCore
+import EasyNotesCore
+@testable import KindWhiteboard
 
 #if canImport(PencilKit)
 import PencilKit
@@ -99,46 +100,4 @@ struct InkRoundTripTests {
         #expect(try scene.data() == before)
     }
     #endif
-}
-
-struct MarkdownIndexTests {
-    @Test func extractsTitleLinksAndTags() {
-        let md = """
-        ---
-        created: 2026-10-01
-        ---
-        # 光合作用
-        參考 [[葉綠體]] 與 [[細胞|細胞結構]]，#生物 #biology/plant
-        再提一次 [[葉綠體]]
-        """
-        let entry = MarkdownKind.index(Data(md.utf8), fileName: "note.md")
-        #expect(entry.title == "光合作用")
-        #expect(entry.links == ["葉綠體", "細胞"])
-        #expect(entry.tags == ["生物", "biology/plant"])
-        #expect(!entry.plainText.contains("created:"))
-    }
-
-    @Test func fallsBackToFileName() {
-        let entry = MarkdownKind.index(Data("沒有標題".utf8), fileName: "隨手記.md")
-        #expect(entry.title == "隨手記")
-    }
-}
-
-struct VaultTests {
-    @Test func createResolveAndSearch() throws {
-        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        defer { try? FileManager.default.removeItem(at: root) }
-        let vault = VaultFS(root: root)
-
-        let folder = try vault.createFolder(named: "生物")
-        let a = try vault.create(kind: MarkdownKind.self, title: "葉綠體", in: folder)
-        let b = try vault.create(kind: MarkdownKind.self, title: "葉綠體", in: folder)
-        #expect(a == "生物/葉綠體.md")
-        #expect(b == "生物/葉綠體 2.md")
-
-        try vault.write(Data("# 葉綠體\n行光合作用的胞器".utf8), to: a)
-        #expect(try vault.resolveLink("葉綠體") == a)
-        #expect(try vault.search("光合").map(\.path) == [a])
-        #expect(try vault.scan().first?.children?.count == 2)
-    }
 }

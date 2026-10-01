@@ -1,3 +1,4 @@
+import EasyNotesCore
 import Foundation
 
 /// 平台無關的手寫筆畫。PencilKit 與 Excalidraw freedraw 之間都經過它轉換。
