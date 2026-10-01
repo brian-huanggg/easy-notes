@@ -42,6 +42,7 @@ public final class PluginRegistry {
 
     private var kinds: [any DocumentKind.Type] = []
     private var symbols: [String: String] = [:]
+    private var tints: [String: KindTint] = [:]
     private var editors: [String: (String) -> AnyView] = [:]
     public private(set) var newFileCommands: [NewFileCommand] = []
     public private(set) var controllers: [any EditorController] = []
@@ -51,10 +52,12 @@ public final class PluginRegistry {
 
     // MARK: 註冊
 
-    /// 第一個註冊的 Kind 是預設類型：`[[連結]]` 找不到目標時建立這種檔案
-    public func addKind(_ kind: any DocumentKind.Type, symbol: String) {
+    /// 第一個註冊的 Kind 是預設類型：`[[連結]]` 找不到目標時建立這種檔案。
+    /// `tint`：圖示、篩選 chip、縮圖底色用的類型顏色，App 不寫死
+    public func addKind(_ kind: any DocumentKind.Type, symbol: String, tint: KindTint = .neutral) {
         kinds.append(kind)
         symbols[kind.id] = symbol
+        tints[kind.id] = tint
     }
 
     /// 編輯器以 Vault 內的相對路徑建立；每次切換檔案都會重新呼叫
@@ -89,6 +92,10 @@ public final class PluginRegistry {
 
     public func symbol(for kindID: String?) -> String {
         kindID.flatMap { symbols[$0] } ?? "doc"
+    }
+
+    public func tint(for kindID: String?) -> KindTint {
+        kindID.flatMap { tints[$0] } ?? .neutral
     }
 
     public func editor(for kindID: String?, path: String) -> AnyView? {

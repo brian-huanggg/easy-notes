@@ -66,11 +66,118 @@
 - [x] RLS 測試：用另一個帳號讀不到任何列與 Storage 物件
 - [ ] 整合：Mac + iPad 同時離線編輯同一篇 → 連線後兩邊 hash 相同
 - [ ] 整合：iPad 改名、Mac 同時編輯同一篇 → 改名與內容都保留
-- [ ] 整合：App 開著時用 Claude Code 修改、搬移檔案 → 數秒內出現在 iPad，file id 不變
-- [ ] 整合：上傳中強制結束 App → 重啟後自動補傳，無資料遺失
+- [x] 整合：App 開著時用 Claude Code 修改、搬移檔案 → 數秒內出現在 iPad，file id 不變
+- [x] 整合：上傳中強制結束 App → 重啟後自動補傳，無資料遺失
 - [ ] 整合：刪除後 30 天內可還原
 - [ ] 耗電：進背景後沒有網路連線；連續打字 1 分鐘只產生少數幾次上傳
 - [ ] 基準線符合非功能預算（含 supabase-swift 後的 App 大小）
+
+## Phase 2.5 — UI 重構
+
+目標：外殼從 SwiftUI 預設樣式換成 `design/easy-notes-ui.pen` 的設計，資料模型與外掛邊界不變。
+
+設計稿節點（2026-10-02 版）：
+
+| 平台 | 畫面 | 節點 |
+| --- | --- | --- |
+| Desktop / iPad | 檔案列表（淺色 / 深色） | `RZ0Lk` / `xf8q7` |
+| Desktop / iPad | 編輯器（淺色 / 深色，中文內容） | `wopGv` / `xqIQO` |
+| Desktop / iPad | 空 Vault、空資料夾 | `xGsaX`、`m4Bb4` |
+| Mobile | 首頁、編輯器、Spaces | `CIaUn`、`sk74A`、`sulbD` |
+| 元件 | 側邊欄（附說明 `c3JKt`）、Sidebar Item、Icon Button、Doc Card、Thumb CSV / Board / PDF、M Doc Row、M Pin Card、M Tab Bar、Format Bar | `YXFMc`、`WYNg6`、`QOPWl`、`KdLwJ`、`otUrV` / `r2BDR`（`Rr1po`）/ `CGJEp`、`i08TyX`、`xiCip`、`oPziA`、`n2KUAm` |
+
+字型：Pen 不支援蘋果字型，設計稿以 Inter 代替（`font-ui`、`font-doc`、`font-cjk` 三個變數）。實作一律用系統字型：拉丁字 SF Pro、中文蘋方-繁（SwiftUI 預設字型；CM6 用 `-apple-system`），不打包 Inter。字級、字重、行高照設計稿。
+
+設計稿與 EasyNotes 模型的對應：
+
+| 設計稿 | EasyNotes 對應 |
+| --- | --- |
+| 側邊欄 Vault 標頭（名稱 + 帳號） | 單一 Vault，不可切換；帳號來自 Supabase Auth |
+| Spaces | Vault 根目錄的第一層資料夾；`+` = 新增第一層資料夾 |
+| All Documents / Recents | 索引的 `files` 表，依 `mtime` 排序 |
+| Pinned（側邊欄與列表頁同一概念） | frontmatter `pinned: true`（跟著檔案同步、Claude Code 可讀寫） |
+| Tags | 現有標籤索引 |
+| 篩選 All / Notes / Boards / PDFs / Sheets | 依 Registry 中已註冊的 Kind 產生；尚未實作的外掛不顯示 |
+| 類型顏色 `type-doc` / `type-board` / `type-pdf` / `type-csv` | 外掛註冊 Kind 時一併提供顏色，App 不寫死 |
+| 卡片縮圖與副標（「CSV · 86 rows」「PDF · 18 pages」） | 各外掛的 PreviewProvider 產生縮圖與一行摘要 |
+| New Document 選單（⌘N、⇧⌘N、匯入 PDF / CSV、新資料夾） | `addNewFile` 加上 `addImport`（把外部檔案複製進 Vault） |
+| 文件 icon、封面、標籤 | frontmatter `icon`、`cover`（Vault 內圖片路徑）、`tags` |
+| Review | Flashcards 外掛以 `addPanel` 註冊；Phase 3 前不顯示 |
+| Recently Deleted（保留 30 天） | 現有「最近刪除」 |
+| Synced · 2 min ago | 現有同步狀態（已同步 / 待上傳 / 衝突） |
+| 資料夾圖示（`folder-open`） | 在 Finder 中顯示（iOS：在「檔案」App 中顯示） |
+| Me（Mobile 分頁） | 帳號、同步面板、設定 |
+
+### 2.5-0 設計稿待補
+
+下列項目在 2026-10-02 版的 Pen 中仍是舊內容，實作前先改設計稿：
+
+- [x] 編輯器 `wopGv` / `xqIQO`：刪除協作者頭像（A、M）、留言、分享按鈕與作者「Rong」；⭐ 改為釘選；浮動工具列刪除 ✨；「12 個區塊」改字數；示範內文中「留言」的句子
+- [x] `C/Sidebar Desktop`：Vault 標頭的切換箭頭；每列重複的 `24`（文件、最近刪除、設定）
+- [x] Mobile 首頁 `CIaUn`：Vault 標頭、🔔、篩選 chips、「6 blocks」、文件數（28 → 與 Desktop 一致）
+- [x] Mobile 編輯器 `sk74A`：作者、⭐、「blocks」；換成中文內容
+- [x] Mobile Spaces `sulbD`：「Personal · Pro」、Starred → Pinned、Shared、「3 shared」、「daily」、Edit
+- [x] `C/M Doc Row`「12 blocks」、`Format Bar` 的 ✨
+- [x] 空 Vault `xGsaX` 的「Open Folder…」：Vault 位置已固定為 `~/Documents/EasyNotes`，改為「在 Finder 中顯示」或刪除
+- [ ] 補畫：iPad 版面、⌘K 快速開啟、反向連結 inspector、`[[` 自動完成、游標所在行顯示原始 md 的狀態、衝突提示、Me / 設定 / 同步面板、Sign in with Apple
+- [x] Phase 3 畫面（`rHTaT`、`b2AjRQ`）：刪除 Share、columns、「Add Cards」、🔊、🚩（Phase 3 開工前處理即可）
+
+### 2.5a 設計系統
+
+- [x] Pen variables（含 `mode: light / dark` 兩組值）轉成 `EasyNotesUI` 的 `Theme` tokens：背景、文字、邊框、accent、surface、卡片狀態、圓角
+- [x] 類型顏色由外掛提供：`registry.addKind(..., symbol:, tint:)`，App 與列表頁只讀 Registry
+- [ ] 同一組 tokens 輸出成 CM6 的 CSS variables（`setTheme` 傳入），WebView 與原生顏色一致；跟隨系統深淺色切換
+- [x] 字型：SwiftUI 用系統字型 + 設計稿字級；CM6 用 `-apple-system`，中文 fallback 蘋方-繁
+- [x] 共用元件：Sidebar Item、Icon Button、Doc Card、Doc Row、Pin Card、Tab Bar、空狀態
+
+2026-10-02：設計系統放在 `EasyNotesUI/DesignSystem/`（`Palette`、`KindTint`、`TextStyle`、`Metrics`、`ThemeCSS` 與共用元件），`DesignSystemGallery` 可在 Xcode Preview 或 `EASYNOTES_SNAPSHOT_DIR=… swift test` 輸出截圖比對設計稿。外殼畫面尚未改用；CSS variables 已能由 `ThemeCSS.stylesheet()` 產生，接上 CM6 的 `setTheme` 時一併勾選上一項。
+
+### 2.5b 外殼與導覽
+
+- [ ] Desktop / iPad 側邊欄：Vault 標頭、搜尋（⌘K）、All Documents、Recents、Pinned、Spaces（可展開的檔案樹，檔案用類型圖示）、Tags、Recently Deleted、同步狀態、Settings
+- [ ] PluginRegistry 新增 `addPanel`，讓外掛加側邊欄項目，App 不寫死 Review
+- [ ] ⌘K 快速開啟：取代目前側邊欄的 `.searchable`，重用 FTS5 搜尋與 `HitRow`
+- [ ] 工具列：上一頁 / 下一頁、麵包屑（資料夾 / 檔名）、網格 / 列表、排序、在 Finder 中顯示、New Document 選單
+- [ ] New Document 選單與快捷鍵：新筆記 ⌘N、新白板 ⇧⌘N、匯入 PDF、匯入 CSV、新資料夾，項目來自 `addNewFile` / `addImport`
+- [ ] iPhone：底部分頁（Docs / Search / Spaces / Me），取代 `NavigationSplitView` 的摺疊行為
+- [ ] 反向連結：保留 inspector，套用新樣式
+
+### 2.5c 文件列表
+
+- [ ] All Documents / 資料夾頁：標題 + 統計（文件數、資料夾數）、類型篩選、Pinned 區（Pin Card）、Recent 區（Desktop 網格、Mobile 列表）
+- [ ] 空狀態：空 Vault（`xGsaX`）、空資料夾（`m4Bb4`，顯示 Vault 內路徑，可拖入檔案）
+- [ ] 實作 `addPreview`（原生渲染，不開 WebView）：Markdown = 標題 + 前幾行；CSV / 白板 / PDF 先用 Thumb 元件的佔位樣式，各外掛完成後再換成真實縮圖
+- [ ] 卡片副標：外掛提供一行摘要（字數、列數、頁數）＋相對時間
+- [ ] 預覽快取：依 hash 存在 `.easynotes/cache/preview/`，檔案未變就不重算
+- [ ] 索引補欄位：frontmatter 的 `icon`、`pinned`、字數（`IndexEntry` 新增欄位，Core 只存不解讀）
+
+### 2.5d 編輯器
+
+- [ ] Markdown 文件頭：frontmatter 在 CM6 以 block widget 顯示為封面、icon、標題、meta（編輯時間、閱讀時間、標籤），游標進入時才顯示原始 YAML
+- [ ] 更換封面 / icon：寫回 frontmatter（經 Vault，走一般的寫檔與同步路徑）
+- [ ] 封面圖片由 `WKURLSchemeHandler` 從 Vault 讀取
+- [ ] Live Preview 樣式對齊設計稿：callout（`> [!tip]`）、核取清單、引言、`[[連結]]` 獨占一行時顯示為連結卡片（含目標檔案的類型圖示）
+- [ ] 浮動格式工具列（Desktop 右下）與 iOS 鍵盤工具列（`Format Bar`）：原生 SwiftUI，按下時送 `exec`，不在打字路徑上
+- [ ] 工具列：麵包屑、同步狀態、釘選、更多選單（在 Finder 中顯示、複製路徑、用其他 App 開啟）
+- [ ] Mobile 編輯器：返回所在資料夾、同步狀態、釘選、分享（系統 Share Sheet 分享檔案）、更多
+
+待決事項：
+
+- [x] 字型 → 實作用系統字型（SF Pro + 蘋方-繁），Pen 的 Inter 只是替代
+- [ ] 釘選存 frontmatter 會改動檔案（mtime、同步）；若不想讓釘選觸發同步，改存 `.easynotes/pins.json`（需要集合型合併）
+- [ ] 設計稿的「關聯頁面」是內文還是自動產生的區塊？建議當作內文樣式（`[[連結]]` 獨占一行），反向連結仍放 inspector
+- [ ] 匯入 PDF / CSV 的目的地：目前所在資料夾，或固定的 `Inbox/`？
+
+驗收測試：
+
+- [ ] App target 沒有寫死任何檔案類型或外掛名稱（側邊欄項目、篩選、類型顏色、預覽、新增選單都來自 Registry）
+- [ ] 只註冊 Markdown 與白板時，篩選只出現 Notes / Boards，新增選單沒有匯入 PDF / CSV
+- [ ] 刪掉 `.easynotes/cache/preview/` 後重新產生，畫面相同
+- [ ] Claude Code 修改 frontmatter 的 `icon`、`pinned` → 數秒內反映在列表與側邊欄
+- [ ] 更換封面 / icon 後，md 只多出 frontmatter 欄位，其餘內容逐位元組相同
+- [ ] 注音輸入：在文件頭附近、callout、核取清單內組字正常
+- [ ] 切換筆記仍 < 50 ms；文件列表 1,000 篇捲動流暢（預覽不在主執行緒產生）
+- [ ] 手動：Mac、iPad、iPhone 截圖與 Pen 設計稿並排比對，淺色 / 深色都檢查（字型差異除外）
 
 ## Phase 3 — Flashcards
 

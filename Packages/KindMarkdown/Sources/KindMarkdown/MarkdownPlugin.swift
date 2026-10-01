@@ -5,7 +5,7 @@ import SwiftUI
 public enum MarkdownPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         let editor = MarkdownEditor.shared // 啟動時就預先載入 WebView，打開第一篇筆記時不會卡頓
-        registry.addKind(MarkdownKind.self, symbol: "doc.text")
+        registry.addKind(MarkdownKind.self, symbol: "doc.text", tint: .neutral)
         registry.addEditor(for: MarkdownKind.id) { MarkdownEditorView(path: $0) }
         registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil",
                             shortcut: KeyboardShortcut("n"), defaultName: "未命名")

@@ -95,7 +95,7 @@ Packages/
   EasyNotesCore/     核心（不認識任何檔案類型）
     EasyNotesCore    Vault、Index、Sync、DocumentKind 與 KindRegistry（無 UI 依賴，可單元測試）
     EasyNotesUI      PluginRegistry、EasyNotesPlugin、DocumentSession、EditorController、
-                     WebEditorHost（預熱、Bridge、本地資源）
+                     WebEditorHost（預熱、Bridge、本地資源）、DesignSystem（tokens、共用元件）
   KindMarkdown/      .md：CodeMirror 6 編輯器（WebView）、Live Preview、Writing 模式
   KindWhiteboard/    .excalidraw：PencilKit 手寫層 + 原生結構元素層
   KindPDF/           .pdf + .pdf.ink 標註旁檔
@@ -156,7 +156,7 @@ protocol EasyNotesPlugin {
 }
 
 // PluginRegistry（@MainActor）的擴充點；等第二個外掛真的需要時才抽出，不預先設計
-registry.addKind(MarkdownKind.self, symbol: "doc.text")     // 第一個註冊的 Kind = [[連結]] 找不到時建立的類型
+registry.addKind(MarkdownKind.self, symbol: "doc.text", tint: .neutral)  // 第一個註冊的 Kind = [[連結]] 找不到時建立的類型；tint = 類型顏色
 registry.addEditor(for: MarkdownKind.id) { path in MarkdownEditorView(path: path) }
 registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil", shortcut: "n", defaultName: "未命名")
 registry.addController(MarkdownEditor.shared)

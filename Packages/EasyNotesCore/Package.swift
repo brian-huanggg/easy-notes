@@ -14,5 +14,6 @@ let package = Package(
         // 外掛共用的 UI 層：PluginRegistry、DocumentSession、WebEditorHost
         .target(name: "EasyNotesUI", dependencies: ["EasyNotesCore"]),
         .testTarget(name: "EasyNotesCoreTests", dependencies: ["EasyNotesCore"]),
+        .testTarget(name: "EasyNotesUITests", dependencies: ["EasyNotesUI"]),
     ]
 )
