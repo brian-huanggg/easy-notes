@@ -28,6 +28,11 @@ public struct CommitRequest: Sendable, Equatable {
     public var size: Int
     public var deleted: Bool
     public var deviceID: String
+
+    public init(id: UUID, baseVersion: Int?, path: String, hash: String, size: Int, deleted: Bool, deviceID: String) {
+        self.id = id; self.baseVersion = baseVersion; self.path = path; self.hash = hash
+        self.size = size; self.deleted = deleted; self.deviceID = deviceID
+    }
 }
 
 /// 同步引擎看到的遠端。Core 不認識 Supabase；App 以 supabase-swift 實作，測試用記憶體內的假 backend。
