@@ -102,5 +102,8 @@ final class SQLiteDB {
         func double(_ col: Int32) -> Double {
             sqlite3_column_double(stmt, col)
         }
+        func isNull(_ col: Int32) -> Bool {
+            sqlite3_column_type(stmt, col) == SQLITE_NULL
+        }
     }
 }
