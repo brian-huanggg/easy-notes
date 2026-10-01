@@ -1,7 +1,7 @@
 # EasyNotes
 
 本地優先、檔案即真相的筆記 App（iOS / iPadOS / macOS）。架構與技術方案見
-[EasyNotes 架構與技術方案](https://claude.ai/code/artifact/7320e690-9586-41ee-88ac-17192f62f8c5)。
+[EasyNotes 架構與技術方案](./docs/Architecture.md) 以及 [待辦事項](./docs/Roadmap.md)。
 
 ## 結構
 
