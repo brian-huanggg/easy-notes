@@ -85,6 +85,17 @@ struct SupabaseBackendTests {
         #expect(try await backend.download(hash: hash) == data)
     }
 
+    @Test func deletedFilesListsSoftDeletedRows() async throws {
+        let backend = SupabaseBackend(client: try await Local.newUser().client)
+        let live = UUID(), gone = UUID()
+        #expect(try await backend.commit(request(live, base: nil, path: "live.md")) == 1)
+        #expect(try await backend.commit(request(gone, base: nil, path: "gone.md")) == 1)
+        #expect(try await backend.commit(request(gone, base: 1, path: "gone.md", deleted: true)) == 2)
+        let deleted = try await backend.deletedFiles(since: Date().addingTimeInterval(-86_400))
+        #expect(deleted.map(\.id) == [gone])
+        #expect(try await backend.deletedFiles(since: Date().addingTimeInterval(3_600)).isEmpty)
+    }
+
     /// 驗收：用另一個帳號讀不到任何列與 Storage 物件
     @Test func rowLevelSecurityIsolatesUsers() async throws {
         let owner = SupabaseBackend(client: try await Local.newUser().client)

@@ -170,6 +170,20 @@ final class SyncCoordinator {
         }
     }
 
+    // MARK: 最近刪除
+
+    func recentlyDeleted() async throws -> [RemoteFile] {
+        guard let engine else { return [] }
+        return try await engine.recentlyDeleted()
+    }
+
+    /// 還原後開啟該檔案
+    func restore(_ file: RemoteFile) async throws {
+        guard let engine else { return }
+        let path = try await engine.restore(file)
+        store.selection = path
+    }
+
     func dismissConflicts() {
         conflicts = []
     }

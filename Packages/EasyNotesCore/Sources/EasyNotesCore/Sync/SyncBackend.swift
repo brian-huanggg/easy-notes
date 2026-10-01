@@ -45,4 +45,6 @@ public protocol SyncBackend: Sendable {
     func commit(_ request: CommitRequest) async throws -> Int?
     /// `updatedAt` 晚於 `cursor` 的列，依 `updatedAt` 排序。可以與上次重疊，引擎會略過已套用的版本。
     func changes(since cursor: Date?) async throws -> [RemoteFile]
+    /// `since` 之後軟刪除、尚未被清除的檔案，最新的在前（「最近刪除」）
+    func deletedFiles(since: Date) async throws -> [RemoteFile]
 }
