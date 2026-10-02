@@ -3,13 +3,14 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// 白板工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
-/// 有選取時的操作 | Undo / Redo。導覽列下方獨立一排
+/// 有選取時的操作（樣式、再製、刪除）| Undo / Redo。導覽列下方獨立一排
 struct BoardToolbar: View {
     let editor: BoardEditor
     @SwiftUI.Binding var selectionShape: SelectionShape
     var showsInk = true
 
     @State private var showsShapes = false
+    @State private var showsStyle = false
     @State private var showsPhotos = false
     @State private var photo: PhotosPickerItem?
     @State private var showsFiles = false
@@ -42,6 +43,13 @@ struct BoardToolbar: View {
             imageMenu
             if !editor.selection.isEmpty {
                 separator
+                if !editor.styleSummary.isEmpty {
+                    button("樣式", "paintpalette", active: showsStyle) { showsStyle = true }
+                        .popover(isPresented: $showsStyle) {
+                            StylePanel(editor: editor)
+                                .presentationCompactAdaptation(.popover)
+                        }
+                }
                 button("再製", "plus.square.on.square") { editor.duplicateSelection() }
                 button("刪除", "trash") { editor.deleteSelection() }
             }

@@ -17,7 +17,9 @@ extension BoardEditor {
 
     /// 插入形狀，選取它（一筆 Undo）
     func insert(_ shape: BoardShape) {
-        let el = Self.make(shape, box: insertionBox(size(of: shape)))
+        var el = Self.make(shape, box: insertionBox(size(of: shape)))
+        // 矩形 / 圓角矩形是面板上明確選的，不套用上次的圓角
+        applyCurrentStyle(to: &el, except: [.rounded])
         inking = false
         tool = .select
         operation(shape.title, select: { [el.id] }) { $0.insert(el) }
