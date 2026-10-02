@@ -19,6 +19,9 @@ public protocol DocumentSession: AnyObject {
     func importAttachment(_ url: URL) async -> String?
     /// 背景讀取 Vault 內的檔案，給 WebView 的 `vault://` 圖片使用；不在主執行緒做 I/O
     var resourceReader: @Sendable (_ path: String) async -> Data? { get }
+    /// 背景取得檔案預覽的圖（`DocumentPreview.image`，依內容 hash 快取），給 WebView 的 `embed://` 使用；
+    /// 沒有註冊預覽或沒有圖時回傳 nil
+    var embedImageReader: @Sendable (_ path: String) async -> Data? { get }
     /// 外掛讀寫自己的 `.easynotes/<name>/`（例如 Flashcards 的複習紀錄）
     var vault: VaultFS { get }
     /// 索引（records、檔案標籤）；建立失敗時為 nil
@@ -30,6 +33,8 @@ public protocol DocumentSession: AnyObject {
 }
 
 extension DocumentSession {
+    public var embedImageReader: @Sendable (_ path: String) async -> Data? { { _ in nil } }
+
     public func readText(_ path: String) -> String {
         String(decoding: readData(path), as: UTF8.self)
     }

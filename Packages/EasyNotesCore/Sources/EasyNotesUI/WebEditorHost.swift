@@ -19,7 +19,13 @@ public final class WebEditorHost {
         get { schemeHandler.read }
         set { schemeHandler.read = newValue }
     }
+    /// `embed://` 嵌入預覽的來源（`DocumentSession.embedImageReader`）；由外掛在 `attach` 時設定
+    @ObservationIgnored public var readEmbed: (@Sendable (_ path: String) async -> Data?)? {
+        get { embedHandler.read }
+        set { embedHandler.read = newValue }
+    }
     @ObservationIgnored private let schemeHandler = VaultSchemeHandler()
+    @ObservationIgnored private let embedHandler = EmbedSchemeHandler()
     @ObservationIgnored private let symbolHandler = SymbolSchemeHandler()
 
     /// `page`：外掛 bundle 內的 HTML，同資料夾的資源都可讀取。
@@ -29,6 +35,7 @@ public final class WebEditorHost {
         config.userContentController.add(messageProxy, name: "bridge")
         config.setURLSchemeHandler(schemeHandler, forURLScheme: VaultSchemeHandler.scheme)
         config.setURLSchemeHandler(symbolHandler, forURLScheme: SymbolSchemeHandler.scheme)
+        config.setURLSchemeHandler(embedHandler, forURLScheme: EmbedSchemeHandler.scheme)
         if let stylesheet {
             let literal = String(decoding: (try? JSONEncoder().encode(stylesheet)) ?? Data("\"\"".utf8), as: UTF8.self)
             let source = "{const s=document.createElement('style');s.id='theme';s.textContent=\(literal);document.documentElement.appendChild(s);}"
