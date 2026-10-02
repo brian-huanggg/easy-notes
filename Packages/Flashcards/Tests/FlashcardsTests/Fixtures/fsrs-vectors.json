@@ -1,0 +1,1538 @@
+{
+ "generator": "scripts/fsrs-vectors.py（fsrs-rs-python 0.9.3、py-fsrs 6.3.2）",
+ "start": "2026-01-05T12:00:00+00:00",
+ "params": [
+  {
+   "name": "default",
+   "w": [
+    0.212,
+    1.2931,
+    2.3065,
+    8.2956,
+    6.4133,
+    0.8334,
+    3.0194,
+    0.001,
+    1.8722,
+    0.1666,
+    0.796,
+    1.4835,
+    0.0614,
+    0.2629,
+    1.6483,
+    0.6014,
+    1.8729,
+    0.5425,
+    0.0912,
+    0.0658,
+    0.1542
+   ],
+   "memory": [
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 2.30649995803833,
+       "difficulty": 2.1181039810180664
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 1,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 0.21199999749660492,
+       "difficulty": 6.413300037384033
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 4,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 8.295599937438965,
+       "difficulty": 1.0
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 3,
+       "days": 3
+      },
+      {
+       "rating": 3,
+       "days": 8
+      },
+      {
+       "rating": 3,
+       "days": 21
+      }
+     ],
+     "states": [
+      {
+       "stability": 2.30649995803833,
+       "difficulty": 2.1181039810180664
+      },
+      {
+       "stability": 7.315299987792969,
+       "difficulty": 2.1112141609191895
+      },
+      {
+       "stability": 19.833465576171875,
+       "difficulty": 2.1043312549591064
+      },
+      {
+       "stability": 48.199607849121094,
+       "difficulty": 2.0974552631378174
+      },
+      {
+       "stability": 111.68685150146484,
+       "difficulty": 2.0905861854553223
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 2
+      },
+      {
+       "rating": 1,
+       "days": 7
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 3,
+       "days": 4
+      }
+     ],
+     "states": [
+      {
+       "stability": 2.30649995803833,
+       "difficulty": 2.1181039810180664
+      },
+      {
+       "stability": 10.964341163635254,
+       "difficulty": 2.1112141609191895
+      },
+      {
+       "stability": 1.468920111656189,
+       "difficulty": 7.392237663269043
+      },
+      {
+       "stability": 3.4794180393218994,
+       "difficulty": 7.3800740242004395
+      },
+      {
+       "stability": 9.56027603149414,
+       "difficulty": 7.367922306060791
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 2,
+       "days": 0
+      },
+      {
+       "rating": 2,
+       "days": 1
+      },
+      {
+       "rating": 2,
+       "days": 2
+      },
+      {
+       "rating": 4,
+       "days": 6
+      },
+      {
+       "rating": 1,
+       "days": 30
+      },
+      {
+       "rating": 3,
+       "days": 1
+      }
+     ],
+     "states": [
+      {
+       "stability": 1.2930999994277954,
+       "difficulty": 5.112170696258545
+      },
+      {
+       "stability": 3.2494122982025146,
+       "difficulty": 6.740459442138672
+      },
+      {
+       "stability": 5.806148529052734,
+       "difficulty": 7.8213934898376465
+      },
+      {
+       "stability": 20.027135848999023,
+       "difficulty": 7.078632831573486
+      },
+      {
+       "stability": 2.000429391860962,
+       "difficulty": 9.024994850158691
+      },
+      {
+       "stability": 3.113318681716919,
+       "difficulty": 9.011198043823242
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 1,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 1,
+       "days": 5
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 2
+      }
+     ],
+     "states": [
+      {
+       "stability": 0.21199999749660492,
+       "difficulty": 6.413300037384033
+      },
+      {
+       "stability": 0.24668918550014496,
+       "difficulty": 6.4021148681640625
+      },
+      {
+       "stability": 0.2842063307762146,
+       "difficulty": 6.390941143035889
+      },
+      {
+       "stability": 2.152078628540039,
+       "difficulty": 6.3797783851623535
+      },
+      {
+       "stability": 0.6145569086074829,
+       "difficulty": 8.795286178588867
+      },
+      {
+       "stability": 0.6667482852935791,
+       "difficulty": 8.781719207763672
+      },
+      {
+       "stability": 2.3524904251098633,
+       "difficulty": 8.768165588378906
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 4,
+       "days": 0
+      },
+      {
+       "rating": 4,
+       "days": 15
+      },
+      {
+       "rating": 4,
+       "days": 60
+      },
+      {
+       "rating": 2,
+       "days": 200
+      },
+      {
+       "rating": 3,
+       "days": 100
+      }
+     ],
+     "states": [
+      {
+       "stability": 8.295599937438965,
+       "difficulty": 1.0
+      },
+      {
+       "stability": 95.50782012939453,
+       "difficulty": 1.0
+      },
+      {
+       "stability": 413.4216613769531,
+       "difficulty": 1.0
+      },
+      {
+       "stability": 693.90283203125,
+       "difficulty": 4.010608673095703
+      },
+      {
+       "stability": 865.5368041992188,
+       "difficulty": 4.001826286315918
+      }
+     ]
+    }
+   ],
+   "next": [
+    {
+     "memory": {
+      "stability": 111.68685150146484,
+      "difficulty": 2.0905861854553223
+     },
+     "days": 30,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 3.701767683029175,
+       "difficulty": 7.385457515716553,
+       "interval": 3.701767683029175
+      },
+      {
+       "stability": 162.3839569091797,
+       "difficulty": 4.734590530395508,
+       "interval": 162.3839569091797
+      },
+      {
+       "stability": 195.98532104492188,
+       "difficulty": 2.083724021911621,
+       "interval": 195.98532104492188
+      },
+      {
+       "stability": 269.5694885253906,
+       "difficulty": 1.0,
+       "interval": 269.5694885253906
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 9.56027603149414,
+      "difficulty": 7.367922306060791
+     },
+     "days": 3,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 1.20418381690979,
+       "difficulty": 9.120081901550293,
+       "interval": 1.20418381690979
+      },
+      {
+       "stability": 12.615792274475098,
+       "difficulty": 8.237933158874512,
+       "interval": 12.615792274475098
+      },
+      {
+       "stability": 14.640948295593262,
+       "difficulty": 7.355782985687256,
+       "interval": 14.640948295593262
+      },
+      {
+       "stability": 19.075868606567383,
+       "difficulty": 6.4736328125,
+       "interval": 19.075868606567383
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 3.113318681716919,
+      "difficulty": 9.011198043823242
+     },
+     "days": 10,
+     "retention": 0.85,
+     "next": [
+      {
+       "stability": 0.8076651692390442,
+       "difficulty": 9.660216331481934,
+       "interval": 1.5397529602050781
+      },
+      {
+       "stability": 6.515608787536621,
+       "difficulty": 9.328815460205078,
+       "interval": 12.421518325805664
+      },
+      {
+       "stability": 8.770602226257324,
+       "difficulty": 8.997415542602539,
+       "interval": 16.720495223999023
+      },
+      {
+       "stability": 13.708844184875488,
+       "difficulty": 8.666015625,
+       "interval": 26.1348819732666
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 2.3524904251098633,
+      "difficulty": 8.768165588378906
+     },
+     "days": 1,
+     "retention": 0.95,
+     "next": [
+      {
+       "stability": 0.5298933386802673,
+       "difficulty": 9.58033275604248,
+       "interval": 0.21331316232681274
+      },
+      {
+       "stability": 3.109349012374878,
+       "difficulty": 9.167479515075684,
+       "interval": 1.2516955137252808
+      },
+      {
+       "stability": 3.610985040664673,
+       "difficulty": 8.75462532043457,
+       "interval": 1.453633427619934
+      },
+      {
+       "stability": 4.709525108337402,
+       "difficulty": 8.341772079467773,
+       "interval": 1.8958603143692017
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 865.5368041992188,
+      "difficulty": 4.001826286315918
+     },
+     "days": 365,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 7.302874565124512,
+       "difficulty": 8.01366901397705,
+       "interval": 7.302874565124512
+      },
+      {
+       "stability": 1189.675048828125,
+       "difficulty": 6.003361225128174,
+       "interval": 1189.675048828125
+      },
+      {
+       "stability": 1404.5096435546875,
+       "difficulty": 3.9930527210235596,
+       "interval": 1404.5096435546875
+      },
+      {
+       "stability": 1874.979248046875,
+       "difficulty": 1.982744574546814,
+       "interval": 1874.979248046875
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 2.30649995803833,
+      "difficulty": 2.1181039810180664
+     },
+     "days": 0,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 0.7750838994979858,
+       "difficulty": 7.39450216293335,
+       "interval": 0.7750838994979858
+      },
+      {
+       "stability": 2.30649995803833,
+       "difficulty": 4.7528581619262695,
+       "interval": 2.30649995803833
+      },
+      {
+       "stability": 2.30649995803833,
+       "difficulty": 2.1112141609191895,
+       "interval": 2.30649995803833
+      },
+      {
+       "stability": 3.946054220199585,
+       "difficulty": 1.0,
+       "interval": 3.946054458618164
+      }
+     ]
+    }
+   ],
+   "scheduler": [
+    [
+     {
+      "rating": 3,
+      "minutes": 0,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 2.3065,
+      "difficulty": 2.118103970459016
+     },
+     {
+      "rating": 3,
+      "minutes": 1,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 172800,
+      "ankiDays": null,
+      "stability": 2.3065,
+      "difficulty": 2.111214235785395
+     },
+     {
+      "rating": 3,
+      "minutes": 11,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 172800,
+      "ankiDays": 3,
+      "stability": 2.3065,
+      "difficulty": 2.1043313908464483
+     },
+     {
+      "rating": 3,
+      "minutes": 4380,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 1209600,
+      "ankiDays": 14,
+      "stability": 13.844767636526564,
+      "difficulty": 2.0974554287524403
+     }
+    ],
+    [
+     {
+      "rating": 1,
+      "minutes": 0,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 60,
+      "ankiDays": null,
+      "stability": 0.212,
+      "difficulty": 6.4133
+     },
+     {
+      "rating": 1,
+      "minutes": 1,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 60,
+      "ankiDays": null,
+      "stability": 0.08335671711031604,
+      "difficulty": 8.806304468856837
+     },
+     {
+      "rating": 2,
+      "minutes": 2,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 330,
+      "ankiDays": null,
+      "stability": 0.08335671711031604,
+      "difficulty": 9.192797649512254
+     },
+     {
+      "rating": 2,
+      "minutes": 8,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 330,
+      "ankiDays": null,
+      "stability": 0.08335671711031604,
+      "difficulty": 9.44936983341354
+     },
+     {
+      "rating": 3,
+      "minutes": 18,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 0.10314065007785231,
+      "difficulty": 9.435148832876964
+     },
+     {
+      "rating": 3,
+      "minutes": 28,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 86400,
+      "ankiDays": null,
+      "stability": 0.12584423732556518,
+      "difficulty": 9.420942053340925
+     },
+     {
+      "rating": 3,
+      "minutes": 1560,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 86400,
+      "ankiDays": 2,
+      "stability": 0.5902230159389712,
+      "difficulty": 9.406749480584422
+     }
+    ],
+    [
+     {
+      "rating": 4,
+      "minutes": 0,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 691200,
+      "ankiDays": null,
+      "stability": 8.2956,
+      "difficulty": 1.0
+     },
+     {
+      "rating": 3,
+      "minutes": 13020,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 3628800,
+      "ankiDays": 42,
+      "stability": 41.57871905908578,
+      "difficulty": 1.0
+     },
+     {
+      "rating": 1,
+      "minutes": 57720,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 2.85072363261294,
+      "difficulty": 7.0269895692968385
+     },
+     {
+      "rating": 2,
+      "minutes": 57730,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 900,
+      "ankiDays": null,
+      "stability": 2.85072363261294,
+      "difficulty": 8.011605503110008
+     },
+     {
+      "rating": 3,
+      "minutes": 57745,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 259200,
+      "ankiDays": null,
+      "stability": 2.85072363261294,
+      "difficulty": 7.998822266903736
+     },
+     {
+      "rating": 3,
+      "minutes": 60660,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 518400,
+      "ankiDays": 6,
+      "stability": 5.825452702220679,
+      "difficulty": 7.9860518139336705
+     }
+    ],
+    [
+     {
+      "rating": 3,
+      "minutes": 0,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 2.3065,
+      "difficulty": 2.118103970459016
+     },
+     {
+      "rating": 3,
+      "minutes": 1,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 172800,
+      "ankiDays": null,
+      "stability": 2.3065,
+      "difficulty": 2.111214235785395
+     },
+     {
+      "rating": 3,
+      "minutes": 11,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 172800,
+      "ankiDays": 3,
+      "stability": 2.3065,
+      "difficulty": 2.1043313908464483
+     },
+     {
+      "rating": 2,
+      "minutes": 4380,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 777600,
+      "ankiDays": 9,
+      "stability": 9.245614156607077,
+      "difficulty": 4.743715608383524
+     },
+     {
+      "rating": 4,
+      "minutes": 11640,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 2937600,
+      "ankiDays": 34,
+      "stability": 34.45457239444642,
+      "difficulty": 2.9725386768547852
+     },
+     {
+      "rating": 1,
+      "minutes": 43380,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 2.4304900987257443,
+      "difficulty": 7.6753496191160036
+     },
+     {
+      "rating": 1,
+      "minutes": 43390,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 0.8139408425285435,
+      "difficulty": 9.221131596722858
+     },
+     {
+      "rating": 4,
+      "minutes": 43400,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 86400,
+      "ankiDays": null,
+      "stability": 1.4913093564918614,
+      "difficulty": 8.946098440912067
+     }
+    ]
+   ]
+  },
+  {
+   "name": "custom",
+   "w": [
+    0.4,
+    0.9,
+    3.1,
+    10.4,
+    6.8,
+    0.6,
+    2.5,
+    0.02,
+    1.6,
+    0.12,
+    1.0,
+    1.7,
+    0.08,
+    0.3,
+    1.9,
+    0.45,
+    2.2,
+    0.6,
+    0.15,
+    0.1,
+    0.25
+   ],
+   "memory": [
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 3.0999999046325684,
+       "difficulty": 4.479883193969727
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 1,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 0.4000000059604645,
+       "difficulty": 6.800000190734863
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 4,
+       "days": 0
+      }
+     ],
+     "states": [
+      {
+       "stability": 10.399999618530273,
+       "difficulty": 1.750352382659912
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 3,
+       "days": 3
+      },
+      {
+       "rating": 3,
+       "days": 8
+      },
+      {
+       "rating": 3,
+       "days": 21
+      }
+     ],
+     "states": [
+      {
+       "stability": 3.0999999046325684,
+       "difficulty": 4.479883193969727
+      },
+      {
+       "stability": 6.512657165527344,
+       "difficulty": 4.425292491912842
+      },
+      {
+       "stability": 15.666457176208496,
+       "difficulty": 4.371793746948242
+      },
+      {
+       "stability": 37.57399368286133,
+       "difficulty": 4.31936502456665
+      },
+      {
+       "stability": 89.22100830078125,
+       "difficulty": 4.267984867095947
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 2
+      },
+      {
+       "rating": 1,
+       "days": 7
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 3,
+       "days": 4
+      }
+     ],
+     "states": [
+      {
+       "stability": 3.0999999046325684,
+       "difficulty": 4.479883193969727
+      },
+      {
+       "stability": 9.459585189819336,
+       "difficulty": 4.425292491912842
+      },
+      {
+       "stability": 1.7917981147766113,
+       "difficulty": 7.406912326812744
+      },
+      {
+       "stability": 3.6978840827941895,
+       "difficulty": 7.293781280517578
+      },
+      {
+       "stability": 10.199883460998535,
+       "difficulty": 7.182912826538086
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 2,
+       "days": 0
+      },
+      {
+       "rating": 2,
+       "days": 1
+      },
+      {
+       "rating": 2,
+       "days": 2
+      },
+      {
+       "rating": 4,
+       "days": 6
+      },
+      {
+       "rating": 1,
+       "days": 30
+      },
+      {
+       "rating": 3,
+       "days": 1
+      }
+     ],
+     "states": [
+      {
+       "stability": 0.8999999761581421,
+       "difficulty": 5.97788143157959
+      },
+      {
+       "stability": 2.0680887699127197,
+       "difficulty": 6.988241195678711
+      },
+      {
+       "stability": 3.802534341812134,
+       "difficulty": 7.703351020812988
+      },
+      {
+       "stability": 21.272804260253906,
+       "difficulty": 6.959092140197754
+      },
+      {
+       "stability": 2.859947681427002,
+       "difficulty": 8.510522842407227
+      },
+      {
+       "stability": 4.167431831359863,
+       "difficulty": 8.375319480895996
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 1,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 1
+      },
+      {
+       "rating": 1,
+       "days": 5
+      },
+      {
+       "rating": 3,
+       "days": 0
+      },
+      {
+       "rating": 3,
+       "days": 2
+      }
+     ],
+     "states": [
+      {
+       "stability": 0.4000000059604645,
+       "difficulty": 6.800000190734863
+      },
+      {
+       "stability": 0.4796677231788635,
+       "difficulty": 6.699007034301758
+      },
+      {
+       "stability": 0.5648497343063354,
+       "difficulty": 6.600033760070801
+      },
+      {
+       "stability": 2.7191317081451416,
+       "difficulty": 6.503040313720703
+      },
+      {
+       "stability": 0.9493647813796997,
+       "difficulty": 8.31188678741455
+      },
+      {
+       "stability": 1.0441821813583374,
+       "difficulty": 8.180656433105469
+      },
+      {
+       "stability": 3.552917718887329,
+       "difficulty": 8.052050590515137
+      }
+     ]
+    },
+    {
+     "reviews": [
+      {
+       "rating": 4,
+       "days": 0
+      },
+      {
+       "rating": 4,
+       "days": 15
+      },
+      {
+       "rating": 4,
+       "days": 60
+      },
+      {
+       "rating": 2,
+       "days": 200
+      },
+      {
+       "rating": 3,
+       "days": 100
+      }
+     ],
+     "states": [
+      {
+       "stability": 10.399999618530273,
+       "difficulty": 1.750352382659912
+      },
+      {
+       "stability": 121.44574737548828,
+       "difficulty": 1.0
+      },
+      {
+       "stability": 549.5215454101562,
+       "difficulty": 1.0
+      },
+      {
+       "stability": 800.199462890625,
+       "difficulty": 3.4650070667266846
+      },
+      {
+       "stability": 1012.574462890625,
+       "difficulty": 3.4307138919830322
+      }
+     ]
+    }
+   ],
+   "next": [
+    {
+     "memory": {
+      "stability": 89.22100830078125,
+      "difficulty": 4.267984867095947
+     },
+     "days": 30,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 4.66895866394043,
+       "difficulty": 7.338396072387695,
+       "interval": 4.66895866394043
+      },
+      {
+       "stability": 120.90593719482422,
+       "difficulty": 5.778014183044434,
+       "interval": 120.90593719482422
+      },
+      {
+       "stability": 159.6319580078125,
+       "difficulty": 4.217632293701172,
+       "interval": 159.6319580078125
+      },
+      {
+       "stability": 244.12510681152344,
+       "difficulty": 2.657250165939331,
+       "interval": 244.12510681152344
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 10.199883460998535,
+      "difficulty": 7.182912826538086
+     },
+     "days": 3,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 1.6521350145339966,
+       "difficulty": 8.608009338378906,
+       "interval": 1.6521350145339966
+      },
+      {
+       "stability": 12.55335521697998,
+       "difficulty": 7.841135025024414,
+       "interval": 12.55335521697998
+      },
+      {
+       "stability": 15.42982006072998,
+       "difficulty": 7.074261665344238,
+       "interval": 15.42982006072998
+      },
+      {
+       "stability": 21.70574378967285,
+       "difficulty": 6.307387828826904,
+       "interval": 21.70574378967285
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 4.167431831359863,
+      "difficulty": 8.375319480895996
+     },
+     "days": 10,
+     "retention": 0.85,
+     "next": [
+      {
+       "stability": 1.295914649963379,
+       "difficulty": 9.127367973327637,
+       "interval": 2.2639169692993164
+      },
+      {
+       "stability": 8.322317123413086,
+       "difficulty": 8.685094833374023,
+       "interval": 14.538793563842773
+      },
+      {
+       "stability": 13.400511741638184,
+       "difficulty": 8.242819786071777,
+       "interval": 23.410219192504883
+      },
+      {
+       "stability": 24.480207443237305,
+       "difficulty": 7.800546169281006,
+       "interval": 42.766056060791016
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 3.552917718887329,
+      "difficulty": 8.052050590515137
+     },
+     "days": 1,
+     "retention": 0.95,
+     "next": [
+      {
+       "stability": 0.8833124041557312,
+       "difficulty": 8.986567497253418,
+       "interval": 0.3837839961051941
+      },
+      {
+       "stability": 4.242562770843506,
+       "difficulty": 8.456291198730469,
+       "interval": 1.843320369720459
+      },
+      {
+       "stability": 5.085463047027588,
+       "difficulty": 7.926016807556152,
+       "interval": 2.209545850753784
+      },
+      {
+       "stability": 6.924516677856445,
+       "difficulty": 7.3957414627075195,
+       "interval": 3.0085830688476562
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 1012.574462890625,
+      "difficulty": 3.4307138919830322
+     },
+     "days": 365,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 11.644803047180176,
+       "difficulty": 6.973718166351318,
+       "interval": 11.64480209350586
+      },
+      {
+       "stability": 1334.6268310546875,
+       "difficulty": 5.185412406921387,
+       "interval": 1334.6268310546875
+      },
+      {
+       "stability": 1728.246337890625,
+       "difficulty": 3.397106647491455,
+       "interval": 1728.246337890625
+      },
+      {
+       "stability": 2587.052734375,
+       "difficulty": 1.6088008880615234,
+       "interval": 2587.052734375
+      }
+     ]
+    },
+    {
+     "memory": {
+      "stability": 3.0999999046325684,
+      "difficulty": 4.479883193969727
+     },
+     "days": 0,
+     "retention": 0.9,
+     "next": [
+      {
+       "stability": 0.9123440980911255,
+       "difficulty": 7.430689334869385,
+       "interval": 0.9123440980911255
+      },
+      {
+       "stability": 3.0999999046325684,
+       "difficulty": 5.927990913391113,
+       "interval": 3.0999999046325684
+      },
+      {
+       "stability": 3.0999999046325684,
+       "difficulty": 4.425292491912842,
+       "interval": 3.0999999046325684
+      },
+      {
+       "stability": 5.519359588623047,
+       "difficulty": 2.9225940704345703,
+       "interval": 5.519359588623047
+      }
+     ]
+    }
+   ],
+   "scheduler": [
+    [
+     {
+      "rating": 3,
+      "minutes": 0,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 3.1,
+      "difficulty": 4.479883077263453
+     },
+     {
+      "rating": 3,
+      "minutes": 1,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 259200,
+      "ankiDays": null,
+      "stability": 3.1,
+      "difficulty": 4.425292466429925
+     },
+     {
+      "rating": 3,
+      "minutes": 11,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 259200,
+      "ankiDays": 4,
+      "stability": 3.1,
+      "difficulty": 4.371793667813067
+     },
+     {
+      "rating": 3,
+      "minutes": 4380,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 1036800,
+      "ankiDays": 12,
+      "stability": 12.198102894209825,
+      "difficulty": 4.319364845168547
+     }
+    ],
+    [
+     {
+      "rating": 1,
+      "minutes": 0,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 60,
+      "ankiDays": null,
+      "stability": 0.4,
+      "difficulty": 6.8
+     },
+     {
+      "rating": 1,
+      "minutes": 1,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 60,
+      "ankiDays": null,
+      "stability": 0.1444731417877276,
+      "difficulty": 8.441229272933963
+     },
+     {
+      "rating": 2,
+      "minutes": 2,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 330,
+      "ankiDays": null,
+      "stability": 0.1444731417877276,
+      "difficulty": 8.73174376944389
+     },
+     {
+      "rating": 2,
+      "minutes": 8,
+      "state": "learning",
+      "step": 0,
+      "dueSeconds": 330,
+      "ankiDays": null,
+      "stability": 0.1444731417877276,
+      "difficulty": 8.937363474195916
+     },
+     {
+      "rating": 3,
+      "minutes": 18,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 0.19182045151877494,
+      "difficulty": 8.793623255423737
+     },
+     {
+      "rating": 3,
+      "minutes": 28,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 86400,
+      "ankiDays": null,
+      "stability": 0.2475665254147569,
+      "difficulty": 8.652757841027004
+     },
+     {
+      "rating": 3,
+      "minutes": 1560,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 86400,
+      "ankiDays": 2,
+      "stability": 1.2028455118330605,
+      "difficulty": 8.514709734918204
+     }
+    ],
+    [
+     {
+      "rating": 4,
+      "minutes": 0,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 864000,
+      "ankiDays": null,
+      "stability": 10.4,
+      "difficulty": 1.750352535587055
+     },
+     {
+      "rating": 3,
+      "minutes": 13020,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 3801600,
+      "ankiDays": 44,
+      "stability": 43.99139207106927,
+      "difficulty": 1.750352535587055
+     },
+     {
+      "rating": 1,
+      "minutes": 57720,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 4.002415275961761,
+      "difficulty": 6.241827266211881
+     },
+     {
+      "rating": 2,
+      "minutes": 57730,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 900,
+      "ankiDays": null,
+      "stability": 4.002415275961761,
+      "difficulty": 7.1750559046861495
+     },
+     {
+      "rating": 3,
+      "minutes": 57745,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 345600,
+      "ankiDays": null,
+      "stability": 4.002415275961761,
+      "difficulty": 7.066561837304167
+     },
+     {
+      "rating": 3,
+      "minutes": 60660,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 691200,
+      "ankiDays": 8,
+      "stability": 7.840024955947215,
+      "difficulty": 6.960237651269825
+     }
+    ],
+    [
+     {
+      "rating": 3,
+      "minutes": 0,
+      "state": "learning",
+      "step": 1,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 3.1,
+      "difficulty": 4.479883077263453
+     },
+     {
+      "rating": 3,
+      "minutes": 1,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 259200,
+      "ankiDays": null,
+      "stability": 3.1,
+      "difficulty": 4.425292466429925
+     },
+     {
+      "rating": 3,
+      "minutes": 11,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 259200,
+      "ankiDays": 4,
+      "stability": 3.1,
+      "difficulty": 4.371793667813067
+     },
+     {
+      "rating": 2,
+      "minutes": 4380,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 604800,
+      "ankiDays": 7,
+      "stability": 7.1941463023944205,
+      "difficulty": 5.851487680041656
+     },
+     {
+      "rating": 4,
+      "minutes": 11640,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 2764800,
+      "ankiDays": 32,
+      "stability": 31.904751233404124,
+      "difficulty": 4.640147734497237
+     },
+     {
+      "rating": 1,
+      "minutes": 43380,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 3.2067579243850903,
+      "difficulty": 7.500493619514982
+     },
+     {
+      "rating": 1,
+      "minutes": 43390,
+      "state": "relearning",
+      "step": 0,
+      "dueSeconds": 600,
+      "ankiDays": null,
+      "stability": 0.9405733817620211,
+      "difficulty": 8.746333160544934
+     },
+     {
+      "rating": 4,
+      "minutes": 43400,
+      "state": "review",
+      "step": null,
+      "dueSeconds": 172800,
+      "ankiDays": null,
+      "stability": 1.8867597727161625,
+      "difficulty": 8.265137575083008
+     }
+    ]
+   ]
+  }
+ ]
+}

@@ -7,6 +7,7 @@ public enum FlashcardsPlugin: EasyNotesPlugin {
         registry.addIndexContributor(CardIndexer())
         registry.addContentFixer(CardIDFixer())
         registry.addVaultGuide(guide)
+        registry.addSyncedMetaFolder(ReviewLog.metaFolder)
     }
 
     /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節

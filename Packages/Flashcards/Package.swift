@@ -9,6 +9,9 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../EasyNotesCore"),
+        // FSRS-6 只在 main（最後一個 release v5.0.0 是 FSRS-5），固定 commit；升級時重跑 scripts/fsrs-vectors.py 的回歸測試
+        .package(url: "https://github.com/open-spaced-repetition/swift-fsrs.git",
+                 revision: "4fbaf20184d62f82a9f44f343337c61a2c5483e9"),
     ],
     targets: [
         // 卡片解析、FSRS 排程、複習介面；不是檔案類型（卡片寫在 .md 裡）
@@ -17,10 +20,11 @@ let package = Package(
             dependencies: [
                 .product(name: "EasyNotesCore", package: "EasyNotesCore"),
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
+                .product(name: "FSRS", package: "swift-fsrs"),
             ]
         ),
         .testTarget(name: "FlashcardsTests", dependencies: [
             "Flashcards", .product(name: "EasyNotesCore", package: "EasyNotesCore"),
-        ]),
+        ], resources: [.copy("Fixtures")]),
     ]
 )

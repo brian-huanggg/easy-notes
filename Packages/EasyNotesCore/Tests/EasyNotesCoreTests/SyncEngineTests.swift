@@ -61,11 +61,11 @@ struct Device {
     let fs: VaultFS
     let engine: SyncEngine
 
-    init(_ name: String, backend: FakeBackend, root: URL? = nil) throws {
+    init(_ name: String, backend: FakeBackend, root: URL? = nil, metaFolders: [String] = []) throws {
         let root = root ?? FileManager.default.temporaryDirectory.appending(path: "sync-\(name)-\(UUID().uuidString)")
         fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        engine = try SyncEngine(fs: fs, backend: backend, userID: "me", deviceName: name)
+        engine = try SyncEngine(fs: fs, backend: backend, userID: "me", deviceName: name, syncedMetaFolders: metaFolders)
     }
 
     func write(_ text: String, _ path: String) throws { try fs.write(Data(text.utf8), to: path) }
@@ -310,6 +310,69 @@ struct SyncEngineTests {
         await mac.sync()
         await ipad.sync()
         #expect(await log.items == ["a.note|-|x\n"])
+    }
+}
+
+/// `.easynotes/` 只有註冊的子資料夾參與同步；device-id 是本機的
+struct SyncMetaFolderTests {
+    let backend = FakeBackend()
+
+    @Test func registeredMetaFolderSyncs() async throws {
+        let mac = try Device("Mac", backend: backend, metaFolders: ["srs"])
+        let ipad = try Device("iPad", backend: backend, metaFolders: ["srs"])
+        try mac.write("{\"id\":1}\n", ".easynotes/srs/mac.jsonl")
+        try mac.write("local", ".easynotes/cache/index.sqlite")
+        try mac.write("", ".easynotes/seeded")
+        try mac.write("# 筆記\n", "筆記.note")
+        await mac.sync()
+        let paths = Set(await backend.rows.values.map(\.path))
+        #expect(paths == [".easynotes/srs/mac.jsonl", "筆記.note"])
+
+        await ipad.sync()
+        #expect(ipad.read(".easynotes/srs/mac.jsonl") == "{\"id\":1}\n")
+        #expect(!ipad.exists(".easynotes/seeded"))
+
+        // 追加的紀錄也會同步；iPad 寫自己的檔案，不會衝突
+        try mac.write("{\"id\":1}\n{\"id\":2}\n", ".easynotes/srs/mac.jsonl")
+        try ipad.write("{\"id\":3}\n", ".easynotes/srs/ipad.jsonl")
+        await mac.sync()
+        await ipad.sync()
+        await mac.sync()
+        #expect(ipad.read(".easynotes/srs/mac.jsonl") == "{\"id\":1}\n{\"id\":2}\n")
+        #expect(mac.read(".easynotes/srs/ipad.jsonl") == "{\"id\":3}\n")
+        #expect(await mac.engine.currentStatus.conflicts.isEmpty)
+        #expect(await ipad.engine.currentStatus.conflicts.isEmpty)
+    }
+
+    @Test func unregisteredMetaFolderStaysLocal() async throws {
+        let mac = try Device("Mac", backend: backend)
+        try mac.write("{}\n", ".easynotes/srs/mac.jsonl")
+        await mac.sync()
+        #expect(await backend.rows.isEmpty)
+    }
+
+    @Test func deviceIDIsStoredInMetaFolderAndNotSynced() async throws {
+        let mac = try Device("Mac", backend: backend, metaFolders: ["srs"])
+        let id = await mac.engine.deviceID
+        #expect(try mac.fs.deviceID() == id)
+        #expect(mac.read(".easynotes/device-id") == id + "\n")
+        await mac.sync()
+        #expect(await backend.rows.isEmpty)
+
+        // 重新建立引擎（App 重開）id 不變
+        let again = try SyncEngine(fs: mac.fs, backend: backend, userID: "me", deviceName: "Mac")
+        #expect(await again.deviceID == id)
+    }
+
+    @Test func deviceIDMigratesFromSyncState() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "device-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        #expect(try fs.deviceID(migrating: "OLD-ID") == "OLD-ID")
+        #expect(try fs.deviceID(migrating: "OTHER") == "OLD-ID") // 已存在就不覆寫
+        try FileManager.default.removeItem(at: fs.url(for: ".easynotes/device-id"))
+        let fresh = try fs.deviceID()
+        #expect(fresh != "OLD-ID" && !fresh.isEmpty)
     }
 }
 

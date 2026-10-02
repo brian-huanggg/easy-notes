@@ -50,6 +50,7 @@ public actor SyncEngine {
     private let fs: VaultFS
     private let backend: any SyncBackend
     private let deviceName: String
+    private let syncedMetaFolders: [String]
     private let state: SyncState
     private let hooks: Hooks
     private var status = Status()
@@ -61,23 +62,21 @@ public actor SyncEngine {
     /// - Parameters:
     ///   - userID: 換帳號時清空本地同步狀態（檔案留著，下一輪以 hash 對上遠端）
     ///   - deviceName: 衝突副本檔名用，例如「iPad」
+    ///   - syncedMetaFolders: `.easynotes/` 下參與同步的子資料夾（`PluginRegistry.syncedMetaFolders`）
     public init(fs: VaultFS, backend: any SyncBackend, userID: String, deviceName: String,
-                stateURL: URL? = nil, hooks: Hooks = Hooks()) throws {
+                syncedMetaFolders: [String] = [], stateURL: URL? = nil, hooks: Hooks = Hooks()) throws {
         self.fs = fs
         self.backend = backend
         self.deviceName = deviceName
+        self.syncedMetaFolders = syncedMetaFolders
         self.hooks = hooks
         state = try SyncState(url: stateURL ?? fs.root.appending(path: "\(VaultFS.metaFolder)/sync.sqlite"))
         if state[meta: "user"] != userID {
             try state.removeAll()
             state[meta: "user"] = userID
         }
-        if let id = state[meta: "device"] {
-            deviceID = id
-        } else {
-            deviceID = UUID().uuidString
-            state[meta: "device"] = deviceID
-        }
+        // 舊版的 id 存在 sync.sqlite：搬到 `.easynotes/device-id`，id 不變
+        deviceID = try fs.deviceID(migrating: state[meta: "device"])
     }
 
     public var currentStatus: Status { status }
@@ -207,17 +206,23 @@ public actor SyncEngine {
         }
     }
 
-    /// 參與同步的檔案：Vault 內所有一般檔案，略過隱藏檔與 `.easynotes/`（索引、快取、同步狀態）
+    /// 參與同步的檔案：Vault 內所有一般檔案，略過隱藏檔與 `.easynotes/`（索引、快取、同步狀態），
+    /// 但包含外掛註冊的 `.easynotes/<folder>/`
     private func diskFiles() throws -> [String: (mtime: Double, size: Int)] {
+        let roots = [fs.root] + syncedMetaFolders.map {
+            fs.root.appending(path: "\(VaultFS.metaFolder)/\($0)", directoryHint: .isDirectory)
+        }
         let keys: [URLResourceKey] = [.isRegularFileKey, .contentModificationDateKey, .fileSizeKey]
-        guard let walker = FileManager.default.enumerator(at: fs.root, includingPropertiesForKeys: keys,
-                                                           options: [.skipsHiddenFiles, .skipsPackageDescendants])
-        else { return [:] }
         var result: [String: (mtime: Double, size: Int)] = [:]
-        for case let url as URL in walker {
-            let values = try url.resourceValues(forKeys: Set(keys))
-            guard values.isRegularFile == true else { continue }
-            result[fs.path(for: url)] = (values.contentModificationDate?.timeIntervalSince1970 ?? 0, values.fileSize ?? 0)
+        for root in roots {
+            guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys,
+                                                               options: [.skipsHiddenFiles, .skipsPackageDescendants])
+            else { continue }
+            for case let url as URL in walker {
+                let values = try url.resourceValues(forKeys: Set(keys))
+                guard values.isRegularFile == true else { continue }
+                result[fs.path(for: url)] = (values.contentModificationDate?.timeIntervalSince1970 ?? 0, values.fileSize ?? 0)
+            }
         }
         return result
     }

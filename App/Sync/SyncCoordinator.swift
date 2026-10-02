@@ -124,6 +124,7 @@ final class SyncCoordinator {
             let engine = try SyncEngine(
                 fs: store.fs, backend: SupabaseBackend(client: supabase),
                 userID: user.id.uuidString, deviceName: Self.deviceName,
+                syncedMetaFolders: store.plugins.syncedMetaFolders,
                 hooks: .init(
                     willChange: { [weak store] path in await store?.prepareForSync(path) },
                     didChange: { [weak store] path, oldPath, data in
