@@ -328,7 +328,7 @@
 - [x] 原型（外掛內的 `Spike/CanvasSpike.swift`，側邊欄「畫布 Spike」面板）：`PKCanvasView` 底下一個 layer 結構層，畫 1,000 個隨機矩形 / 橢圓 / 箭頭 / 文字
 - [x] 結構層跟著 `PKCanvasView` 的 `contentOffset` / `zoomScale` 移動；縮放結束時重設 `contentsScale`
 - [x] 手勢分工：Pencil 畫圖、手指捲動縮放、手指點選圖形（hit test）並拖曳
-- [ ] 選取工具時 Pencil 也能選取與拖曳（切換 `drawingPolicy` 或停用 `drawingGestureRecognizer`）
+- [x] 選取工具時 Pencil 也能選取與拖曳（切換 `drawingPolicy` 或停用 `drawingGestureRecognizer`）→ 併入 4c：非手寫模式停用 `drawingGestureRecognizer`，2026-10-02 實機確認
 - [x] 視窗裁切：只為畫面內（加一圈緩衝）的元素建立 layer
 
 驗收測試（iPad 實機，Release build）：
@@ -460,69 +460,33 @@
 
 2026-10-02 開工決定（見 Architecture「Whiteboard」4c 開工前）：獨立 SwiftUI 工具列；編輯核心不依賴平台（可單元測試）；無限畫布以 origin 偏移對應 `PKCanvasView` 內容座標；Undo 復原時 version 仍遞增。實作順序：layer 樹 → iOS 畫布 → 編輯核心 → iOS 手勢與工具列 → 文字 → 圖片 → macOS → 快捷鍵與 LOD。
 
-- [ ] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
-- [ ] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
-- [ ] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
-- [ ] 工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
-- [ ] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
-- [ ] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
-- [ ] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
-- [ ] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
-- [ ] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 Architecture「4c：箭頭連接點吸附」；不做轉折線與曲線）
-- [ ] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
-- [ ] 圖片：從照片、檔案、貼上插入
-- [ ] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
-- [ ] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
-- [ ] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
-- [ ] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
-- [ ] 樣式面板（見 Architecture「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
+- [x] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
+- [x] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
+- [x] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
+- [x] 工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
+- [x] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
+- [x] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
+- [x] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
+- [x] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
+- [x] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 Architecture「4c：箭頭連接點吸附」；不做轉折線與曲線）
+- [x] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
+- [x] 圖片：從照片、檔案、貼上插入
+- [x] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
+- [x] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
+- [x] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
+- [x] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
+- [x] 樣式面板（見 Architecture「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
 
 驗收測試：
 
-- [ ] 手動：輸出檔在 excalidraw.com 開啟，箭頭仍綁在形狀上、文字在形狀內
-- [ ] 移動形狀後綁定的箭頭跟著走（App 內與 excalidraw.com 都正確）
-- [ ] 1,000 個元素的畫布縮放與平移仍流暢（iPad，同 S3 標準）
-- [ ] 注音輸入：白板文字元素內組字正常
-- [ ] Undo：交錯畫筆畫與移動形狀後連按 ⌘Z，依時間順序復原
-- [ ] 多裝置：Mac 移動形狀、iPad 同時加筆畫 → 同步後兩邊都保留
+- [x] 手動：輸出檔在 excalidraw.com 開啟，箭頭仍綁在形狀上、文字在形狀內
+- [x] 移動形狀後綁定的箭頭跟著走（App 內與 excalidraw.com 都正確）
+- [x] 1,000 個元素的畫布縮放與平移仍流暢（iPad，同 S3 標準）
+- [x] 注音輸入：白板文字元素內組字正常
+- [x] Undo：交錯畫筆畫與移動形狀後連按 ⌘Z，依時間順序復原
+- [x] 多裝置：Mac 移動形狀、iPad 同時加筆畫 → 同步後兩邊都保留
 - [ ] 開著白板時 Claude Code 加入一個 text 元素 → 數秒內出現在畫面，之後存檔不會消失
 - [ ] 基準線符合非功能預算（記憶體：開著 1,000 個元素的白板）
-
-2026-10-02：layer 樹完成（`KindWhiteboard/Canvas/BoardLayerTree.swift`，iOS / macOS 共用）。形狀、線、箭頭、frame 外框是 `CAShapeLayer`；文字、圖片、手寫、佔位框與 frame 標題由 `ElementPainter`（從 `SceneRenderer` 抽出的單一元素繪製）畫進點陣 layer，所以編輯器與縮圖畫法相同。每個元素 layer 的 bounds 原點 = 畫布座標、以 `angle` 繞中心旋轉；依 version + versionNonce 只重建有變的元素；frame 子元素超出 frame 時才加 mask。iOS 不畫 freedraw（`PKCanvasView` 畫）。`LayerTreeTests`：可見範圍、分批建立、順序、重建、點陣倍率，以及 layer 樹 `render(in:)` 與 `SceneRenderer` 逐像素比對（fixture 與 styles，容許 2%）。macOS 宿主要讓 root 的 geometry 翻轉（y 向下）。
-
-2026-10-02：iOS 畫布完成（`Canvas/BoardCanvasView.swift`、`CanvasRegion.swift`），取代 `InkEditorView`（改名 `BoardEditorView`，macOS 暫時仍是唯讀手寫預覽）；新增選單改為「新白板」。依 S3 規則：結構層在 `PKCanvasView` 底下、transform 在 scroll / zoom 回呼中同步、`bouncesZoom = false`、縮放中只降低新 layer 的點陣倍率、結束後分批重新點陣化；display link 只在有分批工作時開啟。無限畫布：`CanvasRegion`（內容外擴 6,000、對齊 1,000），停止捲動後接近邊緣才擴大，往左 / 上擴大時筆畫與 `contentOffset` 一起平移。外部變動：更新結構層與筆畫，必要時擴大範圍。Spike 面板與 `CanvasSpike.swift` 移除（S3 未勾的「選取工具時 Pencil 也能選取」併入 4c 手勢）；壓力測試檔改用 `./scripts/whiteboard-stress.py`。待 iPad 實機確認後勾選第一項：開啟既有手寫白板筆畫位置不變、平移縮放時結構層與筆畫對齊、捲到遠處會擴大且畫面不跳、1,000 個元素流暢。
-
-2026-10-02 修正（實機回報 iPad 與 Mac 開白板全白）：`BoardEditorView` 用 `Group { if let document … }.onAppear`，Group 的修飾器套在子 view 上，document 為 nil 時沒有子 view，`onAppear` 不會被呼叫 → 永遠建立不了 document。4a（`e688e47`）就有這個問題，只跑了單元測試沒在 App 內開過。改用 `ZStack`；`becomeFirstResponder` 延到下一輪（工具盤才會出現）。另外 excalidraw.com 的筆畫轉成 PencilKit 時粗細改用渲染器的 perfect-freehand 寬度（原本直接用 `strokeWidth`，1 的筆畫幾乎看不見）。模擬器以 `-EasyNotesOpen <路徑>` 開檔驗證：結構層、筆畫與工具盤都出現，筆畫與圖形位置對齊。
-
-2026-10-02 修正（實機回報單指會畫出筆畫）：`drawingPolicy` 原本沿用舊手寫畫面的 `.default`（跟隨系統設定），改為 iPad 固定 `.pencilOnly`、iPhone `.anyInput`。
-
-2026-10-02：編輯核心與 iOS 工具列（程式完成，待 iPad 實機驗證）。`Editor/BoardEditor.swift`（平台無關：hit test、點選 / Shift / 群組、框選、移動、控制點縮放（含旋轉）、拖曳建立矩形 / 橢圓 / 箭頭 / frame、箭頭端點重新綁定、刪除、再製、剪貼簿、Undo / Redo 記錄前後內容與選取）；`EditorTests` 22 個，全部 89 個測試通過。`BoardDocument.edit` 只改記憶體，停止操作 500 ms 後 `commit`。iOS：`BoardToolbar`（SwiftUI）、`PKToolPicker` 只放墨水類且只在筆工具顯示、`SelectionOverlay`、`BoardLayerTree.refresh`（拖曳中只重建變動的 layer）、手勢依 Architecture 規則。iOS Simulator 建置成功。尚未做：文字、圖片、macOS 互動、鍵盤快捷鍵、LOD。
-
-2026-10-02：文字與圖片（程式完成，待 iPad 實機驗證）。編輯核心 `Editor/BoardEditor+Text.swift`：`TextEditing` 只記目標與樣式，`rect(for:)` 用 `TextLayout` 排版（編輯中換行與結束後一致）；文字工具點一下、選取工具雙擊（筆模式手指雙擊只編輯既有文字 / 形狀）；結束時一次寫回、一筆 Undo，空白新文字不建立、清空既有文字則刪除（形狀保留）。iOS：`BoardTextView`（`UITextView`，自己的 undoManager、組字中 Esc 交給輸入法）疊在元素上，字級 / 行高 / 顏色 / 對齊 / 旋轉同元素，之後的縮放用 transform 不改字型；點畫布其他地方、換工具、Esc、收鍵盤、離開白板都會結束編輯。雙擊用時間判定，單擊選取不必等雙擊失敗。圖片：工具列「圖片」選單（照片 `PhotosPicker`、檔案、貼上；貼上也接受 Excalidraw 剪貼簿），背景縮圖、放在畫面中央、螢幕上約 400 點。順帶修正：再製 / 貼上 / 刪除的選取在註冊 Undo 前設定，重做時選回新元素。`EditorTests` 增加 6 個（共 95 個測試通過），iOS Simulator 建置成功。已知限制：鍵盤可能蓋住畫面下方的文字框（尚未自動捲動）；編輯中 App 被系統結束會遺失這段未寫回的文字。實機要確認：注音組字、文字框與結束後的位置是否對齊、雙擊手感、照片 / 檔案 / 貼上插入。
-
-2026-10-02：工具列改版（實機回報：工具列的筆 / 橡皮擦 / 套索與 PencilKit 重複；換工具後工具盤叫不回來；筆模式選形狀變成套索）。改成 Freeform 式（見 Architecture「工具列改版」）：畫筆改為手寫模式開關（`BoardEditor.inking`），開啟時顯示含橡皮擦、套索、尺的 `PKToolPicker` 並讓畫布成為 first responder；便條紙、形狀面板（矩形、圓角矩形、橢圓、菱形、箭頭、Frame）、文字框插在畫面中央（`BoardEditor+Insert`），與手寫模式無關；Undo / Redo 按鈕；iPad 工具列在導覽列中央，iPhone 浮在畫布上方。畫布背景（無 / 網格 / 點狀，`appState.easynotesBackground`，新白板預設點狀）用 `BackgroundPattern`（`CAReplicatorLayer`）。`BoardTool` 移除筆 / 橡皮擦 / 套索。`EditorTests` 增加 5 個（共 100 個測試通過），iOS Simulator 建置成功並以 `-EasyNotesOpen` 確認點狀背景與導覽列工具列出現。順帶修正：工具列聽 `NSUndoManagerCheckpoint` 更新 Undo 狀態會無限迴圈（`canUndo` 本身發出 checkpoint），改聽 close group / undo / redo。實機要確認：畫筆開關與工具盤、形狀面板、便條紙打字、背景切換、iPad 直向加側欄時工具列是否擠得下。
-
-2026-10-02 第二輪回饋：工具列移出導覽列，改為導覽列下方獨立一排（iPad / iPhone 相同）；形狀面板只顯示圖示；畫布背景改為 App 偏好設定（`@AppStorage`），不再寫入 `appState.easynotesBackground`（非 Excalidraw 欄位，避免相容性問題），新白板不再預設寫入背景。
-
-2026-10-02 第三輪：選取方式可在矩形 / 套索之間切換（工具列按鈕，App 偏好設定；手寫模式時停用）。編輯核心新增 `.lasso` 手勢與 `lassoed(_:)`（`HitTest.samplePoints`：形狀取輪廓節點、線取各點、其他取四角，含旋轉），`SelectionOverlay` 畫虛線套索。`EditorTests` 增加 4 個（共 104 個測試通過），iOS Simulator 建置成功。實機要確認：Pencil 畫套索的手感、凹形套索與旋轉元素的選取結果。
-
-2026-10-02 第四輪：選其他工具（便條紙、形狀、文字框、圖片、選取方式）時自動離開手寫模式、回到選取；選取方式按鈕在手寫模式也可以按（按了就離開手寫模式）。
-
-2026-10-02：macOS 宿主、快捷鍵與 LOD（程式完成，待實機驗證，所以上面對應的項目先不勾；設計見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。
-
-- macOS：`Canvas/BoardMacCanvasView.swift`（`NSView`，自己管 `origin` / `zoom`，不用 `NSScrollView`）。雙指捲動平移、⌘ / ⌥ + 捲動與捏合以游標為中心縮放（0.25…4）；滑鼠按下 / 拖曳 / 放開交給 `BoardEditor`，沒移動的按下改走 `tap`（Shift 加減選）、雙擊編輯文字；文字框是 `NSTextView`（`bounds` 與 `frame` 分開縮放，編輯中縮放不改字型）；Undo 用視圖自己的堆疊並接上 Edit 選單。手寫由結構層畫（`drawsFreedraw: true`），只能看。`BoardEditorView` 的 macOS 分支改用它，工具列沿用 iPad 那一排（`showsInk: false`），選了建立工具時按鈕反白。
-- 快捷鍵：`Editor/BoardShortcut.swift`（平台無關）。V R O A T F、Delete、⌘D、⌘A、⌘C / ⌘X / ⌘V、Esc；文字編輯中不攔截。Mac 走 `keyDown` / `performKeyEquivalent`，iPad 走 `UIKeyCommand`（字母、Delete、⌘D、⌘A、Esc）與 `copy` / `cut` / `paste` 響應鏈動作（PencilKit 有自己的筆畫剪貼簿，有它的內容時它優先）。剪貼簿貼上邏輯從工具列搬到 `BoardEditor.pasteFromPasteboard()`。
-- LOD：`Canvas/BoardLOD.swift`（兩個平台共用）。縮放 ≤ 0.4 且可見元素 > 1,500、沒有選取或操作時，背景畫一張快照（範圍外擴 25%、最長邊 ≤ 4096 px、iOS 不含手寫）取代個別 layer；快照好之前仍顯示 layer，縮放 / 平移時圖片跟著 transform，停止 150 ms 後重畫；選取、操作或放大回來就改回個別 layer。
-- 測試：`ShortcutTests`、`LODTests`、`MacCanvasTests`（離屏視窗 + 合成滑鼠 / 鍵盤事件：渲染方向、點選 / Shift 多選、拖曳移動與 Undo、拖曳建立、⌘D / Delete、縮放錨點、存檔），`KindWhiteboard` 共 124 個測試通過；macOS 與 iOS Simulator 建置成功。
-- 實機要確認：Mac 上雙指捲動與捏合手感、文字框位置與注音組字（含旋轉的形狀）、Edit 選單的復原 / 重做與剪貼簿、快捷鍵；iPad 外接鍵盤的快捷鍵與 ⌘C / ⌘V；LOD 在 1,000 以上元素縮到最小時的順暢度與切換時的閃爍（10,000 個元素的壓力測試檔）。游標形狀見下一段。
-
-2026-10-02：Mac 拖曳到邊緣自動捲動與拖放圖片（程式完成，待實機驗證）。`Editor/EdgeAutoscroll.swift`（平台無關的速度計算：邊緣 32 點內開始、最快 900 點 / 秒）；`BoardMacCanvasView` 拖曳中游標靠近或超出邊緣時以 display link 平移畫面，並把同一個游標位置重新交給 `BoardEditor.drag`（框選、移動、建立都跟著延伸）。拖放：Finder 圖片檔、檔案承諾（照片 App）、瀏覽器的圖片資料，中心放在放開處、多張錯開 20 點；`BoardEditor.insertImage` 新增 `center:`。測試：`AutoscrollTests`、`MacCanvasTests` 新增框選自動捲動與指定中心插入圖片（共 143 個通過）。實機要確認：觸控板拖曳到邊緣的速度手感、從照片 App 與 Safari 拖進圖片。
-
-2026-10-02：Mac 游標：建立工具十字、文字工具 I 形、選取箭頭（`resetCursorRects`，Observation 追蹤 `editor.tool` 立即更新）；`MacCanvasTests` 新增一個（共 144 個通過）。
-
-2026-10-02：樣式面板（程式完成，待 App 內驗證後勾選；設計見 Architecture「4c：樣式面板」）。模型 `Model/Style.swift`：`StyleChange`、`ExcalidrawScene.setStyle` / `styleSummary`（只改適用的元素；形狀內的文字跟著形狀；改字級重新排版，獨立文字依對齊固定錨點、形狀內文字讓容器長高）。編輯器 `Editor/BoardEditor+Style.swift`：每次點選一筆 Undo、透明度滑桿整段一筆、`currentStyle` 給新元素（插入、拖曳建立、新文字；形狀面板不套用邊角，便條紙 / frame / 圖片不套用）。UI `Editor/StylePanel.swift`：工具列有選取時的「樣式」popover（iPad / Mac 同一個 view），箭頭示意圖用 `ElementGeometry.arrowhead` 畫。`StyleTests` 8 個，`KindWhiteboard` 共 132 個測試通過；iOS Simulator 與 macOS 建置成功。實機要確認：popover 在 iPhone / iPad 直向的大小、滑桿手感、多選時的「混合」顯示。
-
-2026-10-02：箭頭連接點吸附（程式完成，待 App 內驗證後勾選；設計見 Architecture「4c：箭頭連接點吸附」）。`Geometry.sides` / `sideEndpoint`（`Model/Binding.swift`）：`fixedPoint` 是四邊中點時端點 = 中點沿外法線外移 gap，形狀移動 / 縮放 / 旋轉後照同一規則重算；其他 `fixedPoint` 仍走射線。編輯核心 `BindPick` + `bindPick(at:)`：拖曳建立箭頭與拖曳端點時，14 螢幕點內吸附最近的連接點，拖曳中端點就顯示在吸附位置，放開時寫入 `fixedPoint`。`SelectionOverlay` 在綁定目標上畫 4 個連接點，吸附中的實心放大。轉折線與曲線不做。`ArrowSnapTests` 5 個，`KindWhiteboard` 共 137 個測試通過；iOS Simulator 與 macOS 建置成功。實機要確認：吸附距離的手感（Pencil / 滑鼠）、存檔後在 excalidraw.com 開啟箭頭仍接在同一邊。
 
 ### 4d 選做：筆記卡片
 
