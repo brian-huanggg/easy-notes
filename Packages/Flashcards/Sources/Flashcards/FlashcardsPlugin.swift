@@ -1,13 +1,15 @@
 import EasyNotesUI
 
 /// 卡片解析、FSRS 排程、複習介面。不是檔案類型：卡片寫在 .md 裡，語法標示由 Markdown 外掛負責。
-/// 複習面板（`addPanel`）在 3c 加入。
 public enum FlashcardsPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         registry.addIndexContributor(CardIndexer())
         registry.addContentFixer(CardIDFixer())
         registry.addVaultGuide(guide)
         registry.addSyncedMetaFolder(ReviewLog.metaFolder)
+        registry.addController(ReviewStore.shared)
+        registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badgeTint: Palette.cardDue,
+                          badge: { ReviewStore.shared.dueCount }) { ReviewPanel() }
     }
 
     /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節

@@ -40,7 +40,7 @@ final class VaultStore: DocumentSession {
     private(set) var tags: [TagCount] = []
     private(set) var lastError: String?
 
-    @ObservationIgnored private let index: VaultIndex?
+    @ObservationIgnored let index: VaultIndex?
     @ObservationIgnored private let previews: PreviewCache
     @ObservationIgnored private let writer: VaultWriter
     @ObservationIgnored private var searchTask: Task<Void, Never>?
@@ -175,6 +175,7 @@ final class VaultStore: DocumentSession {
                 try await writer.write(data, to: path)
                 try await index?.update(path, data: data)
                 scheduleDerivedRefresh()
+                for editor in editors { editor.vaultChanged([path]) }
                 scheduleFixes([path])
                 onLocalChange?()
             } catch {
@@ -213,6 +214,7 @@ final class VaultStore: DocumentSession {
                 }
             }
             scheduleDerivedRefresh()
+            for editor in editors { editor.vaultChanged(changed) }
             return changed
         } catch {
             report(error)
@@ -241,7 +243,7 @@ final class VaultStore: DocumentSession {
         guard let index else { return }
         let paths = pendingFixes.filter { $0 != selection }
         pendingFixes.subtract(paths)
-        var wrote = false
+        var wrote = Set<String>()
         for path in paths.sorted() {
             guard let kind = fs.kinds.kind(for: path), let original = try? fs.read(path) else { continue }
             var data = original
@@ -259,11 +261,12 @@ final class VaultStore: DocumentSession {
                 try fs.write(data, to: path)
                 for editor in editors { editor.close(path: path) }
                 try await index.update(path, data: data)
-                wrote = true
+                wrote.insert(path)
             } catch { report(error) }
         }
-        if wrote {
+        if !wrote.isEmpty {
             scheduleDerivedRefresh()
+            for editor in editors { editor.vaultChanged(wrote) }
             onLocalChange?()
         }
     }
@@ -359,7 +362,10 @@ final class VaultStore: DocumentSession {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
             let newPath = try fs.rename(path, to: name)
             onMove?(path, newPath)
-            for editor in editors { editor.close(path: path) }
+            for editor in editors {
+                editor.close(path: path)
+                editor.moved(from: path, to: newPath)
+            }
             refresh()
             routesMoved(from: path, to: newPath)
 
@@ -414,7 +420,11 @@ final class VaultStore: DocumentSession {
             for editor in editors { editor.close(path: path) }
             routesDeleted(path)
         }
-        await syncIndex(paths: Set([path] + (oldPath.map { [$0] } ?? [])))
+        let paths = Set([path] + (oldPath.map { [$0] } ?? []))
+        await syncIndex(paths: paths)
+        // `.easynotes/` 下同步的檔案（例如複習紀錄）不進索引，另外通知外掛
+        let meta = paths.filter { $0.hasPrefix(VaultFS.metaFolder + "/") }
+        if !meta.isEmpty { for editor in editors { editor.vaultChanged(meta) } }
     }
 
     /// [[連結]]：找到就開啟，找不到就在目前資料夾建立預設類型（第一個註冊的外掛）
@@ -430,6 +440,17 @@ final class VaultStore: DocumentSession {
 
     func search(_ query: String) {
         searchText = query
+    }
+
+    var vault: VaultFS { fs }
+
+    func open(_ path: String, line: Int?) {
+        selection = path
+        if let line { for editor in editors { editor.reveal(path: path, line: line) } }
+    }
+
+    func metaChanged() {
+        onLocalChange?()
     }
 
     func modified(_ path: String) -> Date? {

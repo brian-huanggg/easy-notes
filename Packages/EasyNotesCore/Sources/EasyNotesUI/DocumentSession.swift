@@ -1,7 +1,8 @@
+import EasyNotesCore
 import Foundation
 import SwiftUI
 
-/// 外掛編輯器存取 Vault 的唯一入口，由 App 實作。外掛不 import App，也不直接碰網路。
+/// 外掛存取 Vault 的唯一入口，由 App 實作。外掛不 import App，也不直接碰網路。
 @MainActor
 public protocol DocumentSession: AnyObject {
     func readData(_ path: String) -> Data
@@ -18,6 +19,14 @@ public protocol DocumentSession: AnyObject {
     func importAttachment(_ url: URL) async -> String?
     /// 背景讀取 Vault 內的檔案，給 WebView 的 `vault://` 圖片使用；不在主執行緒做 I/O
     var resourceReader: @Sendable (_ path: String) async -> Data? { get }
+    /// 外掛讀寫自己的 `.easynotes/<name>/`（例如 Flashcards 的複習紀錄）
+    var vault: VaultFS { get }
+    /// 索引（records、檔案標籤）；建立失敗時為 nil
+    var index: VaultIndex? { get }
+    /// 開啟檔案並捲到第 `line` 行（從 0 起算），例如複習時的「編輯筆記」
+    func open(_ path: String, line: Int?)
+    /// 外掛寫了 `addSyncedMetaFolder` 註冊的資料夾內的檔案：排程上傳
+    func metaChanged()
 }
 
 extension DocumentSession {
@@ -26,8 +35,8 @@ extension DocumentSession {
     }
 }
 
-/// App 透過它通知常駐的編輯器（例如共用的 WebView），不必知道編輯器的實作。
-/// 預設實作都不做事，外掛只覆寫需要的。
+/// App 透過它通知外掛：常駐的編輯器（例如共用的 WebView），以及不是編輯器、但需要知道 Vault 變動的外掛
+/// （Flashcards）。預設實作都不做事，外掛只覆寫需要的。
 @MainActor
 public protocol EditorController: AnyObject {
     /// App 建立 DocumentSession 後呼叫一次
@@ -40,6 +49,12 @@ public protocol EditorController: AnyObject {
     func close(path: String)
     /// `[[` 自動完成的候選清單與連結卡片的資料
     func linkTargetsChanged(_ targets: [LinkTarget])
+    /// 索引更新之後：App 內編輯、外部修改、同步下載（含 `.easynotes/` 下同步的檔案）
+    func vaultChanged(_ paths: Set<String>)
+    /// App 內改名或搬移（檔案或資料夾）；同步造成的搬移不通知
+    func moved(from: String, to: String)
+    /// `DocumentSession.open(_:line:)`：開啟後捲到該行
+    func reveal(path: String, line: Int)
 }
 
 extension EditorController {
@@ -48,6 +63,9 @@ extension EditorController {
     public func externalChange(path: String, data: Data) {}
     public func close(path: String) {}
     public func linkTargetsChanged(_ targets: [LinkTarget]) {}
+    public func vaultChanged(_ paths: Set<String>) {}
+    public func moved(from: String, to: String) {}
+    public func reveal(path: String, line: Int) {}
 }
 
 /// `[[連結]]` 的目標：名稱（不含副檔名）與連結卡片顯示的類型、摘要、時間。

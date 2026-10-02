@@ -1,7 +1,7 @@
 // EasyNotes Markdown 編輯器：CodeMirror 6 + Live Preview + Swift Bridge
 //
 // Bridge 協定（見架構文件）：
-//   Swift → JS : window.editor.load / applyRemote / setMeta / setLinkTargets / setFrontmatter / exec / focus
+//   Swift → JS : window.editor.load / applyRemote / setMeta / setLinkTargets / setFrontmatter / revealLine / exec / focus
 //   JS → Swift : ready / changed / openLink / openTag / pickCover / pickIcon / metric
 // 打字的熱路徑不跨 Bridge：變更只在停止輸入 300ms 或失焦時回報。
 import { autocompletion, CompletionContext, CompletionResult, completionKeymap } from "@codemirror/autocomplete";
@@ -199,6 +199,15 @@ const api = {
 
   close(id: string) {
     states.delete(id);
+  },
+
+  // 複習時的「編輯筆記」：游標放到該行行首（line 從 0 起算）並捲到畫面中間
+  revealLine(id: string, line: number) {
+    if (id !== currentId) return;
+    const doc = view.state.doc;
+    const pos = doc.line(Math.min(Math.max(1, line + 1), doc.lines)).from;
+    view.dispatch({ selection: EditorSelection.cursor(pos), effects: EditorView.scrollIntoView(pos, { y: "center" }) });
+    view.focus();
   },
 
   focus() {

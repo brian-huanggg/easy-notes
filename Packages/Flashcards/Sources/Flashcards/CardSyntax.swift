@@ -139,6 +139,23 @@ public enum CardSyntax {
         return ParsedLine(note: note, content: content, idRange: idRange)
     }
 
+    /// 克漏字的一行切成片段：一般文字與第幾個 `{{}}`（從 0 起算，內容不含括號）。
+    /// 與 `parseLine` 相同，行內程式碼中的 `{{}}` 不算
+    public static func clozeSegments(_ text: String) -> [(text: String, cloze: Int?)] {
+        let code = codeSpans(in: text[...])
+        var result: [(String, Int?)] = []
+        var last = text.startIndex
+        var index = 0
+        for match in text.matches(of: clozePattern) where !code.contains(where: { $0.overlaps(match.range) }) {
+            if last < match.range.lowerBound { result.append((String(text[last..<match.range.lowerBound]), nil)) }
+            result.append((String(match.1).trimmingCharacters(in: .whitespaces), index))
+            index += 1
+            last = match.range.upperBound
+        }
+        if last < text.endIndex { result.append((String(text[last...]), nil)) }
+        return result
+    }
+
     /// 前後有空白的 `::` 與 `;;`，依出現順序
     private static func separators(in text: Substring) -> [(range: Range<Substring.Index>, type: CardType)] {
         // Swift Regex 不支援 lookbehind：前面的空白算在比對內，範圍只取分隔符本身
