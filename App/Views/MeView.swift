@@ -6,9 +6,16 @@ import SwiftUI
 struct MeView: View {
     @Environment(VaultStore.self) private var store
     @State private var showDeleted = false
+    @AppStorage(AppTheme.storageKey) private var theme = AppTheme.system
 
     var body: some View {
         Form {
+            Section(L("外觀")) {
+                Picker(L("主題"), selection: $theme) {
+                    ForEach(AppTheme.allCases) { Label($0.title, systemImage: $0.systemImage).tag($0) }
+                }
+                .pickerStyle(.menu)
+            }
             Section(L("帳號與同步")) {
                 SyncPanel()
                     .padding(.vertical, 4)

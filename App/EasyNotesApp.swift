@@ -22,6 +22,7 @@ struct EasyNotesApp: App {
     @State private var sync: SyncCoordinator
     @State private var shell = ShellState()
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(AppTheme.storageKey) private var theme = AppTheme.system
 
     init() {
         let registry = PluginRegistry()
@@ -40,6 +41,7 @@ struct EasyNotesApp: App {
                 .environment(sync)
                 .environment(shell)
                 .environment(\.documentSession, store)
+                .appTheme(theme)
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -78,6 +80,7 @@ struct EasyNotesApp: App {
             MeView()
                 .environment(store)
                 .environment(sync)
+                .appTheme(theme)
         }
         #endif
     }
