@@ -39,3 +39,66 @@ struct MarkdownMergeTests {
         #expect(MarkdownKind.merge(base: nil, local: Data("a".utf8), remote: Data("b".utf8)) == nil)
     }
 }
+
+struct MarkdownFrontmatterTests {
+    private func pin(_ md: String, _ pinned: Bool) throws -> String {
+        String(decoding: try #require(MarkdownKind.setPinned(pinned, in: Data(md.utf8))), as: UTF8.self)
+    }
+
+    @Test func readsIconPinnedAndTags() {
+        let md = """
+        ---
+        icon: "🌱"
+        pinned: true # 首頁置頂
+        tags: [生物, "plant"]
+        ---
+        # 光合作用
+        #生物 內文
+        """
+        let entry = MarkdownKind.index(Data(md.utf8), fileName: "a.md")
+        #expect(entry.icon == "🌱")
+        #expect(entry.pinned)
+        #expect(entry.tags == ["生物", "plant"])
+        #expect(entry.title == "光合作用")
+    }
+
+    @Test func readsBlockListTagsAndCRLF() {
+        let md = "---\r\ntags:\r\n  - a\r\n  - b\r\npinned: yes\r\n---\r\n# T\r\n"
+        let entry = MarkdownKind.index(Data(md.utf8), fileName: "a.md")
+        #expect(entry.tags == ["a", "b"])
+        #expect(entry.pinned)
+        #expect(!entry.plainText.contains("pinned"))
+    }
+
+    @Test func notPinnedWithoutFrontmatter() {
+        let entry = MarkdownKind.index(Data("# T\n---\npinned: true\n---\n".utf8), fileName: "a.md")
+        #expect(!entry.pinned)
+        #expect(entry.icon == nil)
+    }
+
+    @Test func pinThenUnpinRestoresBytes() throws {
+        for md in ["# 筆記\n\n內文\n", "沒有換行結尾", "---\ncreated: 2026-10-01\n---\n# A\n", "---\r\nicon: 🌱\r\n---\r\n# A\r\n", ""] {
+            let pinned = try pin(md, true)
+            #expect(MarkdownKind.index(Data(pinned.utf8), fileName: "a.md").pinned)
+            #expect(try pin(pinned, false) == md)
+        }
+    }
+
+    @Test func pinOnlyTouchesItsLine() throws {
+        let md = "---\ntitle: x\npinned: false\ncover: a.png\n---\n# A\n"
+        #expect(try pin(md, true) == "---\ntitle: x\npinned: true\ncover: a.png\n---\n# A\n")
+        #expect(try pin("---\ntitle: x\n---\nbody", true) == "---\ntitle: x\npinned: true\n---\nbody")
+        #expect(try pin("# A\n", true) == "---\npinned: true\n---\n# A\n")
+    }
+
+    @Test func emptyFrontmatterDoesNotCrash() {
+        #expect(MarkdownKind.index(Data("---\n---\n# A".utf8), fileName: "a.md").title == "A")
+        #expect(MarkdownKind.supportsPinning)
+    }
+
+    @Test func wordCountMixesCJKAndLatin() {
+        #expect(MarkdownKind.wordCount("光合作用 is photo-synthesis！") == 4 + 3)
+        let entry = MarkdownKind.index(Data(String(repeating: "字", count: 1240).utf8), fileName: "a.md")
+        #expect(entry.summary == "1,240 字")
+    }
+}

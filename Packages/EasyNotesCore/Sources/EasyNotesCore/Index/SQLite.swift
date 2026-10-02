@@ -8,6 +8,8 @@ final class SQLiteDB {
         case double(Double)
         case int(Int)
         case null
+
+        static func optionalText(_ s: String?) -> Value { s.map(Value.text) ?? .null }
     }
 
     struct Error: Swift.Error, CustomStringConvertible {
@@ -104,6 +106,9 @@ final class SQLiteDB {
         }
         func isNull(_ col: Int32) -> Bool {
             sqlite3_column_type(stmt, col) == SQLITE_NULL
+        }
+        func optionalText(_ col: Int32) -> String? {
+            isNull(col) ? nil : text(col)
         }
     }
 }

@@ -20,6 +20,11 @@ public struct IndexedFile: Identifiable, Hashable, Sendable {
     public let path: String
     public let title: String
     public let mtime: Date
+    public var icon: String? = nil
+    public var pinned = false
+    public var summary: String? = nil
+    /// 內容的 SHA-256；預覽快取的 key
+    public var hash = ""
 }
 
 public struct TagCount: Identifiable, Hashable, Sendable {
@@ -33,7 +38,7 @@ public struct TagCount: Identifiable, Hashable, Sendable {
 public actor VaultIndex {
     public static let hitStart = "\u{1}"
     public static let hitEnd = "\u{2}"
-    static let schemaVersion = 1
+    static let schemaVersion = 2
 
     private let fs: VaultFS
     private let db: SQLiteDB
@@ -51,7 +56,8 @@ public actor VaultIndex {
         guard db.userVersion != schemaVersion else { return }
         try db.exec("""
             DROP TABLE IF EXISTS files; DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS tags; DROP TABLE IF EXISTS fts;
-            CREATE TABLE files(path TEXT PRIMARY KEY, name TEXT NOT NULL, title TEXT NOT NULL, mtime REAL NOT NULL, size INTEGER NOT NULL);
+            CREATE TABLE files(path TEXT PRIMARY KEY, name TEXT NOT NULL, title TEXT NOT NULL, mtime REAL NOT NULL, size INTEGER NOT NULL,
+                icon TEXT, pinned INTEGER NOT NULL DEFAULT 0, summary TEXT, hash TEXT NOT NULL DEFAULT '');
             CREATE TABLE links(src TEXT NOT NULL, target TEXT NOT NULL);
             CREATE INDEX links_target ON links(target);
             CREATE INDEX links_src ON links(src);
@@ -148,8 +154,9 @@ public actor VaultIndex {
         guard let kind = fs.kinds.kind(for: url) else { return }
         let entry = kind.index(data, fileName: url.lastPathComponent)
         let name = fs.kinds.displayName(path)
-        try db.run("INSERT INTO files(path, name, title, mtime, size) VALUES(?, ?, ?, ?, ?)",
-                   [.text(path), .text(name), .text(entry.title), .double(mtime), .int(size)])
+        try db.run("INSERT INTO files(path, name, title, mtime, size, icon, pinned, summary, hash) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                   [.text(path), .text(name), .text(entry.title), .double(mtime), .int(size), .optionalText(entry.icon),
+                    .int(entry.pinned ? 1 : 0), .optionalText(entry.summary), .text(SyncEngine.sha256(data))])
         try db.run("INSERT INTO fts(path, title, body) VALUES(?, ?, ?)",
                    [.text(path), .text(entry.title), .text(entry.plainText)])
         for link in entry.links {
@@ -232,19 +239,24 @@ public actor VaultIndex {
 
     /// 所有已索引的檔案，最近修改的在前
     public func files() throws -> [IndexedFile] {
-        try db.query("SELECT path, title, mtime FROM files ORDER BY mtime DESC") {
-            IndexedFile(path: $0.text(0), title: $0.text(1), mtime: Date(timeIntervalSince1970: $0.double(2)))
-        }
+        try db.query("SELECT \(Self.fileColumns("")) FROM files ORDER BY mtime DESC", row: Self.indexedFile)
     }
 
     /// 帶有標籤 `tag`（含子標籤 `tag/…`）的檔案，最近修改的在前
     public func files(taggedWith tag: String) throws -> [IndexedFile] {
         try db.query("""
-            SELECT DISTINCT f.path, f.title, f.mtime FROM tags t JOIN files f ON f.path = t.path
+            SELECT DISTINCT \(Self.fileColumns("f.")) FROM tags t JOIN files f ON f.path = t.path
             WHERE t.tag = ? COLLATE NOCASE OR t.tag LIKE ? ORDER BY f.mtime DESC
-            """, [.text(tag), .text(tag + "/%")]) {
-            IndexedFile(path: $0.text(0), title: $0.text(1), mtime: Date(timeIntervalSince1970: $0.double(2)))
-        }
+            """, [.text(tag), .text(tag + "/%")], row: Self.indexedFile)
+    }
+
+    private static func fileColumns(_ table: String) -> String {
+        ["path", "title", "mtime", "icon", "pinned", "summary", "hash"].map { table + $0 }.joined(separator: ", ")
+    }
+
+    private static func indexedFile(_ row: SQLiteDB.Row) -> IndexedFile {
+        IndexedFile(path: row.text(0), title: row.text(1), mtime: Date(timeIntervalSince1970: row.double(2)),
+                    icon: row.optionalText(3), pinned: row.int(4) != 0, summary: row.optionalText(5), hash: row.text(6))
     }
 
     /// `[[` 自動完成用的筆記名稱

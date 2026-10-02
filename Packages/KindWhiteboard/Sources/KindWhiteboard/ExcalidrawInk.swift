@@ -250,10 +250,11 @@ public enum InkKind: DocumentKind {
 
     public static func index(_ data: Data, fileName: String) -> IndexEntry {
         // 白板內的文字元素也納入搜尋
-        let texts = ((try? ExcalidrawScene(data: data))?.elements ?? [])
-            .filter { $0["type"] as? String == "text" && $0["isDeleted"] as? Bool != true }
-            .compactMap { $0["text"] as? String }
-        return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: texts.joined(separator: "\n"))
+        let elements = ((try? ExcalidrawScene(data: data))?.elements ?? []).filter { $0["isDeleted"] as? Bool != true }
+        let texts = elements.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }
+        let strokes = elements.count { $0["type"] as? String == "freedraw" }
+        return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: texts.joined(separator: "\n"),
+                          summary: "\(strokes) 筆畫")
     }
 
     /// 依元素 id + version 合併，不需要 base；任一邊不是合法的 .excalidraw 才交給衝突副本

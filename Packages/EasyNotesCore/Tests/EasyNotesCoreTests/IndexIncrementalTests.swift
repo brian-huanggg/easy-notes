@@ -38,3 +38,45 @@ struct IndexIncrementalTests {
         #expect(try await index.sync(paths: ["圖.png"]).isEmpty)
     }
 }
+
+/// 外掛決定的 icon、pinned、summary：Core 只存不解讀
+private enum FlagKind: DocumentKind {
+    static let id = "flag"
+    static let fileExtensions = ["flag"]
+    static func template(title: String) -> Data { Data() }
+    static func index(_ data: Data, fileName: String) -> IndexEntry {
+        let text = String(decoding: data, as: UTF8.self)
+        return IndexEntry(title: fileName, plainText: text, icon: text.contains("🌱") ? "🌱" : nil,
+                          pinned: text.contains("pin"), summary: "\(text.count) 字")
+    }
+}
+
+struct IndexAttributeTests {
+    @Test func attributesAreStoredAndUpdated() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "index-\(UUID().uuidString)")
+        let fs = VaultFS(root: root, kinds: try KindRegistry([FlagKind.self]))
+        try fs.write(Data("pin 🌱".utf8), to: "a.flag")
+        try fs.write(Data("plain".utf8), to: "b.flag")
+        let index = try VaultIndex(fs: fs)
+        try await index.sync()
+
+        let files = Dictionary(uniqueKeysWithValues: try await index.files().map { ($0.path, $0) })
+        #expect(files["a.flag"]?.pinned == true)
+        #expect(files["a.flag"]?.icon == "🌱")
+        #expect(files["a.flag"]?.summary == "5 字")
+        #expect(files["b.flag"]?.pinned == false)
+        #expect(files["b.flag"]?.icon == nil)
+        #expect(files["b.flag"]?.hash == SyncEngine.sha256(Data("plain".utf8)))
+
+        // 外部修改（例如 Claude Code 取消釘選）後增量更新
+        // 外部修改（例如 Claude Code 取消釘選）後增量更新
+        try fs.write(Data("off".utf8), to: "a.flag")
+        try await index.sync(paths: ["a.flag"])
+        #expect(try await index.files().first { $0.path == "a.flag" }?.pinned == false)
+    }
+
+    @Test func pinningIsUnsupportedByDefault() {
+        #expect(FlagKind.setPinned(true, in: Data()) == nil)
+        #expect(!FlagKind.supportsPinning)
+    }
+}
