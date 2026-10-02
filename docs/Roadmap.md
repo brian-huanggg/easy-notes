@@ -425,7 +425,7 @@
 目標：白板在列表縮圖、md 嵌入與 Mac 上看起來正確；還不能編輯結構元素。
 
 - [x] `SceneRenderer`（CoreGraphics，背景執行緒）：所有標準元素、`angle`、曲線與 elbow 箭頭與箭頭頭部、文字（系統字型）、圖片（依尺寸縮圖）、frame 裁切與標題；未知類型畫佔位框
-- [ ] Core：`DocumentPreview.image: Data?`；`BoardPreview` 產生 PNG 縮圖、摘要
+- [x] EasyNotesUI：`DocumentPreview.image: Data?`（快取另存 `<hash>.png`）；`BoardPreview` 產生 PNG 縮圖、摘要
 - [ ] EasyNotesUI：WebEditorHost 的 `embed://<路徑>?h=<hash>` scheme，回傳預覽快取中的 `image`
 - [ ] Markdown：`![[x.excalidraw]]` 顯示為圖片 widget（游標所在行顯示原始語法），點擊開啟白板
 - [ ] Mac 檢視改用 `SceneRenderer`（取代只顯示 `PKDrawing` 的畫面），可平移、縮放
@@ -447,6 +447,8 @@
 - 手寫寬度：EasyNotes（PencilKit）筆畫用 `customData` 的點大小；excalidraw.com 的筆畫照 perfect-freehand（strokeWidth × 4.25、thinning 0.6）。半透明元素整個合成後才套用透明度。
 - 文字直接用檔案中已換行的 `text`（Excalidraw 存檔時就換好行），不重新排版，避免字型寬度不同時跟網頁的換行不一樣。
 - 圖片依顯示像素解碼（2 的冪次分級快取），支援 `crop`、`scale` 翻轉與圓角。
+
+2026-10-02：預覽圖完成。`DocumentPreview.image` 不進 JSON（base64 會膨脹 33%），`PreviewCache` 另存 `<hash>.png`，JSON 只記 `hasImage`；先寫 PNG 再寫 JSON，PNG 被刪就重新產生。記憶體只留 JSON 部分，PNG 另有 32 MB 上限的快取。`BoardPreview`（v2）：最長邊 1600px、倍率 ≤ 2；白色（預設）背景畫成透明，自訂背景色保留；`lines` 為前 8 個文字元素。卡片依顯示大小在背景解碼 PNG，深色模式用 Excalidraw 深色主題的做法（反相 + 色相轉 180°；圖片也會被反相，之後需要再處理）。
 
 ### 4c 編輯器
 

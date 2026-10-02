@@ -127,6 +127,34 @@ enum Snapshot {
         #expect(SceneColor.parse("bogus") == nil)
     }
 
+    // MARK: 預覽
+
+    @Test func boardPreviewHasTransparentPNGAndTexts() throws {
+        let preview = BoardPreview().makePreview(try Fixture.data())
+        let png = try #require(preview.image)
+        let image = try #require(CGImageSourceCreateWithData(png as CFData, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) })
+        #expect(max(image.width, image.height) <= BoardPreview.maxPixelSize)
+        #expect(Snapshot.rgba(image)[3] == 0) // 左上角是透明的（白色背景不畫）
+        #expect(preview.lines == ["光合作用 發生在葉綠體"])
+        // 同樣的內容產生同樣的 PNG：刪掉快取後重新產生，畫面相同
+        #expect(BoardPreview().makePreview(try Fixture.data()).image == png)
+    }
+
+    @Test func customBackgroundIsKept() throws {
+        var scene = ExcalidrawScene()
+        scene.raw["appState"] = ["viewBackgroundColor": "#fff9db"]
+        scene.insert(Element.rectangle(x: 0, y: 0, width: 50, height: 50))
+        #expect(SceneRenderer(scene: scene, transparentDefaultBackground: true).background != nil)
+        scene.raw["appState"] = ["viewBackgroundColor": "#ffffff"]
+        #expect(SceneRenderer(scene: scene, transparentDefaultBackground: true).background == nil)
+        #expect(SceneRenderer(scene: scene).background != nil)
+    }
+
+    @Test func emptyOrInvalidBoardHasNoImage() {
+        #expect(BoardPreview().makePreview(InkKind.template(title: "x")).image == nil)
+        #expect(BoardPreview().makePreview(Data("nope".utf8)).image == nil)
+    }
+
     // MARK: 效能
 
     /// 縮圖不在主執行緒產生（測試本身在背景執行），1,000 個元素 < 200 ms（Release、M 系列 Mac）

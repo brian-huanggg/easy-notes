@@ -52,6 +52,21 @@ private final class CountingPreview: DocumentPreviewProvider, @unchecked Sendabl
     @MainActor func view(_ preview: DocumentPreview, scale: CGFloat) -> AnyView { AnyView(EmptyView()) }
 }
 
+/// 固定回傳同一張「圖」
+private final class ImagePreview: DocumentPreviewProvider, @unchecked Sendable {
+    static let png = Data((0..<64).map { UInt8($0) })
+    private let lock = NSLock()
+    private var _calls = 0
+    var calls: Int { lock.withLock { _calls } }
+
+    func makePreview(_ data: Data) -> DocumentPreview {
+        lock.withLock { _calls += 1 }
+        return DocumentPreview(lines: ["a"], image: Self.png)
+    }
+
+    @MainActor func view(_ preview: DocumentPreview, scale: CGFloat) -> AnyView { AnyView(EmptyView()) }
+}
+
 @MainActor
 struct KindInfoTests {
     /// 篩選、圖示、類型顏色、預覽都只來自已註冊的 Kind
@@ -91,6 +106,29 @@ struct PreviewCacheTests {
         try FileManager.default.removeItem(at: dir)
         let rebuilt = PreviewCache(directory: dir)
         #expect(await rebuilt.preview(kindID: "note", hash: "abc", provider: provider) { content } == first)
+        #expect(provider.calls == 2)
+    }
+
+    /// 圖存成 `<hash>.png`，JSON 只記 `hasImage`；PNG 被刪掉就重新產生
+    @Test func imageIsStoredAsSidePNG() async throws {
+        let dir = FileManager.default.temporaryDirectory.appending(path: "preview-\(UUID().uuidString)")
+        let provider = ImagePreview()
+        let cache = PreviewCache(directory: dir)
+        let first = await cache.preview(kindID: "board", hash: "h1", provider: provider) { Data("x".utf8) }
+        #expect(first?.image == ImagePreview.png)
+
+        let folder = dir.appending(path: "board-v1")
+        let json = try String(decoding: Data(contentsOf: folder.appending(path: "h1.json")), as: UTF8.self)
+        #expect(json.contains("hasImage") && !json.contains(ImagePreview.png.base64EncodedString()))
+        #expect(try Data(contentsOf: folder.appending(path: "h1.png")) == ImagePreview.png)
+
+        let reopened = PreviewCache(directory: dir)
+        #expect(await reopened.preview(kindID: "board", hash: "h1", provider: provider) { Data() }?.image == ImagePreview.png)
+        #expect(provider.calls == 1)
+
+        try FileManager.default.removeItem(at: folder.appending(path: "h1.png"))
+        let rebuilt = PreviewCache(directory: dir)
+        #expect(await rebuilt.preview(kindID: "board", hash: "h1", provider: provider) { Data("x".utf8) }?.image == ImagePreview.png)
         #expect(provider.calls == 2)
     }
 
