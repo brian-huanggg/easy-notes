@@ -35,6 +35,8 @@ targets:
   EasyNotes:
     type: application
     supportedDestinations: [iOS, macOS]
+    # 產生共用 scheme：scripts/ 的 xcodebuild 用 -scheme EasyNotes，不能依賴 Xcode 自動建立的使用者 scheme
+    scheme: {}
     sources:
       - path: App
     dependencies:

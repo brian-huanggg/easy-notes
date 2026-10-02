@@ -62,7 +62,13 @@ final class SymbolSchemeHandler: NSObject, WKURLSchemeHandler {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        task.didReceive(URLResponse(url: url, mimeType: "image/png", expectedContentLength: data.count, textEncodingName: nil))
+        // CSS mask 以 CORS 模式載入，頁面是 file://，沒有這個 header 時 WebKit 會丟掉圖片（icon 變成空白）
+        let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
+            "Content-Type": "image/png",
+            "Content-Length": String(data.count),
+            "Access-Control-Allow-Origin": "*",
+        ])!
+        task.didReceive(response)
         task.didReceive(data)
         task.didFinish()
     }

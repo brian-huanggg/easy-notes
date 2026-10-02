@@ -24,6 +24,7 @@ xcodegen generate                           # 修改 project.yml 後
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
 supabase db push                            # 把 supabase/migrations 套到雲端專案
 ./scripts/fsrs-vectors.py                   # 重新產生 FSRS 參考向量（升級 swift-fsrs 後，需要 uv）
+./scripts/install-mac.sh                    # 本機快速更新 /Applications/EasyNotes.app 並重開（--web 先打包 web/src）
 ./scripts/make-dmg.sh                       # macOS 只走 DMG 安裝更新 → build/EasyNotes-<版本>.dmg
 ./scripts/upload-testflight.sh              # iOS / iPadOS 上傳 TestFlight（build 號碼自動遞增；Mac 不走 TestFlight）
 ```
