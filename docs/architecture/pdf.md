@@ -44,7 +44,7 @@
   - 外部工具改名 PDF：同步層的掃描推斷出主檔改名（hash 相同）時，把留在原地的旁檔搬到新名字旁並保留 file id。推斷不到（例如未登入同步）時，開啟沒有旁檔的 PDF 以 `PDFInk.claimOrphan` 找主檔不存在、`pdfHash` 相同的孤兒旁檔認領（同資料夾優先），搬移後由呼叫端通知同步層。
 - **程式結構**：`KindPDF/Model/`：`PDFInk`（旁檔讀寫、依頁合併；`scene(page:)` 把一頁當成 `ExcalidrawScene`，筆畫轉換、渲染、便利貼都沿用 `ExcalidrawKit`）、`PDFPageGeometry`（未旋轉頁面座標 ⇄ 顯示座標、`displayTransform`、PDF 使用者空間）。`pdfHash` 與同步層的內容 hash 同格式（SHA-256 小寫 hex）。
 - **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）。
-- **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `附件/`）因為註冊了 `.pdf` 也會出現在列表。
+- **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `Attachments/`）因為註冊了 `.pdf` 也會出現在列表。
 - **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
 
 ## Spike (S4) 測試結果

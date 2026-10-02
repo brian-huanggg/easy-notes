@@ -116,7 +116,7 @@ public final class MarkdownEditor: EditorController {
         return true
     }
 
-    /// 格式工具列的插入圖片：`![[附件/x.png]]` 獨占一行
+    /// 格式工具列的插入圖片：`![[Attachments/x.png]]` 獨占一行
     func insertImage(_ url: URL) async {
         guard let path = await session?.importAttachment(url) else { return }
         exec("insertText", "![[\(path)]]")

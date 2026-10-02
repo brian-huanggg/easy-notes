@@ -47,7 +47,7 @@
 ## 編輯器文件頭與工具列
 
 - **文件頭是 CM6 decorations**：封面 + icon 為檔案開頭的 block widget；標題就是第一行 `#`（一般文字，組字不受影響，索引規則不變）；meta 列（標籤、「N 分鐘前編輯」，不顯示閱讀時間）為標題行之後的 block widget。游標進入 frontmatter 才顯示原始 YAML。
-- **封面** `cover: 附件/xxx.jpg`（Vault 內路徑）：從 Vault 外選的圖片（含貼上剪貼簿）複製到根目錄 `附件/`，重名加序號。更換封面 / icon 走一般寫檔路徑（更新 mtime、進同步），與釘選不同。圖片經 `vault://` 讀取，只允許 Vault 內路徑。
+- **封面** `cover: Attachments/xxx.jpg`（Vault 內路徑）：從 Vault 外選的圖片（含貼上剪貼簿）複製到根目錄 `Attachments/`，重名加序號。舊版的 `附件/` 不搬動也不改寫連結：`vault://` 在 `Attachments/` 找不到檔案時改找 `附件/`，所以只寫檔名的 `![[x.png]]` 與明確寫 `附件/` 的舊連結都照常顯示。更換封面 / icon 走一般寫檔路徑（更新 mtime、進同步），與釘選不同。圖片經 `vault://` 讀取，只允許 Vault 內路徑。
 - **icon** 支援 Emoji 與 SF Symbols（不打包 Lucide）：`icon: 🗺` 或 `icon: sf:map`，Core 只存字串。選單為「圖示 | 表情符號」；Apple 沒有列出所有 SF Symbols 的 API，所以內建常用清單，搜尋框也接受完整名稱；名稱不存在時顯示類型預設圖示。列表卡片：emoji 接在標題前、SF Symbol 取代類型圖示；編輯器經 `symbol:///<名稱>` 顯示。在 App 外（例如 Obsidian）只會看到 `sf:` 文字。
 - **連結卡片**：`[[連結]]` 獨占一行時顯示為卡片（含目標的類型圖示），相鄰的多行並排；設計稿的「關聯頁面」就是這個內文樣式，不是自動產生的區塊。目標的類型、摘要、時間由 `EditorController.linkTargetsChanged` 傳 `LinkTarget`；WebView 沒有 SF Symbols，圖示由 Swift 依 Registry 的 symbol 畫成 PNG。
 - **工具列**：浮動格式工具列（Desktop）與 iOS Format Bar 共用 `FormatBar`，原生 SwiftUI，按下時送 `exec`，不在打字路徑上；編輯器工具列（儲存狀態、釘選、更多）放在 App，所有檔案類型共用。

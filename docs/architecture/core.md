@@ -36,7 +36,7 @@ protocol EasyNotesPlugin {
     func openLink(_ target: String)
     func search(_ query: String)
     func modified(_ path: String) -> Date?          // 文件頭的「N 分鐘前編輯」
-    func importAttachment(_ url: URL) async -> String?  // 複製到 Vault 的 `附件/`，回傳 Vault 內路徑
+    func importAttachment(_ url: URL) async -> String?  // 複製到 Vault 的 `Attachments/`，回傳 Vault 內路徑
     var resourceReader: @Sendable (String) async -> Data? { get }  // `vault://` 圖片，背景讀取
 }
 

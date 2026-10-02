@@ -249,8 +249,9 @@ function build(state: EditorState, active: Set<number>): DecorationSet {
     flush();
     const image = IMAGE.exec(line.text);
     if (image) {
-      // 沒有資料夾的檔名視為在附件資料夾；要與 Swift 的 VaultStore.attachmentsFolder 一致，不隨語言改變
-      const path = image[1].includes("/") ? image[1] : `附件/${image[1]}`; // l10n:fixed
+      // 沒有資料夾的檔名視為在附件資料夾；要與 Swift 的 `Attachments.folder` 一致，不隨語言改變。
+      // 舊版的 `附件/` 由 Swift 的 vault:// 在 `Attachments/` 找不到時接手，這裡不必知道
+      const path = image[1].includes("/") ? image[1] : `Attachments/${image[1]}`;
       decos.push(Decoration.replace({ widget: new ImageWidget(path), block: true }).range(line.from, line.to));
       continue;
     }

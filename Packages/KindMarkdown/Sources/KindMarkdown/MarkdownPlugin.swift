@@ -35,10 +35,10 @@ public enum MarkdownPlugin: EasyNotesPlugin {
 
         - The first `# Heading` is the note's title; without one the file name is used.
         - `[[Note name]]` links to another note (no extension; use `[[Name|Display text]]` for an alias). Clicking a name that does not exist creates a new note.
-        - A `[[link]]` alone on a line is shown as a link card; `![[附件/image.png]]` embeds an image.
+        - A `[[link]]` alone on a line is shown as a link card; `![[Attachments/image.png]]` embeds an image.
         - Tags: `#tag` in the body (nested as `#parent/child`) or frontmatter `tags: [a, b]`.
-        - Frontmatter fields: `pinned: true`, `icon: 🗺` or `icon: sf:map` (SF Symbol), `cover: 附件/cover.jpg`, `tags`. Other fields are preserved as-is.
-        - Images and other attachments live in `附件/` at the vault root.
+        - Frontmatter fields: `pinned: true`, `icon: 🗺` or `icon: sf:map` (SF Symbol), `cover: Attachments/cover.jpg`, `tags`. Other fields are preserved as-is.
+        - Images and other attachments live in `Attachments/` at the vault root. Older vaults may still have `附件/`: those paths keep working, but put new files in `Attachments/`.
         - Callout: `> [!tip] text`; task: `- [ ] item`.
         """
 }

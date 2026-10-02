@@ -479,9 +479,6 @@ final class VaultStore: DocumentSession {
             ?? (try? fs.url(for: path).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
-    /// 附件（封面、插入的圖片）一律放 Vault 根目錄的這個資料夾；路徑被連結引用，不隨介面語言改變
-    static let attachmentsFolder = "附件" // l10n:fixed
-
     func importAttachment(_ url: URL) async -> String? {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -489,7 +486,7 @@ final class VaultStore: DocumentSession {
         let source = url.standardizedFileURL.path(percentEncoded: false)
         if source.hasPrefix(root) { return fs.path(for: url) }
         do {
-            let path = try fs.importFile(from: url, in: Self.attachmentsFolder)
+            let path = try fs.importFile(from: url, in: Attachments.folder)
             onLocalChange?()
             return path
         } catch {

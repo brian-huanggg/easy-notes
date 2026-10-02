@@ -502,7 +502,7 @@
 - [x] 設計：[translation.md](./architecture/translation.md)、README 的導覽列、CLAUDE.md 的規則
 - [x] 每個有中文的模組加 `Localizable.xcstrings`、`Package.swift` 的 `defaultLocalization` 與 `resources`、`Localization.swift`（`L(_:)`）：App、EasyNotesCore、EasyNotesUI、ExcalidrawKit、KindMarkdown、KindWhiteboard、KindPDF、Flashcards（catalog 目前是空的：key 就是中文原文，查不到回傳 key；補 `en` 在 i2。每個模組有 `LocalizationTests` 確認 `#bundle` 可用）
 - [x] 既有 Swift 中文字面值（415 個）改走 `L(…)`；Spike 面板不翻
-- [x] 固定字串標 `// l10n:fixed`：`附件`、衝突副本命名（`SyncEngine.conflictMarker` / `isConflictCopy`，`DocumentToolbar` 改用它辨識）、Vault 的 `CLAUDE.md` 與各外掛 `guide`、預設 preset 名稱「預設」、Seed 範例內容（整檔標 `l10n:fixed-file`，依語言產生留到 i2）
+- [x] 固定字串標 `// l10n:fixed`：`Attachments` 與舊版 `附件`、衝突副本命名（`SyncEngine.conflictMarker` / `isConflictCopy`，`DocumentToolbar` 改用它辨識）、Vault 的 `CLAUDE.md` 與各外掛 `guide`、預設 preset 名稱「預設」、Seed 範例內容（整檔標 `l10n:fixed-file`，依語言產生留到 i2）
 - [x] 沒有手拼的中文：「N 字」用目前語言的數字格式（原本固定 `zh-Hant`）
 - [x] Web：中文收進 `web/src/shared/i18n.ts`（`t()`、`Intl`）；Swift 建立 WebView 時注入 `window.__locale`；「N 分鐘前編輯」改成整句 key；`tsc` 與 `npm run build` 通過。WebView 內的實際畫面尚未驗證
 - [x] `scripts/check-l10n.py`：Swift 與 Web 沒有違規
@@ -586,7 +586,7 @@
 - [x] Sheets 是否需要公式？→ 不需要。CSV 只存資料，需要公式時用外部 App 開啟。
 - [x] 是否需要 Android / Web 版？→ 不需要。個人使用，只支援 Apple 平台。
 - [ ] Sheets 的排序與篩選狀態要不要記住？（建議：只存在這台裝置，不同步；Phase 6 開工時決定）
-- [ ] 英文使用者的附件資料夾名稱：目前固定 `附件`（路徑被連結引用，隨語言改變會讓不同語言的裝置找不到附件）；i2 前決定維持，或改成可在 `.easynotes/` 設定
+- [x] 附件資料夾名稱 → `Attachments/`（固定英文，不隨介面語言）。舊版的 `附件/` 不搬動、不改寫連結，`vault://` 在 `Attachments/` 找不到時改找 `附件/`（單元測試涵蓋路徑對應；實機開啟舊筆記的圖片與封面尚未驗證）
 - [x] Vault 的 `CLAUDE.md` 要固定哪一種語言？→ 英文。只在檔案不存在時建立，所以既有 Vault 裡的中文版不會被改寫，要換自己刪掉重建（尚未驗證）
 - [ ] `DocumentKind.index()` 的 `summary` 長期是否改成不含語言的結構化資料，取代 i2 的「語言改變就重建索引」
 
