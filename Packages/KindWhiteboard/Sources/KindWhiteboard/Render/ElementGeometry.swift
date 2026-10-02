@@ -41,6 +41,11 @@ public enum ElementGeometry {
         return r
     }
 
+    /// 所有元素畫到的範圍；沒有元素回傳 nil
+    public static func bounds(of elements: [Element]) -> CGRect? {
+        elements.reduce(nil) { acc, el in acc.map { $0.union(bounds(el)) } ?? bounds(el) }
+    }
+
     /// 未旋轉時畫到的範圍（含線寬、箭頭頭部與 frame 標題）。layer 樹以它當每個元素 layer 的 bounds
     public static func paddedBox(_ el: Element) -> CGRect {
         let stroke = (el.raw["strokeWidth"] as? NSNumber)?.doubleValue ?? 2
