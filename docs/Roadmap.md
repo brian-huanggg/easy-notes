@@ -213,22 +213,76 @@
 
 目標：在 md 內寫卡片，用與 Anki 相同的 FSRS 排程複習；多裝置紀錄自動合併。
 
-- [ ] 卡片解析（`::`、`;;`、`{{}}`、`^id`），缺 `^id` 時自動補上
-- [ ] Markdown 外掛的卡片語法標示
-- [ ] 接入 swift-fsrs 排程；卡片狀態、steps、四鍵、desired retention 對齊 Anki
-- [ ] 複習紀錄 jsonl（欄位對齊 Anki revlog）與重播
-- [ ] 原生複習介面、牌組（資料夾 / 標籤）、每日上限
+2026-10-02 決定（設計見 Architecture「Flashcards」）：排程用 swift-fsrs 的 FSRS-6（以 `revision:` 固定 commit，明確傳入 21 個參數），優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選學習；設定以 preset 管理（`.easynotes/srs/config.json`），預設值與 Anki 相同；重播時到期日採用紀錄的 `ivl`，只重算記憶狀態。
+
+分四個子階段，依序進行；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
+
+### 3a 卡片解析與語法標示
+
+目標：md 中的卡片能被解析、建立索引，並在編輯器中標示出來；還不能複習。
+
+- [ ] 新增 `Flashcards` 外掛 package（只依賴 EasyNotesCore / EasyNotesUI），在 App 註冊
+- [ ] 卡片解析（`::`、`;;`、`{{}}`、`^id`）；卡片 id 後綴（`:r` 反向、`:n` 克漏字）；程式碼區塊與 frontmatter 內不解析
+- [ ] 缺 `^id` 時自動補上（經 Vault 的一般寫檔路徑）；重複 `^id` 只改後出現的那一行
+- [ ] `addIndexContributor`：索引卡片（note id、卡片 id、類型、所在檔案與行、正反面文字）
+- [ ] Markdown 外掛的卡片語法標示（CM6 decorations；`^id` 淡化顯示）
+- [ ] Vault 的 `CLAUDE.md` 寫入卡片語法規格
+
+驗收測試：
+
+- [ ] 解析器 fixture 測試：三種語法、程式碼區塊與 frontmatter 內不視為卡片、編輯卡片文字後 `^id` 不變、重複 `^id` 只改後出現的
+- [ ] Claude Code 寫入 50 行 `::` 卡片 → 數秒內全部補上 `^id`，其餘內容逐位元組相同
+- [ ] 注音輸入：在卡片行內組字正常，`^id` 不在組字中被補上（只在存檔路徑）
+
+### 3b 排程、紀錄與重播
+
+目標：卡片狀態可由紀錄重播得出，排程結果與 Anki 一致。
+
+- [ ] 接入 swift-fsrs（`revision:` 固定 commit、FSRS-6 預設參數）
+- [ ] 卡片狀態（New / Learning / Review / Relearning）、learning 與 relearning steps、四鍵、desired retention 對齊 Anki
+- [ ] 複習紀錄 `.easynotes/srs/<deviceId>.jsonl`（欄位對齊 Anki revlog）
+- [ ] 重播：合併所有裝置的紀錄 → 卡片狀態；到期日採用紀錄的 `ivl`，記憶狀態用目前參數重算；結果快取在可重建的索引
+- [ ] 暫停 / 恢復 / 重設寫成紀錄事件
+
+驗收測試：
+
+- [ ] 排程結果與 fsrs-rs / py-fsrs 參考向量一致（FSRS-6 預設參數與自訂 `w`）
+- [ ] 重播決定性：同一組紀錄在不同裝置算出相同卡片狀態；換參數後到期日不變、記憶狀態重算
+- [ ] 整行搬到別篇筆記後，重播出的狀態與歷史不變
+- [ ] 刪掉索引後重建，卡片狀態相同
+
+### 3c 牌組、設定與複習介面
+
+目標：可以日常使用的複習流程。
+
+- [ ] 牌組樹（資料夾階層）與各牌組的到期數 / 新卡數；標籤篩選學習
+- [ ] Preset 設定與 `config.json`（資料夾繼承上層、改名時更新路徑、欄位 LWW 合併）
+- [ ] 每日上限（母牌組涵蓋子牌組）、新卡順序、複習排序、埋藏 sibling、Leech、新的一天開始時間
+- [ ] 原生複習介面：`addPanel` 的「複習」（badge 為到期數）、牌組列表、卡片正反面、四鍵與下次間隔、鍵盤快捷鍵（Mac / iPad）
+- [ ] 設定畫面：preset 編輯、牌組指定 preset、全域設定
+- [ ] 設計稿：Phase 3 畫面（`rHTaT`、`b2AjRQ`）補上牌組樹與設定畫面
+
+驗收測試：
+
+- [ ] 每日上限：母牌組上限涵蓋子牌組；同一行的 sibling 依設定埋藏
+- [ ] `config.json` 合併：兩台裝置改不同欄位 → 都保留；資料夾改名後 preset 仍套用
+- [ ] 多裝置：Mac 與 iPad 各自複習後同步，到期日正確
+- [ ] 手動：Mac、iPad、iPhone 完成一輪複習，畫面與設計稿比對（淺色 / 深色）
+
+### 3d 互通與參數優化
+
+目標：與 Anki 互通，並用自己的紀錄優化參數。
+
 - [ ] TSV 匯出給 Anki
-- [ ] fsrs-rs 參數優化（UniFFI）
+- [ ] fsrs-rs 參數優化（UniFFI、XCFramework）；紀錄不足時不允許；結果寫回 preset 的 `w`
+- [ ] 量測加入 fsrs-rs 後的 App 大小（非功能預算）
 - [ ] 選做：匯入 Anki `.apkg` 與複習歷史
 
 驗收測試：
 
-- [ ] 解析器 fixture 測試：三種語法、程式碼區塊內不視為卡片、編輯卡片文字後 `^id` 不變
-- [ ] 排程結果與 fsrs-rs / py-fsrs 參考向量一致
-- [ ] 重播決定性：同一組紀錄在不同裝置算出相同卡片狀態
-- [ ] 多裝置：Mac 與 iPad 各自複習後同步，到期日正確
 - [ ] 手動：TSV 匯入 Anki 後卡片正確
+- [ ] 同一組紀錄，App 內的優化結果與 Anki 的優化結果相近
+- [ ] 基準線符合非功能預算
 
 ## Phase 4 — Whiteboard
 

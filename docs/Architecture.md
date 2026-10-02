@@ -219,7 +219,7 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 | Whiteboard | `.excalidraw`（官方 JSON） | PencilKit + SwiftUI Canvas（原生） | 依元素 `id` + `version` |
 | PDF | `.pdf`（不改動）+ `.pdf.ink`（JSON） | PDFKit + PencilKit（原生） | PDF 不合併；旁檔依頁 + 元素 `id` |
 | Sheets | `.csv`；欄寬等放 `.csv.meta.json` | RevoGrid（WebView） | diff3（以列為單位） |
-| Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl` | 原生複習介面 | 卡片跟著 md；紀錄各裝置各寫，永不衝突 |
+| Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl`；設定 `.easynotes/srs/config.json` | 原生複習介面 | 卡片跟著 md；紀錄各裝置各寫，永不衝突；設定以欄位 LWW |
 
 ### Markdown
 
@@ -259,12 +259,70 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 
 ### Flashcards
 
-- **語法**（類 RemNote）：`光合作用發生在 :: 葉綠體 ^c-a1b2` 單向、`中文 ;; Chinese ^c-c3d4` 雙向、`粒線體是 {{細胞的發電廠}} ^c-e5f6` 克漏字。行尾 `^id` 讓卡片在編輯後仍保有身分，缺少時由 App 自動補上。
-- **對齊 Anki**：卡片狀態（New / Learning / Review / Relearning）、learning 與 relearning steps、四鍵（Again / Hard / Good / Easy）、desired retention、每日新卡與複習上限，預設值與 Anki 相同。
-- **排程**：不自寫演算法。排程用 swift-fsrs（採用前確認版本跟上 FSRS 最新版）；參數優化用 fsrs-rs（Anki 本身使用的函式庫），透過 UniFFI 包成 Swift。
-- **複習紀錄**：`.easynotes/srs/<deviceId>.jsonl`，只由該裝置追加。欄位對齊 Anki 的 `revlog`（`id` 毫秒時間戳、`cid`、`ease`、`ivl`、`lastIvl`、`time`、`type`），卡片狀態由重播所有裝置的紀錄算出，不另存。
-- **牌組**：資料夾或標籤。
-- **互通**：匯出 TSV 給 Anki 匯入；匯入 Anki `.apkg`（SQLite）與複習歷史為選做。
+2026-10-02 決定（Phase 3 開工前）：排程用 swift-fsrs 的 FSRS-6、參數優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選；設定以 preset 管理，預設值與 Anki 相同。
+
+#### 卡片類型與身分
+
+語法（類 RemNote）屬於 Vault 的 Markdown 方言：一行是一筆 note，行尾 `^id` 是 note 的身分，缺少時由 App 補上。一筆 note 依語法產生一或多張卡片，卡片 id = note id + 後綴：
+
+| 語法 | 產生 | 卡片 id |
+| --- | --- | --- |
+| `光合作用發生在 :: 葉綠體 ^c-a1b2` | 1 張（正向） | `c-a1b2` |
+| `中文 ;; Chinese ^c-c3d4` | 2 張（正向、反向） | `c-c3d4`、`c-c3d4:r` |
+| `{{粒線體}}是{{細胞的發電廠}} ^c-e5f6` | 每個 `{{}}` 一張 | `c-e5f6:1`、`c-e5f6:2` |
+
+- 同一行產生的卡片互為 sibling（「埋藏 sibling」的對象）。
+- 卡片身分只跟 `^id` 綁定，與檔案路徑無關：整行剪下貼到別篇筆記，複習歷史跟著走。
+- 複製貼上造成 `^id` 重複時，後出現的那一行重新產生 id。
+- 刪掉這一行卡片就消失，紀錄留在 jsonl；同一個 `^id` 回來時歷史一併恢復。
+- 程式碼區塊與 frontmatter 內不解析卡片。
+- 卡片類型是 Flashcards 外掛內部的 enum，Core 不認識。語法規格寫在 Vault 的 `CLAUDE.md`，Markdown 外掛（語法標示）與 Flashcards 外掛（解析）各自依規格實作，不互相 import。
+
+#### 牌組
+
+- **資料夾 = 牌組**：每篇筆記只在一個資料夾，所以每張卡片只屬於一個牌組。牌組有階層（同 Anki 的 `A::B`），母牌組的上限涵蓋所有子牌組；Vault 根目錄的筆記屬於根牌組。
+- **標籤 = 篩選學習**（同 Anki 的 filtered deck）：可以臨時只複習「#考試」，但標籤沒有自己的上限與設定，也不改變卡片所屬的牌組。
+- **Preset**：多個牌組共用一組設定，存在 `.easynotes/srs/config.json`（presets + 「資料夾路徑 → preset」），跟著同步，以欄位為單位 LWW 合併。沒有指定的資料夾繼承上層，根目錄用預設 preset。資料夾改名時與連結改名一樣一併更新路徑。
+
+#### 排程
+
+- **不自寫演算法**。排程用 swift-fsrs，參數優化用 fsrs-rs（Anki 本身使用的函式庫），透過 UniFFI 包成 Swift；兩者共用同一組 FSRS-6 的 21 個參數 `w`。
+- **swift-fsrs 以 `revision:` 固定 commit**：FSRS-6 在 2026-05 合併進 `main`，但最後一個 release 仍是 v5.0.0（2024-10），且預設是 FSRS-5 的 19 個參數；初始化時明確傳入 `FSRSDefaults.defaultWv6` 或優化後的 `w`。
+- **以參考向量做回歸測試**：與 fsrs-rs / py-fsrs 的結果比對；對不上且修不了時，排程也改用 fsrs-rs。
+- **參數優化**手動執行（或累積一定筆數後提醒），紀錄太少時不允許；結果寫回 preset 的 `w`。
+
+#### 複習紀錄與重播
+
+- **紀錄**：`.easynotes/srs/<deviceId>.jsonl`，只由該裝置追加。欄位對齊 Anki 的 `revlog`（`id` 毫秒時間戳、`cid`、`ease`、`ivl`、`lastIvl`、`time`、`type`）。
+- **卡片狀態不另存**：由重播所有裝置的紀錄算出，結果快取在可重建的索引中。
+- **重播不重算間隔**：到期日一律採用紀錄中的 `ivl`（fuzz 有亂數，參數也可能被優化改掉）；只有記憶狀態（stability、difficulty）用目前的參數重算，與 Anki 換參數後的行為相同。這樣同一組紀錄在任何裝置都得到相同狀態。
+- **手動操作也是事件**：暫停 / 恢復、重設、Leech 處理寫成 jsonl 事件（Anki revlog 的 Manual 類型），不寫進 md。
+
+#### 設定
+
+Preset（每個牌組，預設值與 Anki 相同）：
+
+| 設定 | 預設 |
+| --- | --- |
+| 每日新卡上限 | 20 |
+| 每日複習上限 | 200 |
+| Learning steps | 1m 10m |
+| Relearning steps | 10m |
+| Desired retention | 0.90 |
+| 最大間隔 | 36500 天 |
+| FSRS 參數 `w`（21 個） | FSRS-6 預設；可執行優化 |
+| Leech 門檻 / 動作 | 8 次 / 只加標籤（可改為暫停） |
+| 新卡順序 | 依檔案內順序 / 隨機 |
+| 複習排序 | 依到期日 / 依可回想率 |
+| 埋藏 sibling | 新卡、複習卡各一個開關 |
+
+全域：新的一天開始時間（預設凌晨 4 點）、按鈕上顯示下次間隔、參數優化提醒。
+
+刻意不開放：起始 ease、Hard / Easy 倍率、interval modifier（SM-2 專用，FSRS 不使用）。fuzz 固定開啟（Anki 也不能關）。
+
+#### 互通
+
+匯出 TSV 給 Anki 匯入；匯入 Anki `.apkg`（SQLite）與複習歷史為選做。
 
 ### 跨外掛功能
 
@@ -338,11 +396,12 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 | `.excalidraw`、`.pdf.ink` | 依元素 `id` + `version` 合併（與 Excalidraw 官方協作相同） |
 | `.csv` | diff3，以列為單位 |
 | `.easynotes/srs/*.jsonl` | 每台裝置只寫自己的檔案，天然無衝突 |
+| `.easynotes/srs/config.json` | 以欄位為單位 LWW（preset、資料夾對應） |
 | 其他（`.pdf`、圖片） | 內容不同 → 衝突副本 |
 
 ## Claude Code 整合
 
-- **Vault 根目錄的 `CLAUDE.md`**：說明 frontmatter 規範、卡片語法、資料夾慣例，以及不要手動修改的檔案（`.easynotes/srs/*.jsonl`、`.easynotes/cache/`、`sync.sqlite`）。
+- **Vault 根目錄的 `CLAUDE.md`**：說明 frontmatter 規範、卡片語法、資料夾慣例，以及不要手動修改的檔案（`.easynotes/srs/*.jsonl`、`.easynotes/srs/config.json`、`.easynotes/cache/`、`sync.sqlite`）。
 - **外部修改是一等公民**：Claude Code 寫檔與 App 內編輯走同一條路徑（監看 → 索引 → 上傳）。
 - **產生卡片只需要寫 md**：Claude 寫入 `::` 語法即可，`^id` 由 App 補上。
 - **手寫不為 Claude 做辨識**：手寫是 brainstorming，不是知識庫的主體。
