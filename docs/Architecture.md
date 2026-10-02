@@ -293,7 +293,7 @@ vaultFS.deviceID() -> String
 - **Undo**：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫依時間順序共用一個堆疊（⌘Z、三指手勢都適用）。
 - **開啟中的白板接收外部變動**：Whiteboard 註冊 `EditorController`：`externalChange` 把磁碟內容以 `ExcalidrawScene.merge` 併進記憶體中的場景並更新畫面；`flush` 立即存檔。否則開著白板時同步或 Claude Code 寫入的元素會被舊場景覆蓋。
 - **連結**：元素的 `link` 若是 `[[筆記]]`，`index()` 收進 `links`（白板出現在反向連結）；`renameLinks` 更新 `link` 與 `customData.easynotes.file`。
-- **渲染器共用**：`SceneRenderer`（CoreGraphics，可在背景執行緒）同時用於列表縮圖、`![[x.excalidraw]]` 嵌入與 Mac 檢視；編輯器的 layer 樹沿用同一套幾何（路徑、文字排版）。
+- **渲染器共用**：`SceneRenderer`（CoreGraphics，可在背景執行緒）同時用於列表縮圖、`![[x.excalidraw]]` 嵌入與 Mac 檢視；編輯器的 layer 樹沿用同一套幾何（路徑、文字排版）。2026-10-02（4b）：幾何集中在 `ElementGeometry`（輪廓、線與曲線、箭頭頭部、旋轉、畫面範圍），`SceneRenderer` 與 layer 樹都從它取 `CGPath`；`SceneRenderer.draw(in:visible:)` 只畫與可見範圍相交的元素，Mac 檢視直接用它。
 
 #### 筆記卡片放進白板（Heptabase / Obsidian Canvas 式，選做）
 
