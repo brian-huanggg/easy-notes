@@ -22,6 +22,7 @@ let package = Package(
         ),
         .testTarget(name: "KindPDFTests", dependencies: [
             "KindPDF", .product(name: "EasyNotesCore", package: "EasyNotesCore"),
+            .product(name: "EasyNotesUI", package: "EasyNotesCore"),
             .product(name: "ExcalidrawKit", package: "ExcalidrawKit"),
         ]),
     ]

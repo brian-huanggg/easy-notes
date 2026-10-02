@@ -15,6 +15,9 @@ struct PDFReaderView: View {
                     #if os(iOS)
                     .ignoresSafeArea(edges: .bottom)
                     #endif
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if document.hashMismatch { HashMismatchBanner(document: document) }
+                    }
             }
         }
         .onAppear {
@@ -26,6 +29,29 @@ struct PDFReaderView: View {
             document?.flush()
             PDFController.shared.close(path: path)
         }
+    }
+}
+
+/// 旁檔記錄的 `pdfHash` 與目前的 PDF 不同：標註仍依頁碼顯示，按「保留標註」才以目前的 PDF 為準
+private struct HashMismatchBanner: View {
+    let document: PDFInkDocument
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Palette.yellow)
+            Text("PDF 已變更，標註可能錯位")
+                .font(.callout)
+                .foregroundStyle(Palette.warnDeep)
+            Spacer(minLength: 8)
+            Button("保留標註") { document.keepAnnotations() }
+                .buttonStyle(.borderless)
+                .font(.callout.weight(.semibold))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Palette.warnSoft, ignoresSafeAreaEdges: [])
+        .overlay(alignment: .bottom) { Rectangle().fill(Palette.border).frame(height: 1) }
     }
 }
 
