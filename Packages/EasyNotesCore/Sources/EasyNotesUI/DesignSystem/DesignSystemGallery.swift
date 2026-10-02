@@ -104,16 +104,22 @@ public struct DesignSystemGallery: View {
         VStack(alignment: .leading, spacing: 14) {
             SectionHeader("Pinned", symbol: "pin", detail: "4", actionTitle: "See all") {}
             HStack(alignment: .top, spacing: Metrics.gridSpacing) {
-                DocCard("Product Roadmap 2026", symbol: "doc.text", tint: .neutral, meta: "Edited 2h ago",
-                        badge: PreviewBadge("Pinned", symbol: "pin"))
-                DocCard("Idea Dump", symbol: "scribble", tint: .violet, meta: "Whiteboard · 4h ago") {
-                    Rectangle().fill(KindTint.violet.soft)
+                DocCard("Product Roadmap 2026", symbol: "doc.text", tint: .neutral, meta: "1,240 words · 2h ago",
+                        badge: PreviewBadge("Pinned", symbol: "pin")) {
+                    TextPreview(title: "Product Roadmap 2026", lines: [
+                        "Three outcomes this year: sync that never loses data,",
+                        "a writing surface that feels native, and flashcards",
+                        "that schedule like Anki.", "Q1 — Sync and conflict copies",
+                    ])
                 }
-                DocCard("Research: Note Taking", symbol: "doc.richtext", tint: .red, meta: "PDF · 18 pages · 2d ago") {
-                    Rectangle().fill(KindTint.red.soft)
+                DocCard("Idea Dump", symbol: "scribble", tint: .violet, meta: "32 strokes · 4h ago") {
+                    ThumbBoard(tint: .violet)
                 }
-                DocCard("Q4 Goals & OKRs", symbol: "tablecells", tint: .green, meta: "CSV · 86 rows · 1h ago") {
-                    Rectangle().fill(KindTint.green.soft)
+                DocCard("Research: Note Taking", symbol: "doc.richtext", tint: .red, meta: "18 pages · 2d ago") {
+                    ThumbPDF(tint: .red, pages: 18)
+                }
+                DocCard("Q4 Goals & OKRs", symbol: "tablecells", tint: .green, meta: "86 rows · 1h ago") {
+                    ThumbTable(tint: .green)
                 }
             }
         }

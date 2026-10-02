@@ -107,7 +107,7 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 
 ### 依賴規則
 
-- **外掛只依賴 EasyNotesCore 與 EasyNotesUI**，外掛之間不互相 import。需要別的外掛的能力時，透過 Registry 查詢。例如白板要顯示 md 筆記卡片，就向 Registry 要 `.md` 的 PreviewProvider，而不是 import KindMarkdown。
+- **外掛只依賴 EasyNotesCore 與 EasyNotesUI**，外掛之間不互相 import。需要別的外掛的能力時，透過 Registry 查詢。例如白板要顯示 md 筆記卡片，就向 Registry 要 `.md` 的 DocumentPreviewProvider，而不是 import KindMarkdown。
 - **Core 永遠不 import 外掛**；App target 負責組裝。
 - **外掛是編譯期的 SPM 模組**，不在執行時期載入程式碼。
 - **WebView 或原生是外掛內部的實作選擇**。WebView 外掛共用 EasyNotesUI 的 WebEditorHost，仍遵守「打字熱路徑不跨 Bridge」。
@@ -175,7 +175,7 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 
 2026-10-01 決定：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。
 
-2026-10-02 決定（2.5c）：`PreviewProvider` 分兩段。`makePreview(Data) -> DocumentPreview` 在背景執行，結果可序列化，依內容 hash 快取在 `.easynotes/cache/preview/<hash>.json`；`view(_:)` 在主執行緒用原生 SwiftUI 渲染。沒有註冊預覽的類型顯示骨架佔位。
+2026-10-02 決定（2.5c）：`DocumentPreviewProvider` 分兩段。`makePreview(Data) -> DocumentPreview` 在背景執行，結果可序列化，依內容 hash 快取在 `.easynotes/cache/preview/<kind>-v<version>/<hash>.json`；`view(_:)` 在主執行緒用原生 SwiftUI 渲染。沒有註冊預覽的類型顯示骨架佔位。
 
 現況（2026-10-01）：Phase 1.5 的結構重構已完成，Core 不再包含任何檔案類型；`VaultIndex.clean()` 的片段清理仍是 Markdown 語法，第二個有文字的外掛需要時再抽成擴充點。
 
@@ -232,7 +232,7 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 難度中等，前提是白板結構層已完成。
 
 - **格式**：用一個 rectangle 元素代表卡片，`link` 設為 `[[筆記]]`，`customData.easynotes.file` 記錄檔案路徑（改名時由連結改名流程一併更新）。在 excalidraw.com 上會優雅降級成一個帶連結的框。
-- **顯示**：白板向 Registry 要 `.md` 的 PreviewProvider，由 Markdown 外掛產生唯讀預覽（標題 + 前幾段），外掛之間仍不互相依賴。
+- **顯示**：白板向 Registry 要 `.md` 的 DocumentPreviewProvider，由 Markdown 外掛產生唯讀預覽（標題 + 前幾段），外掛之間仍不互相依賴。
 - **互動**：點卡片在側邊面板開啟完整編輯器。不做畫布內直接編輯：縮放中的畫布上要同時跑多個 CM6 編輯器，成本高、收益小。
 - **互通**：需要與 Obsidian Canvas 互通時，另做 JSON Canvas（`.canvas`）匯出即可，不必多維護一種畫布格式。
 
@@ -261,7 +261,7 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 
 ### 跨外掛功能
 
-- `[[筆記]]` 連結；`![[圖.excalidraw]]`、`![[表.csv]]` 在 md 內嵌入預覽，預覽由各外掛向 Registry 註冊的 PreviewProvider 提供。
+- `[[筆記]]` 連結；`![[圖.excalidraw]]`、`![[表.csv]]` 在 md 內嵌入預覽，預覽由各外掛向 Registry 註冊的 DocumentPreviewProvider 提供。
 - 每個 `DocumentKind` 的 `index()` 抽出純文字與連結，所以白板內的文字元素也能搜尋、也會出現在反向連結（手寫筆畫不索引）。
 - App 設定放 `.easynotes/`（類似 `.obsidian/`），跟著 Vault 同步。
 
