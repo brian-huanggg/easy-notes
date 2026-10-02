@@ -3793,7 +3793,7 @@
               "id": "zuZ9O",
               "name": "Row Meta",
               "fill": "$text-tertiary",
-              "content": "Edited 2h ago · 12 blocks",
+              "content": "Edited 2h ago · 1,240 words",
               "fontFamily": "$font-ui",
               "fontSize": 12,
               "fontWeight": "normal"
@@ -4358,23 +4358,33 @@
                 },
                 {
                   "type": "frame",
-                  "id": "zM10C",
-                  "name": "Chip Mine",
+                  "id": "EXLXi",
+                  "name": "Chip Notes",
                   "fill": "$bg-sidebar",
                   "cornerRadius": 16,
-                  "layout": "vertical",
+                  "gap": 5,
                   "padding": [
                     7,
                     13
                   ],
-                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
+                      "type": "icon",
+                      "id": "x40BYF",
+                      "name": "Chip Icon Notes",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "file-text",
+                      "library": "lucide",
+                      "fill": "$type-doc"
+                    },
+                    {
                       "type": "text",
-                      "id": "Kspcp",
-                      "name": "Chip Label Mine",
+                      "id": "AUVAo",
+                      "name": "Chip Label Notes",
                       "fill": "$text-secondary",
-                      "content": "Mine",
+                      "content": "Notes",
                       "fontFamily": "$font-ui",
                       "fontSize": 13,
                       "fontWeight": "500"
@@ -4383,48 +4393,33 @@
                 },
                 {
                   "type": "frame",
-                  "id": "AeTIW",
-                  "name": "Chip Shared",
+                  "id": "WPV15",
+                  "name": "Chip Boards",
                   "fill": "$bg-sidebar",
                   "cornerRadius": 16,
-                  "layout": "vertical",
+                  "gap": 5,
                   "padding": [
                     7,
                     13
                   ],
-                  "justifyContent": "center",
+                  "alignItems": "center",
                   "children": [
                     {
-                      "type": "text",
-                      "id": "O3K9Uc",
-                      "name": "Chip Label Shared",
-                      "fill": "$text-secondary",
-                      "content": "Pinned",
-                      "fontFamily": "$font-ui",
-                      "fontSize": 13,
-                      "fontWeight": "500"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "PCAgh",
-                  "name": "Chip Templates",
-                  "fill": "$bg-sidebar",
-                  "cornerRadius": 16,
-                  "layout": "vertical",
-                  "padding": [
-                    7,
-                    13
-                  ],
-                  "justifyContent": "center",
-                  "children": [
+                      "type": "icon",
+                      "id": "E4g2Uo",
+                      "name": "Chip Icon Boards",
+                      "width": 14,
+                      "height": 14,
+                      "icon": "shapes",
+                      "library": "lucide",
+                      "fill": "$type-board"
+                    },
                     {
                       "type": "text",
-                      "id": "iteud",
-                      "name": "Chip Label Templates",
+                      "id": "fwVyp",
+                      "name": "Chip Label Boards",
                       "fill": "$text-secondary",
-                      "content": "Templates",
+                      "content": "Boards",
                       "fontFamily": "$font-ui",
                       "fontSize": 13,
                       "fontWeight": "500"
@@ -5327,7 +5322,7 @@
                       "content": "Beta Launch Plan"
                     },
                     "zuZ9O": {
-                      "content": "12 blocks · updated today"
+                      "content": "860 words · updated today"
                     }
                   }
                 },
@@ -5793,7 +5788,7 @@
                           "content": "Work"
                         },
                         "zuZ9O": {
-                          "content": "12 documents · 3 shared"
+                          "content": "12 documents"
                         }
                       }
                     },
@@ -5837,7 +5832,7 @@
                           "content": "Journal"
                         },
                         "zuZ9O": {
-                          "content": "64 documents · daily"
+                          "content": "64 documents"
                         }
                       }
                     },
