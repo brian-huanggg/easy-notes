@@ -102,7 +102,7 @@ Packages/
                      PencilKit ⇄ freedraw 轉換、幾何與 CoreGraphics 渲染器（Phase 5 從 KindWhiteboard 抽出）
   KindWhiteboard/    .excalidraw：PencilKit 手寫層 + 原生結構元素層
   KindPDF/           .pdf + .pdf.ink 標註旁檔：PDFKit + 每頁 PencilKit 疊層
-  KindSheet/         .csv：RevoGrid 編輯器（WebView）
+  KindSheet/         .csv、.tsv：RevoGrid 編輯器（WebView）
   Flashcards/        卡片解析、FSRS 排程、複習介面（不是檔案類型）
 App/                 SwiftUI 外殼；啟動時把各外掛註冊進 PluginRegistry
 web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個 entry，打包進各自的外掛
@@ -260,7 +260,7 @@ vaultFS.deviceID() -> String
 | Markdown | `.md` + YAML frontmatter | CodeMirror 6（WebView） | diff3 三方合併（以行為單位） |
 | Whiteboard | `.excalidraw`（官方 JSON） | PencilKit + CALayer 結構層（原生） | 依元素 `id` + `version` |
 | PDF | `.pdf`（不改動）+ `.pdf.ink`（JSON，伴隨檔） | PDFKit + 每頁 PencilKit 疊層（原生） | PDF 不合併；旁檔依頁 + 元素 `id` |
-| Sheets | `.csv`；欄寬等放 `.csv.meta.json` | RevoGrid（WebView） | diff3（以列為單位） |
+| Sheets | `.csv`、`.tsv`；欄寬等放 `.csv.meta.json` | RevoGrid（WebView） | diff3（以記錄為單位，同一記錄再以儲存格合併） |
 | Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl`；設定 `.easynotes/srs/<deviceId>.config.json` | 原生複習介面 | 卡片跟著 md；紀錄與設定都是各裝置各寫，永不衝突；設定以欄位 LWW 合成 |
 
 ### Markdown
@@ -408,11 +408,25 @@ vaultFS.deviceID() -> String
 - **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `附件/`）因為註冊了 `.pdf` 也會出現在列表。
 - **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
 
-### Sheets（`.csv`）
+### Sheets（`.csv`、`.tsv`）
 
 - **做**：RevoGrid 編輯（修改儲存格、增刪列欄、排序與篩選檢視）；欄寬、凍結欄等顯示設定存 `.csv.meta.json`；在 md 內 `![[x.csv]]` 嵌入表格預覽。
 - **不做**：公式、多工作表、圖表。CSV 只存資料；需要試算表功能時用「用其他 App 開啟」交給 Numbers / OnlyOffice。
 - **實作**：Swift 端做 RFC 4180 解析與序列化，WebView 只拿列資料。未修改的列逐位元組寫回（引號風格、換行符不變），讓 diff 與合併保持乾淨。
+
+2026-10-02 決定（Phase 6 規劃；依 Roadmap 順序，Phase 5 完成後才開工）：
+
+- **外掛**：新增 `Packages/KindSheet`，只依賴 EasyNotesCore / EasyNotesUI。`.csv` 與 `.tsv` 都支援，同一套解析器，只差分隔符（`,` / tab）。
+- **先驗證注音（S5 Spike）**：最大的風險是 RevoGrid 在 WKWebView 中的注音輸入。試算表習慣「選取儲存格後直接打字就進入編輯」，第一個按鍵在組字中，容易吃字或重複；做法是在選取的儲存格位置放一個常駐焦點的隱藏 `textarea`（同 Google Sheets），組字中的 Enter（`isComposing`）不結束編輯。Spike 同時量 1 萬列捲動、bundle 大小與關閉後 WebContent process 是否釋放。不通過就改用自寫的 TS 虛擬表格或原生 `UICollectionView` / `NSTableView`；6a 的模型不受影響。
+- **模型：保留原始位元組**：每筆記錄（record）保留原始位元組與解析後的欄位；未修改的記錄原樣寫回，修改過的記錄依檔案的風格重新產生。偵測：換行符（LF / CRLF，取多數）、引號風格（全部加 / 必要時才加）、BOM、檔尾是否有換行。欄數不一的列原樣保留，顯示時補空格，未編輯就不寫回補的空格。
+- **編碼**：UTF-8（含或不含 BOM）可編輯；偵測為 Big5（台灣 Excel 匯出常見）時唯讀開啟，提供「轉成 UTF-8」。
+- **索引**：標題 = 檔名；`plainText` = 儲存格內容（設上限，避免巨大檔案拖慢 FTS）；摘要「CSV · 86 列 · 5 欄」；儲存格中的 `[[連結]]` 收進 `links`，`renameLinks` 一併更新。
+- **合併**：以**記錄**為單位的 diff3（帶引號的欄位可以跨行，所以不是以實體行為單位），直接用 Core 的泛型 `Diff3.merge`。兩邊改了同一筆記錄的不同儲存格時，再以儲存格為單位做三方合併；新增或刪除欄會讓每一列都變動 → 衝突副本（接受）。
+- **編輯器與 Bridge**：每次開檔建立自己的 `WebEditorHost`、關閉後釋放（不與 Markdown 的預熱 WebView 共用）。`load({rows, meta})` 一次送出全部列，每列帶 Swift 給的穩定 row id（排序或篩選後仍能對回原本的列）；JS 在**儲存格編輯結束時**才送 `edit({ops})`（`setCell`、增刪列欄），不是每個按鍵，打字熱路徑不跨 Bridge。Swift 把 ops 套到模型上，延遲 300 ms 寫檔。註冊 `EditorController`：`externalChange` 重新解析後以 `applyRemote` 更新並盡量保留選取，`flush` 立即存檔。Undo 由 JS 以 op 堆疊實作。剪貼簿用 TSV，與 Numbers / Excel 互通。`addMenu("表格")` 提供插入 / 刪除列欄、凍結首欄。
+- **排序與篩選只影響畫面**：不改寫檔案（整檔重新排序會讓每一列都變動，diff3 無法合併）；需要時提供明確的「依此欄排序並寫入」。
+- **顯示設定 `.csv.meta.json`**（`.tsv.meta.json` 相同）：`{version, columns: [{width}], frozenColumns, headerRow}`；只在使用者改了顯示設定時才建立；增刪欄時由編輯器一起調整。以 Phase 5 的 `companionOf` 註冊為伴隨檔（列表隱藏、跟著主檔改名搬移刪除）；合併以欄位為單位 LWW。
+- **預覽與嵌入**：`makePreview` 在背景用 CoreGraphics 畫前約 8 列 × 6 欄的 PNG（設計稿 Thumb CSV `otUrV`），`![[x.csv]]` 經 `embed://` 用同一張圖；深色模式同白板（透明背景、顯示端反相）。
+- **新增與匯入**：`addKind`（`tablecells`、`type-csv`）、`addNewFile("新表格")`（範本只有一列標題）、`addImport("匯入 CSV…")`；`addVaultGuide` 說明 CSV 慣例（UTF-8、第一列是標題、不要手動修改 `.csv.meta.json`）。
 
 ### Flashcards
 
@@ -627,7 +641,8 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 | `.md` | diff3，以行為單位；重疊修改 → 衝突副本 |
 | `.excalidraw` | 依元素 `id` + `version` 合併（與 Excalidraw 官方協作相同） |
 | `.pdf.ink` | 依頁分組，每頁依元素 `id` + `version` 合併；`pdfHash` 保留本機 |
-| `.csv` | diff3，以列為單位 |
+| `.csv`、`.tsv` | diff3，以記錄為單位；同一記錄的不同儲存格再三方合併；增刪欄 → 衝突副本 |
+| `.csv.meta.json` | 以欄位為單位 LWW |
 | `.easynotes/srs/*.jsonl` | 每台裝置只寫自己的檔案，天然無衝突 |
 | `.easynotes/srs/*.config.json` | 每台裝置只寫自己的檔案；讀取時以欄位為單位 LWW 合成 |
 | 其他（`.pdf`、圖片） | 內容不同 → 衝突副本 |
