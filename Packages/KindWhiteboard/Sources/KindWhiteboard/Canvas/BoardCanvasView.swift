@@ -2,7 +2,7 @@
 import PencilKit
 import UIKit
 
-/// iPad / iPhone 的白板畫布（見 Architecture「Whiteboard」）。
+/// iPad / iPhone 的白板畫布（見 architecture/whiteboard.md）。
 /// 下層：`structureHost` 裡的背景（網格 / 點）與 `BoardLayerTree`，以 transform 跟著 `PKCanvasView` 的 contentOffset / zoomScale。
 /// 中層：透明的 `PKCanvasView`，負責手寫、捲動、縮放與所有觸控。
 /// 上層：`overlayHost` 裡的 `SelectionOverlay`（螢幕座標）。
@@ -472,7 +472,7 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
 
     // MARK: 鍵盤（外接鍵盤）
 
-    /// V R O A T F、Delete、⌘D、⌘A（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。
+    /// V R O A T F、Delete、⌘D、⌘A（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。
     /// 文字框編輯中不攔截，字母才打得進文字框
     override var keyCommands: [UIKeyCommand]? {
         guard textView == nil else { return [] }

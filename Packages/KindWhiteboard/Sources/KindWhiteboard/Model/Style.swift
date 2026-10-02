@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// 樣式面板的一次修改（見 Architecture「4c：樣式面板」）。全部是 Excalidraw 標準欄位
+/// 樣式面板的一次修改（見 architecture/whiteboard.md「4c：樣式面板」）。全部是 Excalidraw 標準欄位
 public enum StyleChange: Equatable, Sendable {
     /// `backgroundColor`
     case fill(String)

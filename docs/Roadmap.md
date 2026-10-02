@@ -2,21 +2,21 @@
 
 進度與驗收：每個 Phase 列出目標、工作項目與驗收測試，進度以勾選狀態為準；驗收測試全部通過才進入下一個 Phase。
 
-**本文件只放**：目標、勾選清單、驗收測試、尚未驗證的事項、Bug 與風險。**不放**設計與決定的理由（寫在 [Architecture](./Architecture.md)）和版本變更（寫在 [Changelog](./Changelog.md)）。下表的「設計」欄是該 Phase 對應的 Architecture 章節，只讀那一節即可，不必整份讀。
+**本文件只放**：目標、勾選清單、驗收測試、尚未驗證的事項、Bug 與風險。**不放**設計與決定的理由（寫在 [Architecture](./architecture/README.md) 與其下各功能檔）和版本變更（寫在 [Changelog](./Changelog.md)）。下表的「設計」欄是該 Phase 對應的 Architecture 檔案，整份讀即可。
 
 ## 狀態總覽
 
-| Phase | 狀態 | 設計（Architecture 章節） |
+| Phase | 狀態 | 設計（`docs/architecture/`） |
 | --- | --- | --- |
-| 0 Spike + Prototype | 完成 | 技術選型決策 |
-| 1 本地筆記 MVP | 完成 | 外掛功能設計 › Markdown、流暢編輯的工程手法 |
-| 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | 系統架構 |
-| 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | 同步設計 |
-| 2.5 UI 重構 | 完成；驗收測試尚有未勾 | 外殼、列表與編輯器（UI） |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | Flashcards |
-| 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | Whiteboard |
-| 5 PDF 手寫與標註 | S4 原型完成（待 iPad 實機）；5a 起未開始 | PDF 手寫與標註 |
-| 6 Sheets | 規劃完成，Phase 5 之後開工 | Sheets |
+| 0 Spike + Prototype | 完成 | [README](./architecture/README.md)「技術選型決策」 |
+| 1 本地筆記 MVP | 完成 | [markdown.md](./architecture/markdown.md) |
+| 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
+| 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
+| 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
+| 5 PDF 手寫與標註 | S4 原型完成（待 iPad 實機）；5a 起未開始 | [pdf.md](./architecture/pdf.md) |
+| 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
 
@@ -102,7 +102,7 @@
 | Mobile | 首頁、編輯器、Spaces | `CIaUn`、`sk74A`、`sulbD` |
 | 元件 | 側邊欄（附說明 `c3JKt`）、Sidebar Item、Icon Button、Doc Card、Thumb CSV / Board / PDF、M Doc Row、M Pin Card、M Tab Bar、Format Bar | `YXFMc`、`WYNg6`、`QOPWl`、`KdLwJ`、`otUrV` / `r2BDR`（`Rr1po`）/ `CGJEp`、`i08TyX`、`xiCip`、`oPziA`、`n2KUAm` |
 
-設計稿與 EasyNotes 模型的對應、字型（系統字型取代 Pen 的 Inter）、介面語言等決定見 Architecture「外殼、列表與編輯器（UI）」。
+設計稿與 EasyNotes 模型的對應、字型（系統字型取代 Pen 的 Inter）、介面語言等決定見 [ui.md](./architecture/ui.md)。
 
 ### 2.5-0 設計稿待補
 
@@ -177,7 +177,7 @@
 
 目標：在 md 內寫卡片，用與 Anki 相同的 FSRS 排程複習；多裝置紀錄自動合併。
 
-設計見 Architecture「Flashcards」。
+設計見 [flashcards.md](./architecture/flashcards.md)。
 
 分四個子階段，依序進行；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
 
@@ -246,7 +246,7 @@
 
 尚未驗證：復原的卡片狀態回復只測了紀錄檔層（`ReviewStore` 沒有單元測試）、多裝置同步、實機畫面與設計稿比對（含淺色、iPhone 版面）、「編輯筆記」捲到該行。
 
-設計稿節點（深色）：牌組列表 `rHTaT`、複習 `b2AjRQ`、牌組選項 `AYlad`。範圍與取捨見 Architecture「Flashcards」。
+設計稿節點（深色）：牌組列表 `rHTaT`、複習 `b2AjRQ`、牌組選項 `AYlad`。範圍與取捨見 [flashcards.md](./architecture/flashcards.md)。
 
 ### 3d 互通與參數優化
 
@@ -271,7 +271,7 @@
 
 ### S3 Spike：畫布架構（iPad 實機）
 
-目標：在寫正式程式前，確認「layer 結構層 + `PKCanvasView` 手寫層」的組合可行。不通過就先改 Architecture 的設計再進 4c。
+目標：在寫正式程式前，確認「layer 結構層 + `PKCanvasView` 手寫層」的組合可行。不通過就先改 [whiteboard.md](./architecture/whiteboard.md) 的設計再進 4c。
 
 - [x] 原型（外掛內的 `Spike/CanvasSpike.swift`，側邊欄「畫布 Spike」面板）：`PKCanvasView` 底下一個 layer 結構層，畫 1,000 個隨機矩形 / 橢圓 / 箭頭 / 文字
 - [x] 結構層跟著 `PKCanvasView` 的 `contentOffset` / `zoomScale` 移動；縮放結束時重設 `contentsScale`
@@ -285,9 +285,9 @@
 - [x] 縮放到 4× 後線條與文字清晰（不是點陣放大）
 - [x] 手寫筆畫與結構層在平移、縮放中始終對齊（無位移、無延遲一幀）
 - [x] 手指捲動時不會畫出筆畫；Pencil 書寫延遲與現有手寫畫面相同
-- [x] 記錄結論與數據到本節，必要時修改 Architecture「Whiteboard」
+- [x] 記錄結論與數據到本節，必要時修改 [whiteboard.md](./architecture/whiteboard.md)
 
-結論（iPad Air M1、60Hz，五輪實機）：驗收全部通過。1,000 個元素維持 60 FPS（該機型上限），10,000 個元素約 30 FPS（由 4c 的 LOD 處理）。實作規則（transform 同步、關閉縮放回彈、點陣倍率、文字 layer 關閉 `contents` 動作）已寫入 Architecture「Whiteboard」。原型用法：側邊欄「畫布 Spike」面板只在 DEBUG 或啟動參數 `-WhiteboardSpike YES` 時出現（Release build 量測幀率），不讀寫 Vault。
+結論（iPad Air M1、60Hz，五輪實機）：驗收全部通過。1,000 個元素維持 60 FPS（該機型上限），10,000 個元素約 30 FPS（由 4c 的 LOD 處理）。實作規則（transform 同步、關閉縮放回彈、點陣倍率、文字 layer 關閉 `contents` 動作）已寫入 [whiteboard.md](./architecture/whiteboard.md)。原型用法：側邊欄「畫布 Spike」面板只在 DEBUG 或啟動參數 `-WhiteboardSpike YES` 時出現（Release build 量測幀率），不讀寫 Vault。
 
 ### 4a 模型與序列化
 
@@ -345,19 +345,19 @@
 - [x] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
 - [x] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
 - [x] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
-- [x] 工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
+- [x] 工具列（Freeform 式，見 [whiteboard.md](./architecture/whiteboard.md)「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
 - [x] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
 - [x] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
 - [x] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
 - [x] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
-- [x] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 Architecture「4c：箭頭連接點吸附」；不做轉折線與曲線）
+- [x] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 [whiteboard.md](./architecture/whiteboard.md)「4c：箭頭連接點吸附」；不做轉折線與曲線）
 - [x] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
 - [x] 圖片：從照片、檔案、貼上插入
 - [x] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
 - [x] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
 - [x] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
 - [x] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
-- [x] 樣式面板（見 Architecture「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
+- [x] 樣式面板（見 [whiteboard.md](./architecture/whiteboard.md)「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
 
 驗收測試：
 
@@ -372,7 +372,7 @@
 
 ### 4d 選做：筆記卡片
 
-- [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 Architecture「筆記卡片放進白板」）
+- [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 [whiteboard.md](./architecture/whiteboard.md)「筆記卡片放進白板」）
 - [ ] 卡片內容向 Registry 要 `.md` 的預覽（不 import KindMarkdown）
 - [ ] 點卡片在側邊面板開啟完整編輯器
 
@@ -388,7 +388,7 @@
 
 ### S4 Spike：PDF 疊層（iPad 實機）
 
-目標：確認「`PDFView` + 每頁 overlay `PKCanvasView`」可行，不通過就先改 Architecture 再進 5c。
+目標：確認「`PDFView` + 每頁 overlay `PKCanvasView`」可行，不通過就先改 [pdf.md](./architecture/pdf.md) 再進 5c。
 
 - [x] `PDFView` + `PDFPageOverlayViewProvider` + `PKCanvasView`（`isInMarkupMode`）
 - [x] 縮放後筆畫清晰、與頁面對齊；Pencil 書寫、手指捲動縮放
@@ -430,7 +430,7 @@
 | 200 頁 + 每頁 30 筆、自動捲動 | 記憶體 280–300 MB，持續捲動不成長 |
 | 4–5× 清晰度（點陣上限「不限」） | 清晰 |
 
-S4 通過：疊層架構不需修改，結論與實作規則寫入 Architecture「PDF 手寫與標註」。正式版（5c）點陣倍率不設上限。
+S4 通過：疊層架構不需修改，結論與實作規則寫入 [pdf.md](./architecture/pdf.md)。正式版（5c）點陣倍率不設上限。
 
 ### 5a 模型與格式（無 UI，單元測試）
 
@@ -476,7 +476,7 @@ S4 通過：疊層架構不需修改，結論與實作規則寫入 Architecture�
 
 ### S5 Spike：RevoGrid 注音與效能（iPad 實機 + Mac）
 
-目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 Architecture（自寫 TS 虛擬表格或原生表格）再進 6b。
+目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 [sheets.md](./architecture/sheets.md)（自寫 TS 虛擬表格或原生表格）再進 6b。
 
 - [ ] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
 - [ ] 組字中按 Enter 不結束編輯（`isComposing`）

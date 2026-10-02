@@ -2,14 +2,14 @@
 
 ## 文件（來源是 `docs/` 的本地 md，三份內容不重複）
 
-- [Architecture](./docs/Architecture.md)：現在的設計與理由（不放進度、日期）
+- [Architecture](./docs/architecture/README.md)：現在的設計與理由（不放進度、日期）；README 放跨功能原則與依賴規則，每個功能一個檔（`core` / `ui` / `markdown` / `whiteboard` / `pdf` / `sheets` / `flashcards`）
 - [Roadmap](./docs/Roadmap.md)：勾選清單、驗收、Bug；進度以勾選為準（不放設計理由）
 - [Changelog](./docs/Changelog.md)：給使用者看的版本變更
 
 ## 工作流程
 
-- **實作前**：只讀 Roadmap 的「狀態總覽」與目前 Phase 小節，再依「設計」欄只讀 Architecture 對應章節（用標題定位、給 offset / limit）；同一內容一個 session 只讀一次。
-- **實作中**：設計有變動，先改 Architecture 再改程式；直接寫成現行規則，不加日期。
+- **實作前**：只讀 Roadmap 的「狀態總覽」與目前 Phase 小節，再依「設計」欄讀 `docs/architecture/` 對應的檔案（整份讀，不必 offset / limit）；跨外掛或改 Core 才讀 README 與 `core.md`；同一內容一個 session 只讀一次。
+- **實作中**：設計有變動，先改 `docs/architecture/` 對應檔再改程式；直接寫成現行規則，不加日期。
 - **實作後**：Roadmap 勾選（沒實際驗證的不勾，寫「尚未驗證」）、Changelog 的 `[Unreleased]` 加一行、測試通過後 commit；三者放同一個 commit。
 - **Changelog**：[Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) 格式、繁體中文，只記使用者看得到的變更（Added / Changed / Fixed…），不記重構、測試、文件、Spike。發版時改成 `## [X.Y.Z] - 日期` 並同步 `MARKETING_VERSION`；打 tag 與 push 先問。
 - **Commit**：訊息用 `Phase 4c: …` / `fix: …` / `docs: …`；只 stage 自己改的檔案（不用 `git add -A`，可能有其他 session 的檔案）；不 push、不 amend。

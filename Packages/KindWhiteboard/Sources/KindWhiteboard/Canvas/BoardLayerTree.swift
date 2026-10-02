@@ -5,7 +5,7 @@ import QuartzCore
 /// 編輯器的結構層：每個畫面內的元素一個 layer，放在 `root` 底下（畫布座標，未縮放）。
 /// 宿主（iOS 的 `PKCanvasView`、macOS 的 `NSView`）只設定 `root` 的 transform 與可見範圍。
 ///
-/// 規則照 Spike S3（見 Architecture「Whiteboard」）：
+/// 規則照 Spike S3（見 architecture/whiteboard.md）：
 /// - 只為可見範圍（宿主加一圈緩衝）內的元素建立 layer；建立與重新點陣化每次有上限，剩下的交給之後的幀。
 /// - 形狀、線、箭頭、frame 外框是 `CAShapeLayer`（向量，縮放時不必重新點陣化）；
 ///   文字、圖片、手寫、佔位框由 `ElementPainter` 畫進點陣 layer，倍率跟著縮放。

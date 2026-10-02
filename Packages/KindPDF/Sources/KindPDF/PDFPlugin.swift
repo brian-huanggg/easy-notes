@@ -1,7 +1,7 @@
 import EasyNotesUI
 import SwiftUI
 
-/// .pdf + .pdf.ink 標註旁檔（見 Architecture「PDF 手寫與標註」）。目前只有 Spike S4。
+/// .pdf + .pdf.ink 標註旁檔（見 architecture/pdf.md）。目前只有 Spike S4。
 public enum PDFPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         #if os(iOS)

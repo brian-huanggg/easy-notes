@@ -2,7 +2,7 @@ import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// 白板工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
+/// 白板工具列（Freeform 式，見 architecture/whiteboard.md「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
 /// 有選取時的操作（樣式、再製、刪除）| Undo / Redo。導覽列下方獨立一排
 struct BoardToolbar: View {
     let editor: BoardEditor

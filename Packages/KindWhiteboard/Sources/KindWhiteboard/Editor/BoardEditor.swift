@@ -36,7 +36,7 @@ struct BoardChange {
     var finished = false
 }
 
-/// 白板的編輯核心（見 Architecture「Whiteboard」4c 編輯核心）。不依賴平台：
+/// 白板的編輯核心（見 architecture/whiteboard.md4c 編輯核心）。不依賴平台：
 /// 宿主把觸控 / 滑鼠事件換成畫布座標交給它，它修改 `BoardDocument` 的場景、維護選取，
 /// 每個操作結束時在 `undoManager` 註冊一筆可復原的紀錄。
 @MainActor @Observable

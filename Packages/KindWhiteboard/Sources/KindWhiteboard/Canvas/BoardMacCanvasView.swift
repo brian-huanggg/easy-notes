@@ -3,7 +3,7 @@ import AppKit
 import QuartzCore
 import UniformTypeIdentifiers
 
-/// macOS 的白板畫布（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。沒有 `PKCanvasView`，
+/// macOS 的白板畫布（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。沒有 `PKCanvasView`，
 /// 所以不用 `NSScrollView`，自己管平移與縮放：螢幕座標 = (場景座標 − `origin`) × `zoom`。
 /// 層級與 iOS 相同：背景 / LOD 快照 / 結構層（`sceneHost` 套同一個 transform）→ 選取外框（螢幕座標）→ 文字框。
 /// 手寫由結構層畫（只能看，不能選取或編輯）。結構元素的編輯交給 `BoardEditor`：這裡只把滑鼠與鍵盤換成畫布座標與快捷鍵。

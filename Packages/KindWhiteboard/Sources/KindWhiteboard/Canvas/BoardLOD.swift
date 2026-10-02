@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 import QuartzCore
 
-/// 縮得很小又有很多元素時，以一張點陣快照取代個別 layer（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。
+/// 縮得很小又有很多元素時，以一張點陣快照取代個別 layer（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。
 /// iOS / macOS 共用：宿主把 `root` 放在結構層旁、套同樣的 transform，並在每次捲動 / 縮放後呼叫 `viewChanged`。
 ///
 /// - 條件：縮放倍率 ≤ `zoomThreshold`、可見範圍內的元素 > `elementThreshold`、沒有選取或操作中。

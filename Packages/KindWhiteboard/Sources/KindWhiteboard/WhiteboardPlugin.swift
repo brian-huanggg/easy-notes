@@ -1,7 +1,7 @@
 import EasyNotesUI
 import SwiftUI
 
-/// .excalidraw：白板（結構元素 + PencilKit 手寫，見 Architecture「Whiteboard」）
+/// .excalidraw：白板（結構元素 + PencilKit 手寫，見 architecture/whiteboard.md）
 public enum WhiteboardPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         registry.addKind(InkKind.self, name: "白板", symbol: "pencil.tip", tint: .violet)

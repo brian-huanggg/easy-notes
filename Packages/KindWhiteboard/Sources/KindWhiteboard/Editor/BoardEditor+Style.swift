@@ -1,6 +1,6 @@
 import Foundation
 
-/// 樣式面板（見 Architecture「4c：樣式面板」）：修改選取元素的樣式，並記住上次的值給新元素用
+/// 樣式面板（見 architecture/whiteboard.md「4c：樣式面板」）：修改選取元素的樣式，並記住上次的值給新元素用
 extension BoardEditor {
     /// 選取元素（含形狀內的文字）目前的樣式
     var styleSummary: StyleSummary {

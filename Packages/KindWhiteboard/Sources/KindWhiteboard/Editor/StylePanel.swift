@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 樣式面板（見 Architecture「4c：樣式面板」）：只顯示選取元素適用的區塊，只用預設色盤。
+/// 樣式面板（見 architecture/whiteboard.md「4c：樣式面板」）：只顯示選取元素適用的區塊，只用預設色盤。
 /// 多選時值不一致就不標記任何選項
 struct StylePanel: View {
     let editor: BoardEditor
