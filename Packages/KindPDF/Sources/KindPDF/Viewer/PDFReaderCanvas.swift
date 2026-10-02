@@ -102,10 +102,19 @@ final class PageOverlayView: PlatformView {
     private(set) var scene = ExcalidrawScene()
     /// 暫時不畫在標註層的元素（拖曳中的便利貼、編輯中的文字）
     var hiddenElements: Set<String> = [] {
-        didSet { if hiddenElements != oldValue { inkLayer.show(scene.without(hiddenElements)) } }
+        didSet {
+            guard hiddenElements != oldValue else { return }
+            // 只重畫這些元素的範圍：整層重畫時分塊會暫時清空
+            let changed = hiddenElements.symmetricDifference(oldValue)
+            let area = scene.liveElements.filter { changed.contains($0.id) }.map(Self.paintedBounds)
+                .reduce(CGRect.null) { $0.union($1) }
+            inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
+        }
     }
     #if os(macOS)
     var drag: StickyDrag?
+    /// 滑過的便利貼的外框與縮放點
+    var chrome: StickyChromeView?
     #endif
     /// 頁面座標（未旋轉、y 向下）→ overlay 座標
     private(set) var pageToView = CGAffineTransform.identity
@@ -129,8 +138,29 @@ final class PageOverlayView: PlatformView {
     required init?(coder: NSCoder) { fatalError() }
 
     func show(_ scene: ExcalidrawScene) {
+        let old = self.scene
         self.scene = scene
-        inkLayer.show(scene.without(hiddenElements))
+        let area = Self.changedArea(from: old, to: scene)
+        inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
+    }
+
+    /// 改變的元素（新增、刪除、`version` 不同）前後範圍的聯集（頁面座標）；沒有改變為 `.null`
+    static func changedArea(from old: ExcalidrawScene, to new: ExcalidrawScene) -> CGRect {
+        var before = Dictionary(old.orderedElements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        var area = CGRect.null
+        for el in new.orderedElements {
+            let prev = before.removeValue(forKey: el.id)
+            if let prev, prev.version == el.version, prev.versionNonce == el.versionNonce, prev.isDeleted == el.isDeleted { continue }
+            if let prev, !prev.isDeleted { area = area.union(paintedBounds(prev)) }
+            if !el.isDeleted { area = area.union(paintedBounds(el)) }
+        }
+        for prev in before.values where !prev.isDeleted { area = area.union(paintedBounds(prev)) }
+        return area
+    }
+
+    /// 元素的範圍加上筆畫寬度的餘裕
+    static func paintedBounds(_ el: Element) -> CGRect {
+        ElementGeometry.bounds(el).insetBy(dx: -16, dy: -16)
     }
 
     /// overlay 座標 → 頁面座標
@@ -197,6 +227,15 @@ final class PageOverlayView: PlatformView {
         return sticky(at: convert(point, from: superview)) != nil ? self : nil
     }
 
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+                                       owner: self))
+    }
+
+    override func mouseMoved(with event: NSEvent) { stickyMouseMoved(event) }
+    override func mouseExited(with event: NSEvent) { if drag == nil { hideChrome() } }
     override func mouseDown(with event: NSEvent) { stickyMouseDown(event) }
     override func mouseDragged(with event: NSEvent) { stickyMouseDragged(event) }
     override func mouseUp(with event: NSEvent) { stickyMouseUp(event) }

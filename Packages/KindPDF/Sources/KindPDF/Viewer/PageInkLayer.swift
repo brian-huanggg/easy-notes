@@ -28,11 +28,17 @@ final class PageInkLayer: CATiledLayer, @unchecked Sendable {
     /// 換掉繪製內容後整層重畫；淡入會讓標註閃一下，關掉
     override class func fadeDuration() -> CFTimeInterval { 0 }
 
-    func show(_ scene: ExcalidrawScene) {
+    /// `dirty`：只重畫這個範圍（layer 座標、y 向下），其餘分塊保留（整層重畫時分塊會暫時清空）；
+    /// nil = 整層，`.null` = 不重畫（內容沒變）
+    func show(_ scene: ExcalidrawScene, dirty: CGRect? = nil) {
         let renderer = SceneRenderer(scene: scene)
         let empty = renderer.elements.isEmpty
         lock.withLock { self.renderer = empty ? nil : renderer }
-        setNeedsDisplay()
+        guard let dirty else { setNeedsDisplay(); return }
+        guard !dirty.isNull, !dirty.isEmpty else { return }
+        setNeedsDisplay(dirty)
+        // macOS 未翻轉的 layer 是 y 向上：鏡像的範圍也重畫（多畫一塊無妨，少畫會留下舊內容）
+        setNeedsDisplay(CGRect(x: dirty.minX, y: bounds.height - dirty.maxY, width: dirty.width, height: dirty.height))
     }
 
     func setPageTransform(_ transform: CGAffineTransform) {

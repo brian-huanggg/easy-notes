@@ -4,7 +4,7 @@
 - **不做**：插入空白頁、頁面縮圖與重排、PDF 文字搜尋、手寫辨識、建立新 PDF（只能匯入）。
 - **實作**：`PDFView` + `PDFPageOverlayViewProvider`，每個可見頁面疊一個 `PKCanvasView`，離開畫面就回收，避免大檔案吃光記憶體（S4 實機確認，見下方）。`drawingPolicy = .pencilOnly`，手指捲動與縮放、Pencil 書寫。
 - **格式**：原始 PDF 不改動。標註存在 `<檔名>.pdf.ink`（JSON）：`pdfHash` + 依頁碼分組的 Excalidraw elements。檔案樹中隱藏 `.pdf.ink`。
-- **平台**：macOS 顯示 PDF 與所有標註，便利貼可新增、移動、編輯；手寫只能看。
+- **平台**：macOS 顯示 PDF 與所有標註，便利貼可新增、移動、縮放、編輯；手寫只能看。
 
 **設計決定**：
 
@@ -24,7 +24,7 @@
   頁碼從 0 開始，沒有標註的頁不寫。座標是該頁 cropBox 的**未旋轉**頁面座標：單位 PDF point、原點左上、y 向下（與 Excalidraw 相同）；顯示與匯出時才套用頁面的 `rotation`。元素沿用 Excalidraw 規則（`version`、`versionNonce`、`updated`），未知欄位原樣保留。
 - **筆畫**：原子筆 = `com.apple.ink.pen`、螢光筆 = `com.apple.ink.marker`（freedraw 的 `opacity` 保留透明度），都經 `ExcalidrawKit` 的 `InkStroke` 轉換；橡皮擦、套索是 `PKToolPicker` 的系統工具。
 - **便利貼**：與白板的便條紙相同的標準組合（無外框 rectangle `#ffec99` + `containerId` 文字），直接顯示在頁面上、可移動與縮放，預設 160×160 頁面點、字級 14。編輯時疊原生文字框（iOS `UITextView`、Mac `NSTextView`），注音組字中不寫回。疊放順序：頁面 < 便利貼 < 手寫（與白板「手寫在結構元素之上」一致，可以在便利貼上寫字）。
-- **macOS 便利貼**：右下角「便利貼」按鈕在目前頁可見範圍的中央新增一張並直接編輯。overlay 只在滑鼠落在便利貼上時接收事件，其餘交給 PDFView（選取文字、捲動）。拖曳移動：拖曳中標註層隱藏這張、改由一個只畫它的預覽 layer 跟著游標（不逐幀重畫分塊的標註層），放開才寫入一次。雙擊或右鍵「編輯」疊一個 `NSTextView`（便利貼底色、字級隨縮放），結束編輯（點別處、Esc、切換檔案前的 `flush`）才寫回文字並重新排版，所以注音組字中不寫回；右鍵「刪除」。旋轉頁上的編輯框不跟著旋轉（顯示時文字仍隨頁面旋轉）。
+- **macOS 便利貼**：右下角「便利貼」按鈕在目前頁可見範圍的中央新增一張並直接編輯。overlay 只在滑鼠落在便利貼上時接收事件，其餘交給 PDFView（選取文字、捲動）。滑鼠移到便利貼上時顯示外框與右下角的縮放點。拖曳移動、拖曳縮放點縮放（最小 40 頁面點，文字依新尺寸重新排版）：拖曳中標註層只重畫這張的範圍把它隱藏，改由同步繪製的預覽 view（`NSView.draw`，不是分塊的 `CATiledLayer`：分塊是非同步畫的，移動到新位置時還沒畫好的塊會讓便利貼缺一角、露出底下的 PDF 文字）跟著游標，放開才寫入一次。雙擊或右鍵「編輯」疊一個 `NSTextView`（便利貼底色、字級隨縮放），結束編輯（點別處、Esc、切換檔案前的 `flush`）才寫回文字並重新排版，所以注音組字中不寫回；右鍵「刪除」。旋轉頁上的編輯框不跟著旋轉（顯示時文字仍隨頁面旋轉）。
 - **頁面疊層**：overlay view = 便利貼 layer（`ElementPainter`）+ `PKCanvasView`。手寫模式開關與白板相同（畫筆 = 開關，開啟時顯示 `PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）；手寫模式中手指捲動縮放、長按便利貼才拖曳；關閉時 Pencil 與手指都能點選、拖曳便利貼。iPad `.pencilOnly`，iPhone 只在手寫模式用手指書寫。所有頁面共用一個 `PKToolPicker`。
 - **標註層（兩個平台共用）**：每頁 overlay 的底層是一個 `CATiledLayer`，以 `SceneRenderer`（內部用 `ElementPainter`）在背景執行緒分塊畫出該頁的便利貼與筆畫：放大時依倍率重畫區塊，所以清晰，而且只畫看得到的部分；整頁點陣在 5× 縮放會到數百 MB，不可行。唯讀檢視（Mac、iPad 非手寫模式）只有這一層；iPad 5c 在上面疊 `PKCanvasView`，此時標註層不畫 freedraw（`drawsFreedraw: false`）。標註改變時只重畫有 overlay 的頁。
 - **開啟流程**：`PDFDocument(url:)` 延遲讀取頁面；`pdfHash` 在背景計算（大檔不擋主執行緒），沒有旁檔時同一個背景工作執行 `claimOrphan`，認領後以 `DocumentSession.fileMoved` 通知同步層。旁檔在第一次寫入標註時才建立，並寫入當時的 `pdfHash`。

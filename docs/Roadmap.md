@@ -408,11 +408,13 @@
 
 - [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
   - iPad Simulator 已驗證：標註與頁面對齊（直式、橫式、`rotation` 90）、螢光筆透明度、便利貼文字；列表縮圖、頁數、PDF 篩選 chip、`.pdf.ink` 不出現在列表。
-  - 尚未驗證：macOS 檢視（只確認建置）、放大後標註清晰度（`CATiledLayer`，Simulator 無法縮放）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
+  - Mac App 已驗證：列表縮圖正常、關閉重開後標註仍保存。
+  - 尚未驗證：放大後標註清晰度（`CATiledLayer`，Simulator 無法縮放；iPad 實機與 Mac）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
 - [x] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
   - iPad Simulator 顯示提示列；「保留標註」只由單元測試驗證（`PDFInkDocumentTests`），尚未在 App 內按過。
-- [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
-  - 已實作（右下「便利貼」按鈕、拖曳移動、雙擊或右鍵編輯、右鍵刪除）；文字與移動的模型由單元測試驗證（`StickyTests`），尚未在 Mac App 內驗證（含注音輸入、拖曳是否閃爍）。
+- [ ] Mac：便利貼新增、移動、縮放、編輯（`NSTextView`）
+  - Mac App 已驗證：右鍵編輯、刪除。
+  - 第一輪回報：拖曳中露出底下的文字（預覽是非同步分塊）→ 改成同步繪製的預覽 view、只重畫改變的範圍；不能縮放 → 加入滑過時的外框與右下角縮放點。尚未在 Mac App 內驗證（拖曳、縮放、注音輸入）。
 
 ### 5c iPad 編輯器
 
@@ -519,6 +521,7 @@
 - [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
 - [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
 - [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
+- [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置
 
 ## 其餘功能清單
 

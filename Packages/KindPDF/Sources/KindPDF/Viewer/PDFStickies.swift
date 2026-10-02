@@ -43,30 +43,83 @@ enum PDFStickies {
 import AppKit
 import PDFKit
 
-/// 拖曳中的便利貼：標註層隱藏它，`preview`（只畫它的標註層）跟著游標，放開才寫入
+/// 拖曳中的便利貼：移動或拖曳右下角縮放。標註層隱藏它，`preview` 同步畫出拖曳中的樣子，放開才寫入一次
 struct StickyDrag {
+    enum Mode { case move, resize }
     let id: String
+    let mode: Mode
+    /// overlay 座標
     let start: CGPoint
-    var preview: PageInkLayer?
+    /// 開始拖曳時的便利貼（縮放每一幀都從它計算）
+    let original: Element
+    var preview: StickyPreviewView?
 }
 
-// MARK: - overlay：點選、拖曳、右鍵選單
+// MARK: - overlay：滑過、點選、拖曳、右鍵選單
 
 extension PageOverlayView {
+    static let minStickySize: Double = 40
+
     /// 最上層、包含這個點的便利貼（overlay 座標）
     func sticky(at viewPoint: CGPoint) -> Element? {
         let p = pagePoint(viewPoint)
+        if let hovered = chrome?.stickyID, let el = scene.element(hovered), !el.isDeleted,
+           handleRect(for: el).contains(viewPoint) { return el }
         return scene.liveElements.reversed().first { $0.type == .rectangle && $0.rect.standardized.contains(p) }
     }
+
+    /// overlay 1 點在視窗上的大小：外框與縮放點在任何縮放倍率下都維持相同的螢幕大小
+    private var onScreenScale: CGFloat {
+        max(convert(NSSize(width: 1, height: 0), to: nil).width, 0.01)
+    }
+
+    /// 縮放點：頁面座標的右下角（旋轉頁上依顯示位置）
+    func handleRect(for el: Element) -> CGRect {
+        let corner = CGPoint(x: el.rect.standardized.maxX, y: el.rect.standardized.maxY).applying(pageToView)
+        let size = 14 / onScreenScale
+        return CGRect(x: corner.x - size / 2, y: corner.y - size / 2, width: size, height: size)
+    }
+
+    // MARK: 滑過
+
+    func stickyMouseMoved(_ event: NSEvent) {
+        guard drag == nil, host?.editing?.overlay !== self else { return }
+        let p = convert(event.locationInWindow, from: nil)
+        guard let el = sticky(at: p) else { hideChrome(); return }
+        showChrome(for: el)
+        (handleRect(for: el).contains(p) ? NSCursor.frameResize(position: .bottomRight, directions: .all) : .openHand).set()
+    }
+
+    func hideChrome() {
+        chrome?.removeFromSuperview()
+        chrome = nil
+    }
+
+    /// 外框與縮放點（`rect` 為頁面座標，省略時用目前的便利貼）
+    func showChrome(for el: Element, rect: CGRect? = nil) {
+        let r = (rect ?? el.rect.standardized).applying(pageToView)
+        let pad = 8 / onScreenScale
+        let view = chrome ?? StickyChromeView()
+        if chrome == nil { addSubview(view); chrome = view }
+        view.stickyID = el.id
+        view.lineWidth = 1.5 / onScreenScale
+        view.handleSize = 10 / onScreenScale
+        view.padding = pad
+        view.frame = r.insetBy(dx: -pad, dy: -pad)
+        view.needsDisplay = true
+    }
+
+    // MARK: 點選與拖曳
 
     func stickyMouseDown(_ event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
         guard let el = sticky(at: p) else { return }
         host?.endEditing()
         if event.clickCount >= 2 {
+            hideChrome()
             host?.beginEditing(el.id, on: self)
         } else {
-            drag = StickyDrag(id: el.id, start: p)
+            drag = StickyDrag(id: el.id, mode: handleRect(for: el).contains(p) ? .resize : .move, start: p, original: el)
         }
     }
 
@@ -74,37 +127,59 @@ extension PageOverlayView {
         guard var drag else { return }
         let p = convert(event.locationInWindow, from: nil)
         if drag.preview == nil {
-            let ids = scene.stickyIDs(drag.id)
-            let preview = PageInkLayer()
-            preview.contentsScale = inkLayer.contentsScale
-            preview.frame = inkLayer.frame
-            preview.setPageTransform(pageToView)
-            preview.show(scene.only(ids))
-            layer?.addSublayer(preview)
-            hiddenElements.formUnion(ids)
+            let preview = StickyPreviewView(frame: bounds)
+            preview.pageToView = pageToView
+            addSubview(preview, positioned: .below, relativeTo: chrome)
+            hiddenElements.formUnion(scene.stickyIDs(drag.id))
             drag.preview = preview
         }
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        drag.preview?.setAffineTransform(CGAffineTransform(translationX: p.x - drag.start.x, y: p.y - drag.start.y))
-        CATransaction.commit()
+        let (scene, rect) = dragged(drag, to: p)
+        drag.preview?.scene = scene.only(scene.stickyIDs(drag.id))
+        if let el = scene.element(drag.id) { showChrome(for: el, rect: rect) }
         self.drag = drag
-        NSCursor.closedHand.set()
+        (drag.mode == .move ? NSCursor.closedHand : NSCursor.frameResize(position: .bottomRight, directions: .all)).set()
     }
 
     func stickyMouseUp(_ event: NSEvent) {
         guard let drag else { return }
         self.drag = nil
         guard let preview = drag.preview else { return }
-        let a = pagePoint(drag.start), b = pagePoint(convert(event.locationInWindow, from: nil))
-        hiddenElements.subtract(scene.stickyIDs(drag.id))
-        if let document = host?.document, a != b {
-            document.edit(page: pageIndex) { $0.move([drag.id], dx: b.x - a.x, dy: b.y - a.y) }
+        let p = convert(event.locationInWindow, from: nil)
+        let (_, rect) = dragged(drag, to: p)
+        let ids = scene.stickyIDs(drag.id)
+        // 先寫入新位置（仍隱藏），再取消隱藏：只重畫新位置，便利貼不會先閃回原處
+        if let document = host?.document, rect != drag.original.rect.standardized {
+            document.edit(page: pageIndex) { scene in
+                switch drag.mode {
+                case .move: scene.move([drag.id], dx: rect.minX - drag.original.x, dy: rect.minY - drag.original.y)
+                case .resize: scene.resize(drag.id, to: rect, from: drag.original)
+                }
+            }
             document.commit()
         }
+        hiddenElements.subtract(ids)
         // 標註層在背景重畫完之前先留著預覽，避免便利貼閃一下
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { preview.removeFromSuperlayer() }
-        NSCursor.arrow.set()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { preview.removeFromSuperview() }
+        if let el = scene.element(drag.id) { showChrome(for: el) }
+    }
+
+    /// 拖到 `p` 時的場景（只在記憶體）與便利貼的新範圍（頁面座標）
+    private func dragged(_ drag: StickyDrag, to p: CGPoint) -> (ExcalidrawScene, CGRect) {
+        let a = pagePoint(drag.start), b = pagePoint(p)
+        let r = drag.original.rect.standardized
+        var scene = self.scene
+        switch drag.mode {
+        case .move:
+            let moved = r.offsetBy(dx: b.x - a.x, dy: b.y - a.y)
+            scene.move([drag.id], dx: moved.minX - (scene.element(drag.id)?.x ?? r.minX),
+                       dy: moved.minY - (scene.element(drag.id)?.y ?? r.minY))
+            return (scene, moved)
+        case .resize:
+            let rect = CGRect(x: r.minX, y: r.minY, width: max(r.width + b.x - a.x, Self.minStickySize),
+                              height: max(r.height + b.y - a.y, Self.minStickySize))
+            scene.resize(drag.id, to: rect, from: drag.original)
+            return (scene, scene.element(drag.id)?.rect.standardized ?? rect)
+        }
     }
 
     func stickyMenu(_ event: NSEvent) -> NSMenu? {
@@ -121,6 +196,48 @@ extension PageOverlayView {
             document.commit()
         })
         return menu
+    }
+}
+
+/// 拖曳中的便利貼：`NSView.draw` 同步繪製（分塊的標註層是非同步畫的，移動時會缺塊）
+final class StickyPreviewView: NSView {
+    var pageToView = CGAffineTransform.identity
+    var scene = ExcalidrawScene() { didSet { renderer = SceneRenderer(scene: scene); needsDisplay = true } }
+    private var renderer: SceneRenderer?
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let renderer, let ctx = NSGraphicsContext.current?.cgContext else { return }
+        ctx.concatenate(pageToView)
+        renderer.draw(in: ctx, pixelScale: hypot(ctx.ctm.a, ctx.ctm.b))
+    }
+}
+
+/// 滑過的便利貼：外框 + 右下角縮放點
+final class StickyChromeView: NSView {
+    var stickyID: String?
+    var lineWidth: CGFloat = 1.5
+    var handleSize: CGFloat = 10
+    /// frame 比便利貼大這麼多（縮放點突出在外）
+    var padding: CGFloat = 8
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let box = bounds.insetBy(dx: padding, dy: padding)
+        NSColor.controlAccentColor.setStroke()
+        let outline = NSBezierPath(rect: box)
+        outline.lineWidth = lineWidth
+        outline.stroke()
+        let knob = NSBezierPath(ovalIn: CGRect(x: box.maxX - handleSize / 2, y: box.maxY - handleSize / 2,
+                                               width: handleSize, height: handleSize))
+        NSColor.white.setFill()
+        knob.fill()
+        knob.lineWidth = lineWidth
+        knob.stroke()
     }
 }
 
