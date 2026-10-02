@@ -175,7 +175,16 @@ registry.kinds                                                // → KindRegistr
 registry.addIndexContributor(CardIndexer())                    // Flashcards：從 md 抽出卡片，存成索引的 records
 registry.addContentFixer(CardIDFixer())                         // Flashcards：替缺少 ^id 的卡片補上 id
 registry.addVaultGuide(guide)                                   // Vault 根目錄 CLAUDE.md 的一節（Markdown：筆記慣例；Flashcards：卡片語法）
+registry.addSyncedMetaFolder("srs")                             // Flashcards：`.easynotes/srs/` 參與同步（其餘 `.easynotes/` 不同步）
+
+// EasyNotesCore：這台裝置的身分，存在 `.easynotes/device-id`（不同步）；SyncEngine 與 Flashcards 共用
+vaultFS.deviceID() -> String
 ```
+
+2026-10-02 決定（3b）：
+
+- `addSyncedMetaFolder`：`.easynotes/` 預設不同步（索引、快取、同步狀態都是本機的）。外掛需要同步自己的資料時，註冊 `.easynotes/` 下的子資料夾，App 把清單交給 `SyncEngine`。用白名單而不是「`.easynotes/` 除了 cache 都同步」，避免 `seeded` 之類的本機標記被帶到其他裝置。這些檔案沒有註冊的 `DocumentKind`，合併時視為不透明檔案（內容不同 → 衝突副本）；外掛要自己設計成不會衝突（例如每台裝置只寫自己的檔案）。
+- `VaultFS.deviceID()`：第一次呼叫時產生 UUID 寫入 `.easynotes/device-id`（不同步）。舊版存在 `sync.sqlite` 的 device 會先搬過來，id 不變。檔案被刪掉只會換一個新 id，用到 id 的資料（例如複習紀錄）多出一個新檔案，不會遺失。
 
 2026-10-02 決定（3a）：
 
@@ -307,6 +316,33 @@ registry.addVaultGuide(guide)                                   // Vault 根目�
 - **重播不重算間隔**：到期日一律採用紀錄中的 `ivl`（fuzz 有亂數，參數也可能被優化改掉）；只有記憶狀態（stability、difficulty）用目前的參數重算，與 Anki 換參數後的行為相同。這樣同一組紀錄在任何裝置都得到相同狀態。
 - **手動操作也是事件**：暫停 / 恢復、重設、Leech 處理寫成 jsonl 事件（Anki revlog 的 Manual 類型），不寫進 md。
 
+2026-10-02 決定（3b）：
+
+- **紀錄格式**：一行一筆 JSON，欄位名稱與意義照 Anki `revlog`，另加 `op` 擴充欄位：
+
+  ```json
+  {"id":1759400000123,"cid":"c-a1b2c3:r","ease":3,"ivl":-600,"lastIvl":-60,"time":5320,"type":0}
+  {"id":1759400100000,"cid":"c-a1b2c3:r","ease":0,"ivl":0,"lastIvl":0,"time":0,"type":4,"op":"suspend"}
+  ```
+
+  | 欄位 | 意義 |
+  | --- | --- |
+  | `id` | 複習時間（Unix 毫秒） |
+  | `cid` | 卡片 id（`^id` + 後綴） |
+  | `ease` | 1 Again、2 Hard、3 Good、4 Easy；手動事件為 0 |
+  | `ivl` / `lastIvl` | 這次 / 上次的間隔；正數 = 天，負數 = 秒（learning steps） |
+  | `time` | 作答花費的毫秒 |
+  | `type` | 複習當下的狀態：0 Learning（含 New）、1 Review、2 Relearning、4 Manual |
+  | `op` | 只在 `type: 4`：`suspend`、`unsuspend`、`reset` |
+
+  讀取時容忍損壞的行（略過）、未知的 `op`（略過）與未知欄位；同一筆（`id` + `cid` + `ease` + `op`）出現在多個檔案（例如衝突副本）只算一次。
+- **換日時間**：以 Anki 的方式計算「天」：當地時間的換日時間（預設凌晨 4 點）之後才算新的一天。swift-fsrs 以 UTC 午夜換日，所以包裝層把時間平移「時區偏移 − 換日時間」再交給它，結果再平移回來，不修改套件。
+- **重播規則**：所有裝置的紀錄依 `(id, deviceId)` 排序後逐筆套用。評分事件用 swift-fsrs 以目前參數算出新的 stability / difficulty；複習後的狀態由 `ivl` 決定（負數 → Learning 或 Relearning，正數 → Review）；到期日 = `ivl` 天後的換日時間，或 `-ivl` 秒後。`reset` 回到 New，`suspend` / `unsuspend` 只切換暫停旗標。
+- **作答與重播走同一條路徑**：作答時用 swift-fsrs（fuzz 開啟）算出 `ivl` 寫成紀錄，再用重播的同一個函式套用到卡片，所以即時狀態與重播結果不會不一致。
+- **快取**：重播結果放在記憶體，App 啟動時在背景重播一次；本機作答只套用新的一筆，其他裝置的紀錄檔變動時只重播有新紀錄的卡片。2026-10-02 量測（M 系列 Mac、release）：10 萬筆紀錄約 1.3 秒，個人量級（數萬筆）在 0.5 秒內，所以先不寫到磁碟；之後若 iPhone 上太慢，再存到 `.easynotes/cache/srs/`（可刪除重建）或改成平行重播。
+- **重播的效能**：swift-fsrs 對複習卡會一次算出四個按鈕，且每個數值都用 `String(format:)` 四捨五入，一筆約 47µs。記憶狀態只看 S、D、經過天數與評分，與卡片狀態無關，所以重播時一律以 learning 狀態交給 swift-fsrs，只算選到的那個評分（約 13µs），結果相同（參考向量測試涵蓋）。
+- **learning steps 由包裝層處理**：swift-fsrs（同 ts-fsrs）在第二步以後按 Hard 會取前兩步的平均，Anki 與 py-fsrs 是重複目前這一步。所以交給 swift-fsrs 的 steps 留空，只用它算記憶狀態與以天計的間隔，steps 依 Anki 的規則自己處理。複習卡的 Hard ≤ Good < Easy 限制照 swift-fsrs（與 Anki 相同，py-fsrs 沒有）。
+
 #### 設定
 
 Preset（每個牌組，預設值與 Anki 相同）：
@@ -384,6 +420,8 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 ### 本地同步狀態
 
 - `.easynotes/sync.sqlite`（不同步）：每個檔案一列，`file_id`、`path`、`base_version`、`base_hash`、上傳佇列狀態。
+- `.easynotes/device-id`（不同步）：這台裝置的 id（`VaultFS.deviceID()`），`commit_file` 的 `device_id` 與複習紀錄的檔名都用它。
+- `.easynotes/` 只有外掛以 `addSyncedMetaFolder` 註冊的子資料夾參與同步（目前是 Flashcards 的 `srs/`），其餘（`cache/`、`sync.sqlite`、`device-id`）都是本機的。
 - `.easynotes/cache/base/<hash>`：上次同步的內容，當作三方合併的 base。
 - App 內改名直接更新 path；外部工具（Finder、Claude Code 的 `mv`）改名時，VaultWatcher 會看到「刪除 + 新增」，若兩者 hash 相同就推斷為改名並保留 file id。推斷失敗最多失去歷史，不會遺失內容。
 

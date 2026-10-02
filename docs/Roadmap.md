@@ -242,18 +242,26 @@
 
 目標：卡片狀態可由紀錄重播得出，排程結果與 Anki 一致。
 
-- [ ] 接入 swift-fsrs（`revision:` 固定 commit、FSRS-6 預設參數）
-- [ ] 卡片狀態（New / Learning / Review / Relearning）、learning 與 relearning steps、四鍵、desired retention 對齊 Anki
-- [ ] 複習紀錄 `.easynotes/srs/<deviceId>.jsonl`（欄位對齊 Anki revlog）
-- [ ] 重播：合併所有裝置的紀錄 → 卡片狀態；到期日採用紀錄的 `ivl`，記憶狀態用目前參數重算；結果快取在可重建的索引
-- [ ] 暫停 / 恢復 / 重設寫成紀錄事件
+- [x] Core：`VaultFS.deviceID()`（`.easynotes/device-id`，不同步；SyncEngine 改用它，沿用 `sync.sqlite` 中原本的 id）
+- [x] Core：`addSyncedMetaFolder`，SyncEngine 同步 `.easynotes/` 下註冊的子資料夾（Flashcards 註冊 `srs`）
+- [x] 接入 swift-fsrs（`revision:` 固定 commit、FSRS-6 預設參數）
+- [x] 卡片狀態（New / Learning / Review / Relearning）、learning 與 relearning steps、四鍵、desired retention 對齊 Anki
+- [x] 複習紀錄 `.easynotes/srs/<deviceId>.jsonl`（欄位對齊 Anki revlog）
+- [x] 重播：合併所有裝置的紀錄 → 卡片狀態；到期日採用紀錄的 `ivl`，記憶狀態用目前參數重算；結果放在記憶體（可隨時重播，量測後再決定是否存到 `.easynotes/cache/srs/`）
+- [x] 暫停 / 恢復 / 重設寫成紀錄事件
 
 驗收測試：
 
-- [ ] 排程結果與 fsrs-rs / py-fsrs 參考向量一致（FSRS-6 預設參數與自訂 `w`）
-- [ ] 重播決定性：同一組紀錄在不同裝置算出相同卡片狀態；換參數後到期日不變、記憶狀態重算
-- [ ] 整行搬到別篇筆記後，重播出的狀態與歷史不變
-- [ ] 刪掉索引後重建，卡片狀態相同
+- [x] 排程結果與 fsrs-rs / py-fsrs 參考向量一致（FSRS-6 預設參數與自訂 `w`）
+- [x] 重播決定性：同一組紀錄在不同裝置算出相同卡片狀態；換參數後到期日不變、記憶狀態重算
+- [x] 整行搬到別篇筆記後，重播出的狀態與歷史不變
+- [x] 刪掉索引後重建，卡片狀態相同
+- [x] 換日時間：凌晨 4 點前後的複習分屬不同天；台灣時間早上 8 點（UTC 午夜）前後屬於同一天
+- [x] 同步：`.easynotes/srs/*.jsonl` 在兩台裝置間同步；`.easynotes/cache/`、`device-id` 不上傳（假 backend 單元測試）
+
+2026-10-02 開工前決定（設計見 Architecture「複習紀錄與重播」與「擴充點」）：紀錄欄位對齊 Anki revlog，另加 `op`（`suspend` / `unsuspend` / `reset`）；`.easynotes/srs/` 以外掛註冊的白名單參與同步；deviceId 由 Core 的 `.easynotes/device-id` 提供；swift-fsrs 固定在 `4fbaf20`（2026-05-25），以 UTC 換日，包裝層平移時間對齊 Anki 的換日時間；參考向量由 `scripts/` 的 Python 腳本（fsrs-rs-python、py-fsrs）產生成 JSON fixture。
+
+2026-10-02：3b 程式完成，單元測試通過（Core 的 `SyncMetaFolderTests`；Flashcards 的 `FSRSVectorTests`、`ReplayTests`）。實作中的補充決定（見 Architecture「複習紀錄與重播」）：learning / relearning steps 依 Anki 的規則由包裝層處理（swift-fsrs 在第二步以後按 Hard 的行為與 Anki 不同）；py-fsrs 的向量另外套上 Anki 的 Hard ≤ Good < Easy 限制再比對；重播時記憶狀態一律走 swift-fsrs 的 learning 路徑以避開它對複習卡的四重計算（10 萬筆 release 約 1.3 秒），結果先只放記憶體。尚未接上 App：作答、背景重播、其他裝置紀錄變動時重新重播都在 3c 與複習介面一起做。
 
 ### 3c 牌組、設定與複習介面
 

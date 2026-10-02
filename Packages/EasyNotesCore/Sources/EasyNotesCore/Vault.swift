@@ -36,6 +36,21 @@ public struct VaultFS: Sendable {
         return String(full.dropFirst(base.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
     }
 
+    // MARK: 裝置
+
+    /// 這台裝置的 id，存在 `.easynotes/device-id`（不同步）；第一次呼叫時建立。
+    /// `migrating`：沒有 device-id 時改用這個值（舊版存在 `sync.sqlite` 的 id），讓 id 不變
+    public func deviceID(migrating existing: String? = nil) throws -> String {
+        let url = url(for: "\(Self.metaFolder)/device-id")
+        if let data = try? Data(contentsOf: url) {
+            let id = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !id.isEmpty { return id }
+        }
+        let id = existing ?? UUID().uuidString
+        try write(Data((id + "\n").utf8), to: "\(Self.metaFolder)/device-id")
+        return id
+    }
+
     // MARK: 掃描
 
     public func scan() throws -> [VaultNode] {

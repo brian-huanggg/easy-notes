@@ -23,4 +23,5 @@ xcodegen generate                           # 修改 project.yml 後
 (cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
 supabase db push                            # 把 supabase/migrations 套到雲端專案
+./scripts/fsrs-vectors.py                   # 重新產生 FSRS 參考向量（升級 swift-fsrs 後，需要 uv）
 ```

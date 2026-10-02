@@ -83,6 +83,8 @@ public final class PluginRegistry {
     public private(set) var contentFixers: [any ContentFixer] = []
     /// Vault 根目錄 `CLAUDE.md` 的段落（Markdown），依註冊順序
     public private(set) var vaultGuides: [String] = []
+    /// `.easynotes/` 下參與同步的子資料夾（交給 `SyncEngine`）
+    public private(set) var syncedMetaFolders: [String] = []
 
     public init() {}
 
@@ -151,6 +153,13 @@ public final class PluginRegistry {
     /// Vault 沒有 `CLAUDE.md` 時，App 以這些段落建立它（已存在就不改寫）
     public func addVaultGuide(_ markdown: String) {
         vaultGuides.append(markdown)
+    }
+
+    /// 讓 `.easynotes/<name>/` 參與同步（其餘 `.easynotes/` 是本機的索引、快取與同步狀態）。
+    /// 這些檔案沒有 DocumentKind，內容不同時產生衝突副本，外掛要設計成不會衝突（例如每台裝置只寫自己的檔案）
+    public func addSyncedMetaFolder(_ name: String) {
+        precondition(!name.isEmpty && !name.contains("/") && name != "cache", "不能同步的資料夾：\(name)")
+        if !syncedMetaFolders.contains(name) { syncedMetaFolders.append(name) }
     }
 
     // MARK: 查詢
