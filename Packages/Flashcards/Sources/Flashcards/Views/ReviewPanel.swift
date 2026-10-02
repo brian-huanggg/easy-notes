@@ -1,0 +1,328 @@
+import EasyNotesUI
+import SwiftUI
+
+/// 側邊欄「複習」的內容：牌組列表（設計稿 `rHTaT`），開始複習後換成複習畫面（`b2AjRQ`）
+struct ReviewPanel: View {
+    @Bindable private var store = ReviewStore.shared
+
+    var body: some View {
+        Group {
+            if store.session != nil {
+                ReviewSessionView()
+            } else {
+                DeckListView()
+            }
+        }
+        .alert(store.notice ?? "", isPresented: Binding(get: { store.notice != nil }, set: { if !$0 { store.notice = nil } })) {
+            Button("好") { store.notice = nil }
+        }
+    }
+}
+
+/// 牌組列表的篩選
+private enum DeckFilter: Hashable {
+    /// 只列出今天有卡片的牌組
+    case due
+    case all
+}
+
+struct DeckListView: View {
+    @Bindable private var store = ReviewStore.shared
+    @State private var filter = DeckFilter.all
+    /// 牌組選項 sheet 的對象；"" = 根目錄（全域設定按鈕）
+    @State private var optionsDeck: String?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                header
+                if store.loaded, store.cards.isEmpty {
+                    EmptyState("還沒有卡片", message: "在筆記中寫「問題 :: 答案」、「中文 ;; English」或「{{克漏字}}」，就會出現在這裡。", symbol: "rectangle.stack") {}
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 40)
+                } else {
+                    TodayBanner(start: { store.start(.all, title: "所有牌組") })
+                    deckSection
+                }
+            }
+            .padding(Metrics.contentPadding)
+            .frame(maxWidth: 1180, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+        .background(Palette.bgCanvas)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("牌組選項", systemImage: "gearshape") { optionsDeck = "" }
+                    .help("預設 preset 與全域設定")
+            }
+        }
+        .sheet(item: Binding(get: { optionsDeck.map(DeckRef.init) }, set: { optionsDeck = $0?.path })) { ref in
+            DeckOptionsSheet(deck: ref.path)
+        }
+    }
+
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .bottom) {
+                titleBlock
+                Spacer(minLength: 16)
+                chips
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                titleBlock
+                chips
+            }
+        }
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("複習").textStyle(.pageTitle).foregroundStyle(Palette.textPrimary)
+            Text(subtitle).textStyle(.pageSubtitle).foregroundStyle(Palette.textSecondary)
+        }
+    }
+
+    private var subtitle: String {
+        let notes = Set(store.cards.map(\.noteID)).count
+        var decks = 0
+        func visit(_ deck: Deck) {
+            decks += 1
+            deck.children.forEach(visit)
+        }
+        store.decks.forEach(visit)
+        return "\(store.cards.count) 張卡片 · \(notes) 篇筆記 · \(decks) 個牌組"
+    }
+
+    private var chips: some View {
+        HStack(spacing: 6) {
+            FilterChip("今天到期", isSelected: filter == .due) { filter = .due }
+            FilterChip("所有牌組", isSelected: filter == .all) { filter = .all }
+            TagFilterMenu()
+        }
+    }
+
+    private var deckSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                SectionHeader("牌組", symbol: "rectangle.stack", detail: "\(visibleRows.count)")
+                Legend()
+            }
+            VStack(spacing: 0) {
+                ForEach(Array(visibleRows.enumerated()), id: \.element.id) { offset, deck in
+                    DeckRow(deck: deck, options: { optionsDeck = deck.path })
+                    if offset < visibleRows.count - 1 { Divider().overlay(Palette.border.color) }
+                }
+            }
+            .background(RoundedRectangle(cornerRadius: Metrics.radiusLarge, style: .continuous).fill(Palette.surfaceRaised))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusLarge, style: .continuous).strokeBorder(Palette.border.color))
+        }
+    }
+
+    /// 展開狀態與篩選後要顯示的列（樹狀攤平）
+    private var visibleRows: [Deck] {
+        var rows: [Deck] = []
+        func visit(_ deck: Deck) {
+            if filter == .due, store.counts(deck.scope).total == 0 { return }
+            rows.append(deck)
+            guard !store.collapsed.contains(deck.path) else { return }
+            deck.children.forEach(visit)
+        }
+        store.decks.forEach(visit)
+        return rows
+    }
+}
+
+private struct DeckRef: Identifiable {
+    let path: String
+    var id: String { path }
+}
+
+/// 標籤篩選學習：選一個標籤就開始複習
+private struct TagFilterMenu: View {
+    private var store: ReviewStore { .shared }
+
+    var body: some View {
+        Menu {
+            let tags = store.planner.availableTags
+            if tags.isEmpty {
+                Text("筆記還沒有標籤")
+            }
+            ForEach(tags, id: \.self) { tag in
+                Button("#\(tag)") { store.start(.tag(tag), title: "#\(tag)") }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "tag").font(.system(size: 11))
+                Text("依標籤複習").textStyle(.control)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
+            }
+            .foregroundStyle(Palette.textSecondary)
+            .padding(.vertical, 5)
+            .padding(.horizontal, 11)
+            .background(Capsule().fill(Palette.surfaceRaised))
+            .overlay(Capsule().strokeBorder(Palette.border.color))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+    }
+}
+
+/// 今日橫幅：進度環、剩餘張數、開始複習
+private struct TodayBanner: View {
+    let start: () -> Void
+    private var store: ReviewStore { .shared }
+
+    var body: some View {
+        let left = store.counts(.all).total
+        let done = store.planner.introducedToday.count + store.planner.reviewsToday.values.reduce(0, +)
+        let total = done + left
+        let progress = total == 0 ? 1 : Double(done) / Double(total)
+        let waiting = store.decks.filter { store.counts($0.scope).total > 0 }.count
+        HStack(spacing: 22) {
+            ZStack {
+                Circle().stroke(Palette.bgHover, lineWidth: 8)
+                Circle().trim(from: 0, to: progress)
+                    .stroke(Palette.cardDue, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(Int((progress * 100).rounded()))%")
+                    .textStyle(TextStyle(17, .bold))
+                    .foregroundStyle(Palette.textPrimary)
+            }
+            .frame(width: 76, height: 76)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(left == 0 ? "今天的卡片都複習完了" : "今天還有 \(left) 張")
+                    .textStyle(TextStyle(19, .bold))
+                    .foregroundStyle(Palette.textPrimary)
+                Text("已複習 \(done) / \(total) · \(waiting) 個牌組等待中")
+                    .textStyle(.pageSubtitle)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            Spacer(minLength: 12)
+            Button(action: start) {
+                Label("開始複習", systemImage: "play.fill")
+            }
+            .buttonStyle(PrimaryButtonStyle(size: .large))
+            .disabled(left == 0)
+            .keyboardShortcut(.return, modifiers: [])
+        }
+        .padding(.vertical, 18)
+        .padding(.horizontal, 24)
+        .background(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).fill(Palette.surfaceRaised))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).strokeBorder(Palette.border.color))
+    }
+}
+
+private struct Legend: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            item("新卡", Palette.cardNew)
+            item("學習中", Palette.cardLearn)
+            item("到期", Palette.cardDue)
+        }
+    }
+
+    private func item(_ title: String, _ color: ColorToken) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(title).textStyle(.meta).foregroundStyle(Palette.textTertiary)
+        }
+    }
+}
+
+/// 設計稿 `C/Deck Row`：縮排、展開箭頭、圖示、名稱與說明、三個數字、選項、Study
+private struct DeckRow: View {
+    let deck: Deck
+    let options: () -> Void
+    @Bindable private var store = ReviewStore.shared
+
+    var body: some View {
+        let counts = store.counts(deck.scope)
+        HStack(spacing: 14) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: CGFloat(deck.depth) * 22, height: 1)
+                disclosure
+            }
+            icon
+            VStack(alignment: .leading, spacing: 3) {
+                Text(deck.name)
+                    .textStyle(TextStyle(13.5, deck.depth == 0 ? .semibold : .medium))
+                    .foregroundStyle(Palette.textPrimary)
+                Text(meta).textStyle(.meta).foregroundStyle(Palette.textTertiary).lineLimit(1)
+            }
+            Spacer(minLength: 12)
+            count(counts.new, "新卡", Palette.cardNew)
+            count(counts.learning, "學習中", Palette.cardLearn)
+            count(counts.review, "到期", Palette.cardDue)
+            IconButton("slider.horizontal.3", help: "牌組選項", tint: Palette.textTertiary, action: options)
+            Button {
+                store.start(deck.scope, title: deck.path.isEmpty ? deck.name : deck.path.replacingOccurrences(of: "/", with: " / "))
+            } label: {
+                Label("複習", systemImage: "play.fill")
+                    .labelStyle(CompactLabelStyle(spacing: 5))
+                    .textStyle(TextStyle(12, .semibold))
+                    .foregroundStyle(counts.total == 0 ? Palette.textTertiary : Palette.accent)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 14)
+                    .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous)
+                        .fill(counts.total == 0 ? Palette.bgHover : Palette.accentSoft))
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(counts.total == 0)
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 52)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var disclosure: some View {
+        let collapsed = store.collapsed.contains(deck.path)
+        Button {
+            if collapsed { store.collapsed.remove(deck.path) } else { store.collapsed.insert(deck.path) }
+        } label: {
+            Image(systemName: "chevron.down")
+                .font(.system(size: 10, weight: .semibold))
+                .rotationEffect(.degrees(collapsed ? -90 : 0))
+                .foregroundStyle(Palette.textTertiary)
+                .frame(width: 18, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opacity(deck.children.isEmpty ? 0 : 1)
+        .disabled(deck.children.isEmpty)
+        .accessibilityLabel(collapsed ? "展開" : "收合")
+    }
+
+    private var icon: some View {
+        let unfiled = deck.path.isEmpty
+        return Image(systemName: unfiled ? "tray" : deck.children.isEmpty ? "rectangle.stack" : "folder")
+            .font(.system(size: 13))
+            .foregroundStyle(unfiled ? Palette.textSecondary : Palette.cardNew)
+            .frame(width: 30, height: 30)
+            .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous)
+                .fill(unfiled ? Palette.bgHover : Palette.cardNewSoft))
+    }
+
+    private var meta: String {
+        var parts = ["\(deck.cardCount) 張卡片", "\(deck.noteCount) 篇筆記"]
+        if deck.path.isEmpty { parts.insert("Vault 根目錄的筆記", at: 0) }
+        if let id = store.config.decks[deck.path], let preset = store.config.presets[id] {
+            parts.append("Preset：\(preset.name)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private func count(_ value: Int, _ label: String, _ color: ColorToken) -> some View {
+        VStack(spacing: 1) {
+            Text("\(value)")
+                .textStyle(TextStyle(15, .semibold))
+                .monospacedDigit()
+                .foregroundStyle(value == 0 ? Palette.textTertiary : color)
+            Text(label).textStyle(TextStyle(10, .medium)).foregroundStyle(Palette.textTertiary)
+        }
+        .frame(width: 46)
+    }
+}

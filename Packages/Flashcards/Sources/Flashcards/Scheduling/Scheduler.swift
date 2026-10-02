@@ -24,8 +24,32 @@ public struct CardSchedule: Equatable, Sendable {
     public init() {}
 }
 
-/// 排程設定（preset 中與排程有關的部分；每日上限等在 3c 加入）。預設值與 Anki 相同。
+/// 牌組設定（多個牌組共用）。預設值與 Anki 相同。
+/// 存檔時每個欄位各自一筆（見 `SRSSettings`），所以新增欄位不需要遷移，沒寫過的欄位就是預設值。
 public struct Preset: Codable, Equatable, Sendable {
+    public enum LeechAction: String, Codable, Sendable, CaseIterable {
+        /// 只加上虛擬標籤 `leech`（不改 md）
+        case tag
+        case suspend
+    }
+
+    public enum NewOrder: String, Codable, Sendable, CaseIterable {
+        /// 依路徑、行號
+        case file
+        /// 以「卡片 id + 日期」的 hash 排序，同一天內穩定
+        case random
+    }
+
+    public enum ReviewOrder: String, Codable, Sendable, CaseIterable {
+        case due
+        /// 可回想率低的在前
+        case retrievability
+    }
+
+    public var name = "預設"
+    /// 每日上限（母牌組的上限涵蓋子牌組）
+    public var newPerDay = 20
+    public var reviewsPerDay = 200
     /// 秒
     public var learningSteps: [TimeInterval] = [60, 600]
     public var relearningSteps: [TimeInterval] = [600]
@@ -34,8 +58,20 @@ public struct Preset: Codable, Equatable, Sendable {
     public var maximumInterval = 36_500
     /// FSRS-6 的 21 個參數
     public var w: [Double] = FSRSDefaults.defaultWv6
+    public var leechThreshold = 8
+    public var leechAction = LeechAction.tag
+    public var newOrder = NewOrder.file
+    public var reviewOrder = ReviewOrder.due
+    /// 同一行今天已複習過其他卡片時，當天不出現
+    public var buryNew = false
+    public var buryReviews = false
 
     public init() {}
+
+    /// 排程結果只受這些欄位影響（改名、上限不必重播）
+    var schedulingFields: [Double] {
+        learningSteps + [-1] + relearningSteps + [-1, desiredRetention, Double(maximumInterval)] + w
+    }
 }
 
 /// 排程與重播。FSRS 的計算（記憶狀態、複習間隔、fuzz）交給 swift-fsrs；

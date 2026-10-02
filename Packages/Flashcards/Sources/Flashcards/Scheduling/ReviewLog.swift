@@ -35,6 +35,18 @@ public struct ReviewLog: Sendable {
         try handle.write(contentsOf: Data(text.utf8))
     }
 
+    /// 復原：檔案最後的幾行正好是 `entries` 時刪掉它們，回傳是否有刪除。
+    /// 只有這台裝置會寫這個檔案，刪掉最後幾行同步出去也不會衝突
+    public func removeLast(_ entries: [ReviewEntry]) throws -> Bool {
+        guard !entries.isEmpty, let data = try? fs.read(path) else { return false }
+        var lines = String(decoding: data, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: true)
+        guard lines.count >= entries.count,
+              zip(lines.suffix(entries.count), entries).allSatisfy({ ReviewEntry(line: $0) == $1 }) else { return false }
+        lines.removeLast(entries.count)
+        try fs.write(Data(lines.map { $0 + "\n" }.joined().utf8), to: path)
+        return true
+    }
+
     /// 讀取所有裝置的紀錄：卡片 id → 依 `(id, 檔名, 行)` 排序的紀錄。
     /// 略過損壞的行；同一筆（`id` + `cid` + `ease` + `op`）出現在多個檔案（例如衝突副本）只算一次
     public static func load(_ fs: VaultFS) throws -> [String: [ReviewEntry]] {

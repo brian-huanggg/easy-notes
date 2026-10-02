@@ -113,5 +113,6 @@ struct LibraryTests {
         #expect(files.last?.mtime == old)
         #expect(Set(try await index.files(taggedWith: "swift").map(\.path)) == ["a.tag", "b.tag"])
         #expect(try await index.files(taggedWith: "reading").map(\.path) == ["c.tag"])
+        #expect(try await index.fileTags() == ["a.tag": ["swift/ui"], "b.tag": ["swift"], "c.tag": ["reading"]])
     }
 }

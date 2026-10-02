@@ -33,6 +33,8 @@ public final class MarkdownEditor: EditorController {
     @ObservationIgnored private var pendingLoad: (id: String, text: String, modified: Date?)?
     @ObservationIgnored private var linkTargets: [[String: Any]] = []
     @ObservationIgnored private var currentPath: String?
+    /// `reveal` 在檔案載入前就送來：載入後再捲動
+    @ObservationIgnored private var pendingReveal: (path: String, line: Int)?
     #if os(iOS)
     /// 保留 hosting controller：只留 view 時 SwiftUI 不會更新
     @ObservationIgnored private var keyboardBar: UIViewController?
@@ -59,6 +61,10 @@ public final class MarkdownEditor: EditorController {
             return
         }
         host.call("editor.load(id, text, meta)", ["id": id, "text": text, "meta": Self.meta(modified)])
+        if let reveal = pendingReveal, reveal.path == id {
+            pendingReveal = nil
+            host.call("editor.revealLine(id, line)", ["id": id, "line": reveal.line])
+        }
     }
 
     func exec(_ command: String, _ arg: String? = nil) {
@@ -125,6 +131,15 @@ public final class MarkdownEditor: EditorController {
         guard Self.handles(path) else { return }
         host.call("editor.applyRemote(id, text)", ["id": path, "text": String(decoding: data, as: UTF8.self)])
         host.call("editor.setMeta(id, meta)", ["id": path, "meta": Self.meta(session?.modified(path))])
+    }
+
+    public func reveal(path: String, line: Int) {
+        guard Self.handles(path) else { return }
+        if currentPath == path, host.isReady, pendingLoad == nil {
+            host.call("editor.revealLine(id, line)", ["id": path, "line": line])
+        } else {
+            pendingReveal = (path, line)
+        }
     }
 
     public func close(path: String) {

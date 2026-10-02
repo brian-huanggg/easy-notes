@@ -267,22 +267,24 @@
 
 目標：可以日常使用的複習流程。
 
-- [ ] 牌組樹（資料夾階層）與各牌組的到期數 / 新卡數；標籤篩選學習
-- [ ] Preset 設定與 `<deviceId>.config.json`（資料夾繼承上層、改名時更新路徑、欄位 LWW 合併）
-- [ ] 每日上限（母牌組涵蓋子牌組）、新卡順序、複習排序、埋藏 sibling、Leech、新的一天開始時間
-- [ ] 原生複習介面：`addPanel` 的「複習」（badge 為到期數）、牌組列表、卡片正反面、四鍵與下次間隔、鍵盤快捷鍵（Mac / iPad）
-- [ ] 設定畫面：preset 編輯、牌組指定 preset、全域設定
-- [ ] 復原上一次作答（刪掉本機紀錄檔的最後一行）、標籤篩選學習、Leech 虛擬標籤
-- [ ] 擴充點：`DocumentSession` 的 `vault` / `index` / `open(path, line:)` / `metaChanged()`；`EditorController` 的 `vaultChanged` / `moved` / `reveal`；`VaultIndex.fileTags()`
+- [x] 牌組樹（資料夾階層）與各牌組的到期數 / 新卡數；標籤篩選學習
+- [x] Preset 設定與 `<deviceId>.config.json`（資料夾繼承上層、改名時更新路徑、欄位 LWW 合併）
+- [x] 每日上限（母牌組涵蓋子牌組）、新卡順序、複習排序、埋藏 sibling、Leech、新的一天開始時間
+- [x] 原生複習介面：`addPanel` 的「複習」（badge 為到期數）、牌組列表、卡片正反面、四鍵與下次間隔、鍵盤快捷鍵（Mac / iPad）
+- [x] 設定畫面：preset 編輯、牌組指定 preset、全域設定
+- [x] 復原上一次作答（刪掉本機紀錄檔的最後一行）、標籤篩選學習、Leech 虛擬標籤
+- [x] 擴充點：`DocumentSession` 的 `vault` / `index` / `open(path, line:)` / `metaChanged()`；`EditorController` 的 `vaultChanged` / `moved` / `reveal`；`VaultIndex.fileTags()`
 - [x] 設計稿：Phase 3 畫面（`rHTaT`、`b2AjRQ`）補上牌組樹與設定畫面
 
 驗收測試：
 
-- [ ] 每日上限：母牌組上限涵蓋子牌組；同一行的 sibling 依設定埋藏
+- [x] 每日上限：母牌組上限涵蓋子牌組；同一行的 sibling 依設定埋藏
 - [ ] 復原：作答後按 U，紀錄檔回到作答前、卡片狀態回到作答前
-- [ ] 設定合併：兩台裝置改不同欄位 → 都保留；資料夾改名後 preset 仍套用
+- [x] 設定合併：兩台裝置改不同欄位 → 都保留；資料夾改名後 preset 仍套用
 - [ ] 多裝置：Mac 與 iPad 各自複習後同步，到期日正確
 - [ ] 手動：Mac、iPad、iPhone 完成一輪複習，畫面與設計稿比對（淺色 / 深色）
+
+2026-10-02：3c 程式完成，macOS 與 iOS Simulator 建置成功，單元測試通過（Flashcards 的 `SettingsTests`、`StudyTests`、`UndoTests`；Core 的 `fileTags`）。尚未驗證：復原的卡片狀態回復只測了紀錄檔層（`ReviewStore` 沒有單元測試）、多裝置同步、實機畫面與設計稿比對（含淺色、iPhone 版面）、「編輯筆記」捲到該行。
 
 2026-10-02 設計稿（深色）：
 

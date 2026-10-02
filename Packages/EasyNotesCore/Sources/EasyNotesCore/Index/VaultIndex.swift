@@ -263,6 +263,14 @@ public actor VaultIndex {
         }
     }
 
+    /// 路徑 → 該檔案的標籤（依標籤名稱排序；沒有標籤的檔案不列出）
+    public func fileTags() throws -> [String: [String]] {
+        let rows = try db.query("SELECT path, tag FROM tags ORDER BY path, tag COLLATE NOCASE") { ($0.text(0), $0.text(1)) }
+        return rows.reduce(into: [:]) { result, row in
+            if result[row.0]?.contains(row.1) != true { result[row.0, default: []].append(row.1) }
+        }
+    }
+
     /// 所有已索引的檔案，最近修改的在前
     public func files() throws -> [IndexedFile] {
         try db.query("SELECT \(Self.fileColumns("")) FROM files ORDER BY mtime DESC", row: Self.indexedFile)
