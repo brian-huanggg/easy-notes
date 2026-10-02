@@ -95,8 +95,12 @@ private struct PhoneDestination: View {
             .navigationTitle(store.displayName(path))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // 設計稿：中間是儲存狀態（標題已在文件頭），右側釘選、分享、更多
+                ToolbarItem(placement: .principal) { DocumentStatusPill(path: path) }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Menu("更多", systemImage: "ellipsis.circle") { NodeMenu(path: path, isFolder: false) }
+                    PinButton(path: path)
+                    ShareLink(item: store.fs.url(for: path)) { Label("分享", systemImage: "square.and.arrow.up") }
+                    DocumentMoreMenu(path: path)
                 }
             }
         case .panel(let id):

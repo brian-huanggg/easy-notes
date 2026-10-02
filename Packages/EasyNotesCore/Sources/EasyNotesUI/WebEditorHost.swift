@@ -14,10 +14,26 @@ public final class WebEditorHost {
     @ObservationIgnored public var onMessage: ((_ type: String, _ message: [String: Any]) -> Void)?
     @ObservationIgnored private let messageProxy = MessageProxy()
 
-    /// `page`：外掛 bundle 內的 HTML，同資料夾的資源都可讀取
-    public init(page: URL?) {
+    /// `vault://` 圖片的來源；由外掛在 `EditorController.attach` 時設定
+    @ObservationIgnored public var readResource: (@Sendable (_ path: String) async -> Data?)? {
+        get { schemeHandler.read }
+        set { schemeHandler.read = newValue }
+    }
+    @ObservationIgnored private let schemeHandler = VaultSchemeHandler()
+    @ObservationIgnored private let symbolHandler = SymbolSchemeHandler()
+
+    /// `page`：外掛 bundle 內的 HTML，同資料夾的資源都可讀取。
+    /// `stylesheet`：頁面載入前注入的 CSS（`ThemeCSS.stylesheet()`），深淺色由頁面自己依系統切換，不經 Bridge
+    public init(page: URL?, stylesheet: String? = nil) {
         let config = WKWebViewConfiguration()
         config.userContentController.add(messageProxy, name: "bridge")
+        config.setURLSchemeHandler(schemeHandler, forURLScheme: VaultSchemeHandler.scheme)
+        config.setURLSchemeHandler(symbolHandler, forURLScheme: SymbolSchemeHandler.scheme)
+        if let stylesheet {
+            let literal = String(decoding: (try? JSONEncoder().encode(stylesheet)) ?? Data("\"\"".utf8), as: UTF8.self)
+            let source = "{const s=document.createElement('style');s.id='theme';s.textContent=\(literal);document.documentElement.appendChild(s);}"
+            config.userContentController.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
         #if os(iOS)
         webView = EditorWebView(frame: .zero, configuration: config)
         webView.isOpaque = false

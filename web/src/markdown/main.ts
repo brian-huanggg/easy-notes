@@ -1,8 +1,8 @@
 // EasyNotes Markdown 編輯器：CodeMirror 6 + Live Preview + Swift Bridge
 //
 // Bridge 協定（見架構文件）：
-//   Swift → JS : window.editor.load / applyRemote / exec / focus
-//   JS → Swift : ready / changed / openLink / metric
+//   Swift → JS : window.editor.load / applyRemote / setMeta / setLinkTargets / setFrontmatter / exec / focus
+//   JS → Swift : ready / changed / openLink / openTag / pickCover / pickIcon / metric
 // 打字的熱路徑不跨 Bridge：變更只在停止輸入 300ms 或失焦時回報。
 import { autocompletion, CompletionContext, CompletionResult, completionKeymap } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
@@ -11,27 +11,20 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
-import { frontmatter, frontmatterRange } from "./frontmatter";
+import { post } from "./bridge";
+import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
+import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
 import { livePreview } from "./livePreview";
-
-type Outgoing =
-  | { type: "ready" }
-  | { type: "changed"; id: string; text: string }
-  | { type: "openLink"; target: string }
-  | { type: "openTag"; tag: string }
-  | { type: "metric"; name: string; ms: number };
 
 declare global {
   interface Window {
-    webkit?: { messageHandlers?: { bridge?: { postMessage(msg: Outgoing): void } } };
     editor: typeof api;
   }
 }
 
-function post(msg: Outgoing) {
-  const handler = window.webkit?.messageHandlers?.bridge;
-  if (handler) handler.postMessage(msg);
-  else console.log("[bridge]", msg);
+interface Meta {
+  /// 最後修改時間（毫秒）
+  modified?: number | null;
 }
 
 const highlight = HighlightStyle.define([
@@ -82,7 +75,8 @@ const extensions = [
   markdown({ base: markdownLanguage }),
   syntaxHighlighting(highlight),
   livePreview,
-  frontmatter,
+  docHeader,
+  linkCards,
   autocompletion({ override: [wikilinkCompletion], icons: false, activateOnTyping: true }),
   keymap.of([
     ...completionKeymap,
@@ -140,10 +134,11 @@ function flush() {
     return;
   }
   post({ type: "changed", id: currentId, text: view.state.doc.toString() });
+  view.dispatch({ effects: setModified.of(Date.now()) });
 }
 
 const api = {
-  load(id: string, text: string) {
+  load(id: string, text: string, meta: Meta = {}) {
     const t0 = performance.now();
     flush();
     if (currentId !== null) states.set(currentId, view.state);
@@ -156,6 +151,7 @@ const api = {
     }
     currentId = id;
     view.setState(state);
+    view.dispatch({ effects: [setModified.of(meta.modified ?? null), targetsChanged.of(null)] });
     view.scrollDOM.scrollTop = 0;
     post({ type: "metric", name: "load", ms: performance.now() - t0 });
   },
@@ -185,8 +181,18 @@ const api = {
     flush();
   },
 
-  setLinkTargets(names: string[]) {
-    linkTargets = names;
+  setMeta(id: string, meta: Meta) {
+    if (id === currentId) view.dispatch({ effects: setModified.of(meta.modified ?? null) });
+  },
+
+  setLinkTargets(targets: LinkTarget[]) {
+    linkTargets = targets.map((t) => t.name);
+    setLinkTargets(view, targets);
+  },
+
+  // 更換封面 / icon：以一般編輯修改 frontmatter（可 undo，停止輸入後照常寫回）
+  setFrontmatter(key: string, value: string | null) {
+    setFrontmatterField(view, key, value);
   },
 
   close(id: string) {
@@ -198,7 +204,7 @@ const api = {
   },
 
   // 原生工具列 / 快捷鍵觸發的指令
-  exec(command: string) {
+  exec(command: string, arg?: string) {
     const wrap = (open: string, close = open) => {
       view.dispatch(
         view.state.changeByRange((range) => ({
@@ -210,18 +216,52 @@ const api = {
         })),
       );
     };
-    const prefixLine = (prefix: string) => {
-      const line = view.state.doc.lineAt(view.state.selection.main.head);
-      view.dispatch({ changes: { from: line.from, insert: prefix } });
+    // 選取範圍內每一行的行首標記：先去掉既有的標題 / 清單 / 待辦標記，再加上新的
+    const setPrefix = (make: (current: string) => string) => {
+      const { state } = view;
+      const changes = [];
+      const seen = new Set<number>();
+      for (const r of state.selection.ranges) {
+        for (let pos = r.from; pos <= r.to; ) {
+          const line = state.doc.lineAt(pos);
+          pos = line.to + 1;
+          if (seen.has(line.number)) continue;
+          seen.add(line.number);
+          const m = /^(\s*)(#{1,6} |- \[[ xX]\] |[-*+] )?/.exec(line.text)!;
+          const indent = m[1].length;
+          const current = m[2] ?? "";
+          changes.push({ from: line.from + indent, to: line.from + indent + current.length, insert: make(current) });
+        }
+      }
+      view.dispatch({ changes });
     };
+    // 在游標下方另起一行插入（目前行是空行時直接寫在這一行）
+    const insertBlock = (text: string, select?: [number, number]) => {
+      const line = view.state.doc.lineAt(view.state.selection.main.head);
+      const prefix = line.text.trim() ? "\n" : "";
+      const from = prefix ? line.to : line.from;
+      const start = from + prefix.length;
+      view.dispatch({
+        changes: { from, to: line.to, insert: prefix + text },
+        selection: select ? EditorSelection.range(start + select[0], start + select[1]) : EditorSelection.cursor(start + text.length),
+        scrollIntoView: true,
+      });
+    };
+    const heading = (level: number) => setPrefix((current) => (current === "#".repeat(level) + " " ? "" : "#".repeat(level) + " "));
     switch (command) {
       case "bold": wrap("**"); break;
       case "italic": wrap("*"); break;
       case "code": wrap("`"); break;
-      case "heading": prefixLine("# "); break;
-      case "task": prefixLine("- [ ] "); break;
-      case "bullet": prefixLine("- "); break;
+      case "heading":
+      case "heading1": heading(1); break;
+      case "heading2": heading(2); break;
+      case "heading3": heading(3); break;
+      case "paragraph": setPrefix(() => ""); break;
+      case "task": setPrefix((current) => (current.startsWith("- [") ? "" : "- [ ] ")); break;
+      case "bullet": setPrefix((current) => (current === "- " ? "" : "- ")); break;
       case "link": wrap("[[", "]]"); break;
+      case "insertText": if (arg) insertBlock(arg); break;
+      case "table": insertBlock("| 欄位 1 | 欄位 2 | 欄位 3 |\n| --- | --- | --- |\n|  |  |  |", [2, 6]); break;
     }
     view.focus();
   },

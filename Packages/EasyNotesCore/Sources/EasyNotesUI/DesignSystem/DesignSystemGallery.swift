@@ -173,6 +173,7 @@ public struct DesignSystemGallery: View {
                 ToolItem("textformat", help: "Text") {},
                 ToolItem("checklist", help: "Checklist") {},
                 ToolItem("photo", help: "Image") {},
+                ToolItem("tablecells", help: "Table") {},
             ], style: .keyboard, dismiss: ToolItem("keyboard.chevron.compact.down", help: "Hide Keyboard") {})
             .frame(width: 350)
         }

@@ -130,8 +130,11 @@ struct ShellToolbar: ToolbarContent {
                 .help("下一頁（⌘]）")
         }
         ToolbarItem(placement: .navigation) {
-            Breadcrumb(symbol: store.symbol(for: route), store.breadcrumb(for: route))
-                .fixedSize()
+            HStack(spacing: 4) {
+                Breadcrumb(symbol: store.symbol(for: route), store.breadcrumb(for: route))
+                if let path = route.filePath { DocumentStatusPill(path: path) }
+            }
+            .fixedSize()
         }
         .withoutSharedBackground()
         #if os(macOS)
@@ -147,6 +150,19 @@ struct ShellToolbar: ToolbarContent {
             }
             .withoutSharedBackground()
         }
+        if let path = route.filePath {
+            // 編輯器：釘選、更多（在 Finder 中顯示、複製路徑、用其他 App 開啟…）
+            ToolbarItemGroup(placement: Self.trailing) {
+                PinButton(path: path)
+                DocumentMoreMenu(path: path)
+            }
+        } else {
+            listTrailingItems
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var listTrailingItems: some ToolbarContent {
         ToolbarItemGroup(placement: Self.trailing) {
             if isList {
                 Picker(selection: $sort) {
@@ -181,10 +197,11 @@ struct ShellToolbar: ToolbarContent {
         }
     }
 
-    /// 檔案、資料夾 → 該項目；其他列表頁 → Vault 根目錄
+    /// 資料夾 → 該資料夾；其他列表頁 → Vault 根目錄（檔案的「在 Finder 中顯示」在更多選單）
     private var revealURL: URL? {
         switch route {
-        case .file(let path), .folder(let path): store.fs.url(for: path)
+        case .file: nil
+        case .folder(let path): store.fs.url(for: path)
         case .panel: nil
         default: store.fs.root
         }

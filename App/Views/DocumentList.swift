@@ -272,13 +272,15 @@ struct DocumentList: View {
             .contextMenu { NodeMenu(path: file.path, isFolder: false) }
     }
 
-    /// frontmatter 的 icon（例如 emoji）放在標題前
+    /// frontmatter 的 emoji icon 放在標題前；SF Symbol icon 取代類型圖示（見 `symbol(_:)`）
     private func title(_ file: IndexedFile) -> String {
         let name = store.displayName(file.path)
-        return file.icon.map { "\($0) \(name)" } ?? name
+        return DocIcon(file.icon)?.emoji.map { "\($0) \(name)" } ?? name
     }
 
-    private func symbol(_ file: IndexedFile) -> String { store.plugins.symbol(for: store.kindID(file.path)) }
+    private func symbol(_ file: IndexedFile) -> String {
+        DocIcon(file.icon)?.symbolName ?? store.plugins.symbol(for: store.kindID(file.path))
+    }
     private func tint(_ file: IndexedFile) -> KindTint { store.plugins.tint(for: store.kindID(file.path)) }
 
     /// 外掛的一行摘要 + 相對時間：「1,240 字 · 2 小時前」
