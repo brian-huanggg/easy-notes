@@ -452,6 +452,8 @@
 
 2026-10-02：`embed://` 完成。`EmbedSchemeHandler`（EasyNotesUI）經 `DocumentSession.embedImageReader` 取圖：VaultStore 依路徑找到檔案的 hash，向 `PreviewCache` 要 `image`（沒有快取就在背景產生）；沒有圖回 HTTP 404。URL 寫法與 `vault://` 相同：`embed:///` + 每段 `encodeURIComponent`（放在 host 位置的中文會被當成網域轉成 punycode）。`h` 只讓內容改變時 URL 改變，handler 不讀它。Markdown 在 `attach` 時設定 `host.readEmbed`。
 
+2026-10-02：`![[x.excalidraw]]` 嵌入的程式完成，待 App 內手動驗證後勾選。`LinkTarget` 新增 `hash`（跟著 `setLinkTargets` 推送，只在索引變動時送出，不在打字路徑上）；CM6 的 `EmbedWidget` 依完整路徑或「檔名.副檔名」找到目標，放 `<img src="embed:///…?h=<hash>">`。圖片副檔名仍走 `vault://`；`.md` 不嵌入（transclusion 另外做）；找不到目標時顯示原始語法。hash 改變時 `updateDOM` 只換 `src`，舊圖留到新圖載入完成。點一下開啟白板，⌘ / ⌥ 點擊顯示原始 md。深色模式用 CSS `invert(93%) hue-rotate(180deg)`。
+
 ### 4c 編輯器
 
 目標：可以日常使用的白板編輯。

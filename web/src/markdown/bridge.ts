@@ -25,6 +25,11 @@ export function vaultURL(path: string): string {
   return "vault:///" + path.split("/").map(encodeURIComponent).join("/");
 }
 
+// 外掛畫好的預覽圖（`DocumentPreview.image`）。`h` 讓內容改變時 URL 改變，WebView 重新載入
+export function embedURL(path: string, hash: string): string {
+  return "embed:///" + path.split("/").map(encodeURIComponent).join("/") + "?h=" + encodeURIComponent(hash);
+}
+
 // 「剛剛」「3 分鐘前」「昨天」「2026/9/1」
 export function relativeTime(ms: number): string {
   const seconds = (Date.now() - ms) / 1000;
