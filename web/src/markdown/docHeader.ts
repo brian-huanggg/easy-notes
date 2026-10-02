@@ -4,7 +4,8 @@
 // 第一行是 `---`，之後第一個獨占一行的 `---` 結束；寫入只改動目標那一行，其餘位元組不變。
 import { EditorState, Extension, Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { el, onPress, post, relativeTime, vaultURL, withVerb } from "./bridge";
+import { t } from "../shared/i18n";
+import { editedLabel, el, onPress, post, vaultURL } from "./bridge";
 
 // frontmatter 的範圍：第一行開頭到結尾 `---` 那一行的行尾；沒有時回傳 null
 export function frontmatterRange(state: EditorState): { from: number; to: number } | null {
@@ -154,14 +155,14 @@ class HeaderWidget extends WidgetType {
       img.draggable = false;
       img.addEventListener("error", () => box.classList.add("is-missing"));
       const tools = el("div", "cm-doc-cover-tools");
-      tools.append(headerButton(ICON_IMAGE, "更換封面", pickCover), headerButton(ICON_SMILE, icon ? "更換圖示" : "新增圖示", pickIcon));
+      tools.append(headerButton(ICON_IMAGE, t("更換封面"), pickCover), headerButton(ICON_SMILE, icon ? t("更換圖示") : t("新增圖示"), pickIcon));
       box.append(img, tools);
       root.append(box);
     } else {
       // 沒有封面：游標移到文件頭時才出現的新增按鈕
       const add = el("div", "cm-doc-add");
-      add.append(headerButton(ICON_IMAGE, "新增封面", pickCover));
-      if (!icon) add.append(headerButton(ICON_SMILE, "新增圖示", pickIcon));
+      add.append(headerButton(ICON_IMAGE, t("新增封面"), pickCover));
+      if (!icon) add.append(headerButton(ICON_SMILE, t("新增圖示"), pickIcon));
       root.append(add);
     }
     if (icon) {
@@ -174,7 +175,7 @@ class HeaderWidget extends WidgetType {
       } else {
         badge.textContent = icon;
       }
-      badge.title = "更換圖示";
+      badge.title = t("更換圖示");
       onPress(badge, pickIcon);
       root.append(badge);
     }
@@ -247,7 +248,7 @@ function build(state: EditorState): DecorationSet {
   }
 
   const modified = state.field(modifiedField);
-  const edited = modified ? withVerb(relativeTime(modified), "編輯") : null;
+  const edited = modified ? editedLabel(modified) : null;
   const meta = fields.tags.length || edited ? new MetaWidget(fields.tags, edited) : null;
 
   const title = bodyStart <= state.doc.length ? state.doc.lineAt(bodyStart) : null;

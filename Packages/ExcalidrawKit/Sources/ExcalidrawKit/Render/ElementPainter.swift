@@ -169,7 +169,7 @@ public final class ElementPainter: @unchecked Sendable {
         let scale = (el.raw["scale"] as? [Any])?.compactMap { ($0 as? NSNumber)?.doubleValue } ?? [1, 1]
         let needed = Int((max(rect.width, rect.height) * pixelScale).rounded(.up))
         guard let fileId = el.fileId, var image = decodedImage(fileId, maxPixels: needed) else {
-            drawPlaceholder(el, title: "圖片", in: ctx)
+            drawPlaceholder(el, title: L("圖片"), in: ctx)
             return
         }
         // crop：原圖像素座標的裁切範圍

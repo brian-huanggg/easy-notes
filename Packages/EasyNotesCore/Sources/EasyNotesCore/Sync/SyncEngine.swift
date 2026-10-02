@@ -10,11 +10,17 @@ import os
 public actor SyncEngine {
     /// 刪除後可還原的天數；伺服器端的 pg_cron 同樣以 30 天清除
     public static let retentionDays = 30
+    /// 衝突副本檔名的標記：同步到每台裝置，App 也靠它辨識，所以不隨介面語言改變
+    public static let conflictMarker = "衝突" // l10n:fixed
+    /// `name` 是不是 `stem` 的衝突副本
+    public static func isConflictCopy(_ name: String, of stem: String) -> Bool {
+        name.hasPrefix("\(stem) (\(conflictMarker)")
+    }
     static let log = Logger(subsystem: "app.easynotes", category: "sync")
 
     public enum RestoreError: Error, LocalizedError {
         case changedOnServer
-        public var errorDescription: String? { "這個檔案在其他裝置上有新的變更，請同步後再試" }
+        public var errorDescription: String? { L("這個檔案在其他裝置上有新的變更，請同步後再試") }
     }
     public struct Status: Sendable, Equatable {
         public var isSyncing = false
@@ -524,7 +530,7 @@ public actor SyncEngine {
         var n = 1
         while true {
             let suffix = n == 1 ? "" : " \(n)"
-            let candidate = "\(stem) (衝突 \(deviceName) \(date)\(suffix))\(ext)"
+            let candidate = "\(stem) (\(Self.conflictMarker) \(deviceName) \(date)\(suffix))\(ext)"
             let full = dir.isEmpty ? candidate : "\(dir)/\(candidate)"
             if !FileManager.default.fileExists(atPath: fs.url(for: full).path(percentEncoded: false)) { return full }
             n += 1

@@ -16,11 +16,11 @@ public enum BoardTool: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .select: "選取"
-        case .rectangle: "矩形"
-        case .ellipse: "橢圓"
-        case .arrow: "箭頭"
-        case .text: "文字"
+        case .select: L("選取")
+        case .rectangle: L("矩形")
+        case .ellipse: L("橢圓")
+        case .arrow: L("箭頭")
+        case .text: L("文字")
         case .frame: "Frame"
         }
     }
@@ -34,11 +34,11 @@ public enum BoardShape: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .rectangle: "矩形"
-        case .roundedRectangle: "圓角矩形"
-        case .ellipse: "橢圓"
-        case .diamond: "菱形"
-        case .arrow: "箭頭"
+        case .rectangle: L("矩形")
+        case .roundedRectangle: L("圓角矩形")
+        case .ellipse: L("橢圓")
+        case .diamond: L("菱形")
+        case .arrow: L("箭頭")
         case .frame: "Frame"
         }
     }
@@ -63,9 +63,9 @@ public enum BoardBackground: String, CaseIterable, Identifiable, Sendable {
 
     public var title: String {
         switch self {
-        case .none: "無"
-        case .grid: "網格"
-        case .dots: "點狀"
+        case .none: L("無")
+        case .grid: L("網格")
+        case .dots: L("點狀")
         }
     }
 
@@ -84,8 +84,8 @@ public enum SelectionShape: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .rectangle: "矩形選取"
-        case .lasso: "套索選取"
+        case .rectangle: L("矩形選取")
+        case .lasso: L("套索選取")
         }
     }
 

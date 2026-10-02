@@ -26,7 +26,7 @@ public enum MarkdownKind: DocumentKind {
             tags: unique(frontmatter.list("tags") + matches(of: #"(?<![\p{L}\p{N}_#&/])#([\p{L}\p{N}_/-]+)"#, in: body)),
             icon: frontmatter.scalar("icon"),
             pinned: frontmatter.bool("pinned"),
-            summary: "\(wordCount(body).formatted(.number.locale(Locale(identifier: "zh-Hant")))) 字"
+            summary: L("\(wordCount(body).formatted(.number)) 字")
         )
     }
 

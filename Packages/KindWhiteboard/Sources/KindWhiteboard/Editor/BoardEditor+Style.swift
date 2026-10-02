@@ -13,7 +13,7 @@ extension BoardEditor {
         currentStyle[change.property] = change
         let ids = selection
         guard !ids.isEmpty else { return }
-        operation("樣式") { $0.setStyle(ids, change) }
+        operation(L("樣式")) { $0.setStyle(ids, change) }
     }
 
     /// 連續修改（透明度滑桿拖曳中）：逐幀修改，`endStylePreview` 才註冊一筆 Undo
@@ -33,7 +33,7 @@ extension BoardEditor {
     func endStylePreview() {
         guard stylePreviewing else { return }
         stylePreviewing = false
-        recordUndo("樣式")
+        recordUndo(L("樣式"))
     }
 
     /// 新元素套用上次的樣式（只套用適用的欄位）。`except`：插入面板已經明確選了的欄位（矩形 / 圓角矩形）

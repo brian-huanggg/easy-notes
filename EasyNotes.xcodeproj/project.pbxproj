@@ -18,6 +18,7 @@
 		61239FA9D59ACA922EBF1F61 /* VaultStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478E093E92082AF0228D7FDB /* VaultStore.swift */; };
 		661B52D1596DA264E6C7FD18 /* SupabaseSync in Frameworks */ = {isa = PBXBuildFile; productRef = 9D5B39998C83E05A037ADDFB /* SupabaseSync */; };
 		71B87B4921F329C07C51EB22 /* EasyNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */; };
+		7B39F0C84A82CBE036935CFD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */; };
 		810508B94A5967474123D458 /* QuickOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2458B612293008933144BC /* QuickOpen.swift */; };
 		89A25B0B136CCD5053459038 /* KindPDF in Frameworks */ = {isa = PBXBuildFile; productRef = 5AE66D168F0693ED64D33821 /* KindPDF */; };
 		9ABE5F25F2FD7C89AF3E6C6B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C1AA5C478ED64BDD2C28AB55 /* Supabase */; };
@@ -29,6 +30,7 @@
 		BED5D6BD9BF8F481BE517100 /* ShellState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0D4D876FF56EBFC66238FD /* ShellState.swift */; };
 		C061FA860E9889C904B17340 /* VaultWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2024AECF50DE93B1BFB3D1B3 /* VaultWatcher.swift */; };
 		C94F18E977A2FA3EEBF6F080 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C133D004357078C1AC75F9A8 /* ContentView.swift */; };
+		CA00D08815DA96AD3E154DFB /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F60100543025B4150BDF63 /* Localization.swift */; };
 		CB2F1AF36D1B3836CF57867A /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD41C33E0C444D157A12471 /* SyncStatusView.swift */; };
 		F4B2C11CE46963F42C1001FE /* Flashcards in Frameworks */ = {isa = PBXBuildFile; productRef = BC21D5F4A99FEA9B0F34414C /* Flashcards */; };
 		F7C896CC5E14D34A847A7F5F /* KindWhiteboard in Frameworks */ = {isa = PBXBuildFile; productRef = 376C0F5FD94C5941AA73AA60 /* KindWhiteboard */; };
@@ -51,6 +53,7 @@
 		478E093E92082AF0228D7FDB /* VaultStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultStore.swift; sourceTree = "<group>"; };
 		579B252C4E387DAA206A81C4 /* PhoneShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneShell.swift; sourceTree = "<group>"; };
 		621DAA0D9BC592CA611B85CD /* Seed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seed.swift; sourceTree = "<group>"; };
+		62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		6A6CB15764ED9797D6EAC845 /* MeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
 		6EFDC3012F2B7775D1A82DB8 /* SupabaseSync */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SupabaseSync; path = Packages/SupabaseSync; sourceTree = SOURCE_ROOT; };
 		8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyNotesApp.swift; sourceTree = "<group>"; };
@@ -61,6 +64,7 @@
 		C133D004357078C1AC75F9A8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentToolbar.swift; sourceTree = "<group>"; };
 		DF9993BD4CC3547317AEF773 /* EasyNotes.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EasyNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1F60100543025B4150BDF63 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCoordinator.swift; sourceTree = "<group>"; };
 		FBD41C33E0C444D157A12471 /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -126,6 +130,8 @@
 				41122F522BECB2CC19813DA0 /* EasyNotes.entitlements */,
 				8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */,
 				2C161B996879933835F5809A /* Info.plist */,
+				62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */,
+				E1F60100543025B4150BDF63 /* Localization.swift */,
 				867FC53B0B94A77D3C23B9DA /* Resources */,
 				46C82C2BBBB6B7B313047B12 /* Store */,
 				9933E4320E5D4BA7CD5002DD /* Sync */,
@@ -253,6 +259,7 @@
 			files = (
 				BAEBFC823C75186C18E4E972 /* AppIcon.icon in Resources */,
 				562E9CFCE40CCCAC90603D90 /* Assets.xcassets in Resources */,
+				7B39F0C84A82CBE036935CFD /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,6 +274,7 @@
 				101E2195848FAA36B004175C /* DocumentList.swift in Sources */,
 				2BC105003B98F723E7122D75 /* DocumentToolbar.swift in Sources */,
 				71B87B4921F329C07C51EB22 /* EasyNotesApp.swift in Sources */,
+				CA00D08815DA96AD3E154DFB /* Localization.swift in Sources */,
 				2DD864AD35BAE672AD261BEF /* MeView.swift in Sources */,
 				00510153B7BCE96032DD107D /* PhoneShell.swift in Sources */,
 				810508B94A5967474123D458 /* QuickOpen.swift in Sources */,

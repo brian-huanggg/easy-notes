@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "KindWhiteboard",
+    defaultLocalization: "zh-Hant",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         .library(name: "KindWhiteboard", targets: ["KindWhiteboard"]),
@@ -18,7 +19,8 @@ let package = Package(
                 .product(name: "EasyNotesCore", package: "EasyNotesCore"),
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
                 .product(name: "ExcalidrawKit", package: "ExcalidrawKit"),
-            ]
+            ],
+            resources: [.process("Localizable.xcstrings")]
         ),
         .testTarget(name: "KindWhiteboardTests", dependencies: [
             "KindWhiteboard", .product(name: "EasyNotesCore", package: "EasyNotesCore"),

@@ -478,15 +478,15 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
     /// 文字框編輯中不攔截，字母才打得進文字框
     override var keyCommands: [UIKeyCommand]? {
         guard textView == nil else { return [] }
-        let tools: [(String, String)] = [("v", "選取"), ("r", "矩形"), ("o", "橢圓"), ("a", "箭頭"), ("t", "文字"), ("f", "Frame")]
+        let tools: [(String, String)] = [("v", L("選取")), ("r", L("矩形")), ("o", L("橢圓")), ("a", L("箭頭")), ("t", L("文字")), ("f", "Frame")]
         var commands = tools.map { key, title in
             UIKeyCommand(title: title, action: #selector(handleKeyCommand(_:)), input: key, modifierFlags: [])
         }
-        commands.append(UIKeyCommand(title: "刪除", action: #selector(handleKeyCommand(_:)),
+        commands.append(UIKeyCommand(title: L("刪除"), action: #selector(handleKeyCommand(_:)),
                                      input: UIKeyCommand.inputDelete, modifierFlags: []))
-        commands.append(UIKeyCommand(title: "再製", action: #selector(handleKeyCommand(_:)), input: "d", modifierFlags: .command))
-        commands.append(UIKeyCommand(title: "全選", action: #selector(handleKeyCommand(_:)), input: "a", modifierFlags: .command))
-        commands.append(UIKeyCommand(title: "結束", action: #selector(handleKeyCommand(_:)),
+        commands.append(UIKeyCommand(title: L("再製"), action: #selector(handleKeyCommand(_:)), input: "d", modifierFlags: .command))
+        commands.append(UIKeyCommand(title: L("全選"), action: #selector(handleKeyCommand(_:)), input: "a", modifierFlags: .command))
+        commands.append(UIKeyCommand(title: L("結束"), action: #selector(handleKeyCommand(_:)),
                                      input: UIKeyCommand.inputEscape, modifierFlags: []))
         return commands
     }

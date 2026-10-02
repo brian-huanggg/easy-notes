@@ -32,7 +32,7 @@ extension BoardEditor {
         let el = Element.stickyNote(x: r.minX, y: r.minY, size: r.width)
         inking = false
         tool = .select
-        operation("便條紙", select: { [el.id] }) { $0.insert(el) }
+        operation(L("便條紙"), select: { [el.id] }) { $0.insert(el) }
         editText(of: el.id)
     }
 

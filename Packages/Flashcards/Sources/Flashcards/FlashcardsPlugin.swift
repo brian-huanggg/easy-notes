@@ -8,11 +8,11 @@ public enum FlashcardsPlugin: EasyNotesPlugin {
         registry.addVaultGuide(guide)
         registry.addSyncedMetaFolder(ReviewLog.metaFolder)
         registry.addController(ReviewStore.shared)
-        registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badgeTint: Palette.cardDue,
+        registry.addPanel(id: "review", title: L("複習"), symbol: "rectangle.stack", badgeTint: Palette.cardDue,
                           badge: { ReviewStore.shared.dueCount }) { ReviewPanel() }
     }
 
-    /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節
+    /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節（l10n:fixed：給 Claude Code 讀，內容語言固定）
     static let guide = """
         ## 卡片（Flashcards）
 

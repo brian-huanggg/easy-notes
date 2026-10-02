@@ -479,8 +479,8 @@ final class VaultStore: DocumentSession {
             ?? (try? fs.url(for: path).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
 
-    /// 附件（封面、插入的圖片）一律放 Vault 根目錄的這個資料夾
-    static let attachmentsFolder = "附件"
+    /// 附件（封面、插入的圖片）一律放 Vault 根目錄的這個資料夾；路徑被連結引用，不隨介面語言改變
+    static let attachmentsFolder = "附件" // l10n:fixed
 
     func importAttachment(_ url: URL) async -> String? {
         let scoped = url.startAccessingSecurityScopedResource()
@@ -518,10 +518,10 @@ final class VaultStore: DocumentSession {
     }
 
     private func uniqueFolderName(in folder: String) -> String {
-        var name = "新資料夾"
+        var name = L("新資料夾")
         var n = 2
         while FileManager.default.fileExists(atPath: fs.url(for: folder.isEmpty ? name : "\(folder)/\(name)").path(percentEncoded: false)) {
-            name = "新資料夾 \(n)"
+            name = L("新資料夾 \(n)")
             n += 1
         }
         return name
@@ -622,6 +622,7 @@ final class VaultStore: DocumentSession {
         let path = "CLAUDE.md"
         guard !plugins.vaultGuides.isEmpty,
               !FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) else { return }
+        // l10n:fixed Vault 的 CLAUDE.md 給 Claude Code 讀，內容語言固定（見 translation.md）
         let header = """
             # EasyNotes Vault
 

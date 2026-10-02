@@ -24,20 +24,21 @@
 
 ```swift
 // <Target>/Localization.swift（每個模組一份；#bundle 要在該模組展開，不能共用）
-func L(_ value: String.LocalizationValue) -> LocalizedStringResource {
-    LocalizedStringResource(value, bundle: #bundle)
+func L(_ value: String.LocalizationValue) -> String {
+    String(localized: value, bundle: #bundle)
 }
 ```
+
+`L` 回傳已解析的 `String`，所以任何接受 `String` 的地方都能用，元件 API 不必改型別。因為不做即時切換，字串在呼叫當下解析即可，不需要 `LocalizedStringResource` 的延遲解析。
 
 | 情境 | 寫法 |
 | --- | --- |
 | SwiftUI 文字、按鈕、標題、`help` | `Text(L("標題"))`、`Button(L("儲存"))`、`.help(L("說明"))` |
-| 插值 | `Text(L("\(count) 份文件"))`；不要先拼成 `String` 再傳入 |
-| 一般 `String`（錯誤、回傳值） | `String(localized: L("…"))` |
-| 元件 API 的文字參數 | 型別用 `LocalizedStringResource`，不用 `String`；呼叫端傳 `L("…")` |
+| 插值 | `L("\(count) 份文件")`；不要先拼成 `String` 再傳入 |
+| 元件 API、回傳值、錯誤訊息 | 同樣用 `L("…")`，參數型別維持 `String` |
 | 複數 | 在 catalog 為該 key 加 plural variations（`en` 需要 one / other） |
 | 日期、數字、相對時間 | 用 `Date.formatted`、`RelativeDateTimeFormatter`、`Intl.*`，不手拼；不寫死 `Locale(identifier: "zh-Hant")` |
-| 使用者看不到的字串 | 日誌、`precondition` 訊息、`#Preview` 示範資料不翻 |
+| 使用者看不到的字串 | 日誌、`precondition` 訊息、`#Preview` 示範資料、`Spike/` 資料夾的驗證用面板不翻 |
 
 `L(…)` 的參數型別是 `String.LocalizationValue`，編譯器認得它，擷取時 key 與插值都正確。**新程式碼不寫沒有經過 `L(…)` 的中文字面值**，`scripts/check-l10n.py` 會檢查。
 

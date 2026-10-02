@@ -37,9 +37,9 @@ final class ShellState {
 // MARK: - 在 Finder / 「檔案」App 中顯示
 
 #if os(macOS)
-let revealTitle = "在 Finder 中顯示"
+let revealTitle = L("在 Finder 中顯示")
 #else
-let revealTitle = "在「檔案」App 中顯示"
+let revealTitle = L("在「檔案」App 中顯示")
 #endif
 
 /// macOS：在 Finder 中選取；iOS：用「檔案」App 開啟所在資料夾
@@ -64,9 +64,9 @@ extension VaultStore {
     /// 目前位置的標題（麵包屑最後一段、頁面標題）
     func title(for route: Route) -> String {
         switch route {
-        case .all: "所有文件"
-        case .recents: "最近"
-        case .pinned: "釘選"
+        case .all: L("所有文件")
+        case .recents: L("最近")
+        case .pinned: L("釘選")
         case .folder(let path): (path as NSString).lastPathComponent
         case .tag(let tag): "#\(tag)"
         case .file(let path): displayName(path)

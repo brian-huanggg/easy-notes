@@ -5,31 +5,31 @@ import SwiftUI
 public enum MarkdownPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         let editor = MarkdownEditor.shared // 啟動時就預先載入 WebView，打開第一篇筆記時不會卡頓
-        registry.addKind(MarkdownKind.self, name: "筆記", symbol: "doc.text", tint: .neutral)
+        registry.addKind(MarkdownKind.self, name: L("筆記"), symbol: "doc.text", tint: .neutral)
         registry.addPreview(for: MarkdownKind.id, MarkdownPreview())
         registry.addEditor(for: MarkdownKind.id) { MarkdownEditorView(path: $0) }
-        registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil",
-                            shortcut: KeyboardShortcut("n"), defaultName: "未命名")
+        registry.addNewFile(L("新筆記"), kind: MarkdownKind.self, symbol: "square.and.pencil",
+                            shortcut: KeyboardShortcut("n"), defaultName: L("未命名"))
         registry.addController(editor)
         registry.addVaultGuide(guide)
         // ⌘B / ⌘I 由 CodeMirror keymap 處理，這裡只提供選單入口
-        registry.addMenu("格式", sections: [
+        registry.addMenu(L("格式"), sections: [
             [
-                .init("標題") { editor.exec("heading") },
-                .init("粗體") { editor.exec("bold") },
-                .init("斜體") { editor.exec("italic") },
-                .init("行內程式碼") { editor.exec("code") },
+                .init(L("標題")) { editor.exec("heading") },
+                .init(L("粗體")) { editor.exec("bold") },
+                .init(L("斜體")) { editor.exec("italic") },
+                .init(L("行內程式碼")) { editor.exec("code") },
             ],
             [
-                .init("項目清單") { editor.exec("bullet") },
-                .init("待辦事項", shortcut: KeyboardShortcut("l", modifiers: [.command, .shift])) { editor.exec("task") },
+                .init(L("項目清單")) { editor.exec("bullet") },
+                .init(L("待辦事項"), shortcut: KeyboardShortcut("l", modifiers: [.command, .shift])) { editor.exec("task") },
                 // ⌘K 是外殼的快速開啟
-                .init("[[連結]]", shortcut: KeyboardShortcut("k", modifiers: [.command, .shift])) { editor.exec("link") },
+                .init(L("[[連結]]"), shortcut: KeyboardShortcut("k", modifiers: [.command, .shift])) { editor.exec("link") },
             ],
         ])
     }
 
-    /// Vault 根目錄 `CLAUDE.md` 的筆記慣例一節
+    /// Vault 根目錄 `CLAUDE.md` 的筆記慣例一節（l10n:fixed：給 Claude Code 讀，內容語言固定）
     static let guide = """
         ## 筆記（Markdown）
 

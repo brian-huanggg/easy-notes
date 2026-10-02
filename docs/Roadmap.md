@@ -17,7 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a 完成（App 內伴隨檔流程待 5b 實機驗證）；5b 起未開始 | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
-| i18n 多語言（English (US)） | i0 基礎建設進行中（在 `i18n-foundation` 分支）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
+| i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
 
@@ -499,14 +499,15 @@
 
 ### i0 基礎建設（不改變任何畫面：zh-Hant 輸出與遷移前逐字相同）
 
-- [ ] 設計：[translation.md](./architecture/translation.md)、README 的導覽列、CLAUDE.md 的規則
-- [ ] 每個有中文的模組加 `Localizable.xcstrings`、`Package.swift` 的 `defaultLocalization` 與 `resources`、`Localization.swift`（`L(_:)`）：App、EasyNotesCore、EasyNotesUI、ExcalidrawKit、KindMarkdown、KindWhiteboard、KindPDF、Flashcards
-- [ ] 既有約 450 個 Swift 中文字面值改走 `L(…)`；`EasyNotesUI` 元件的文字參數改成 `LocalizedStringResource`
-- [ ] 固定字串集中成常數並標 `// l10n:fixed`：`附件`、衝突副本命名（`DocumentToolbar` 改用同一個常數辨識）、Vault 的 `CLAUDE.md` 與範例內容
-- [ ] 沒有手拼的中文：「N 字」「N 頁」「N 個元素」改用插值；固定 `zh-Hant` 的 `Locale` 改用目前語言
-- [ ] Web：17 處中文收進 `web/src/shared/i18n.ts`；Swift 載入時傳入語言；相對時間改用 `Intl.RelativeTimeFormat`
-- [ ] `scripts/check-l10n.py`：找出沒有經過 `L(…)` / `t(…)` 也沒有 `// l10n:fixed` 的中文字面值
-- [ ] 驗證：各 package `swift test`；macOS 與 iOS 建置；zh-Hant 畫面與遷移前一致（尚未驗證）
+- [x] 設計：[translation.md](./architecture/translation.md)、README 的導覽列、CLAUDE.md 的規則
+- [x] 每個有中文的模組加 `Localizable.xcstrings`、`Package.swift` 的 `defaultLocalization` 與 `resources`、`Localization.swift`（`L(_:)`）：App、EasyNotesCore、EasyNotesUI、ExcalidrawKit、KindMarkdown、KindWhiteboard、KindPDF、Flashcards（catalog 目前是空的：key 就是中文原文，查不到回傳 key；補 `en` 在 i2。每個模組有 `LocalizationTests` 確認 `#bundle` 可用）
+- [x] 既有 Swift 中文字面值（415 個）改走 `L(…)`；Spike 面板不翻
+- [x] 固定字串標 `// l10n:fixed`：`附件`、衝突副本命名（`SyncEngine.conflictMarker` / `isConflictCopy`，`DocumentToolbar` 改用它辨識）、Vault 的 `CLAUDE.md` 與各外掛 `guide`、預設 preset 名稱「預設」、Seed 範例內容（整檔標 `l10n:fixed-file`，依語言產生留到 i2）
+- [x] 沒有手拼的中文：「N 字」用目前語言的數字格式（原本固定 `zh-Hant`）
+- [x] Web：中文收進 `web/src/shared/i18n.ts`（`t()`、`Intl`）；Swift 建立 WebView 時注入 `window.__locale`；「N 分鐘前編輯」改成整句 key；`tsc` 與 `npm run build` 通過。WebView 內的實際畫面尚未驗證
+- [x] `scripts/check-l10n.py`：Swift 與 Web 沒有違規
+- [x] 驗證：各 package `swift test` 全過；macOS 與 iOS Simulator 以 `xcodebuild` 建置成功；iOS Simulator（iPhone 17）啟動、文件列表顯示正常的繁體中文
+- [ ] 驗證：逐畫面與遷移前比對 zh-Hant（Mac、iPad、編輯器 WebView、白板、複習）；Mac 版尚未啟動過（尚未驗證）
 
 ### i1 開發期規則（Phase 5、6 期間）
 
@@ -518,6 +519,7 @@
 - [ ] 索引記錄產生時的語言，語言改變時整份重建（`summary` 是顯示文字）
 - [ ] Mac 設定（⌘,）的語言選項（寫入 `AppleLanguages`，提示重新啟動）；iOS 以系統設定切換
 - [ ] Web 端 `en` 字典
+- [ ] 首次啟動的範例內容（`Seed`）依介面語言產生
 
 驗收測試：
 

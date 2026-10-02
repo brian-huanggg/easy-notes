@@ -10,7 +10,7 @@ public struct Deck: Identifiable, Equatable, Sendable {
     public var cardCount: Int
     public var noteCount: Int
 
-    public var name: String { path.isEmpty ? "未分類" : (path as NSString).lastPathComponent }
+    public var name: String { path.isEmpty ? L("未分類") : (path as NSString).lastPathComponent }
     public var depth: Int { path.isEmpty ? 0 : path.split(separator: "/").count - 1 }
 
     /// 開始複習這個牌組時的範圍

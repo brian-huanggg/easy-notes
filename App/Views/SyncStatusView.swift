@@ -15,12 +15,12 @@ extension SyncCoordinator {
     }
 
     var statusTitle: String {
-        guard case .signedIn = account else { return "未登入，不會同步" }
-        if !conflicts.isEmpty { return "\(conflicts.count) 個衝突副本" }
-        if status.isSyncing { return "同步中" }
-        if status.lastError != nil { return "同步失敗" }
-        if status.pending > 0 { return "\(status.pending) 個檔案待上傳" }
-        return "已同步"
+        guard case .signedIn = account else { return L("未登入，不會同步") }
+        if !conflicts.isEmpty { return L("\(conflicts.count) 個衝突副本") }
+        if status.isSyncing { return L("同步中") }
+        if status.lastError != nil { return L("同步失敗") }
+        if status.pending > 0 { return L("\(status.pending) 個檔案待上傳") }
+        return L("已同步")
     }
 
     /// 「2 分鐘前」；未登入或從未同步時為 nil
@@ -75,7 +75,7 @@ struct SyncPanel: View {
             case .unknown:
                 ProgressView()
             case .signedOut:
-                Text("登入後，筆記會在 Mac、iPad、iPhone 間同步。").font(.callout)
+                Text(L("登入後，筆記會在 Mac、iPad、iPhone 間同步。")).font(.callout)
                 SignInWithAppleButton(.signIn) { request in
                     sync.prepare(request)
                 } onCompletion: { result in
@@ -84,14 +84,14 @@ struct SyncPanel: View {
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(height: 40)
             case .signedIn(let email):
-                Label(email ?? "已登入", systemImage: "person.crop.circle").font(.callout)
+                Label(email ?? L("已登入"), systemImage: "person.crop.circle").font(.callout)
                 status
                 if !sync.conflicts.isEmpty { conflicts }
                 HStack {
-                    Button("立即同步", systemImage: "arrow.clockwise") { sync.syncNow() }
+                    Button(L("立即同步"), systemImage: "arrow.clockwise") { sync.syncNow() }
                         .disabled(sync.status.isSyncing)
                     Spacer()
-                    Button("登出", role: .destructive) { Task { await sync.signOut() } }
+                    Button(L("登出"), role: .destructive) { Task { await sync.signOut() } }
                 }
             }
             if let error = sync.authError {
@@ -103,11 +103,11 @@ struct SyncPanel: View {
     private var status: some View {
         VStack(alignment: .leading, spacing: 4) {
             if sync.status.isSyncing {
-                Label("同步中…", systemImage: "arrow.triangle.2.circlepath")
+                Label(L("同步中…"), systemImage: "arrow.triangle.2.circlepath")
             } else if sync.status.pending > 0 {
-                Label("\(sync.status.pending) 個檔案待上傳", systemImage: "icloud.and.arrow.up")
+                Label(L("\(sync.status.pending) 個檔案待上傳"), systemImage: "icloud.and.arrow.up")
             } else if let last = sync.status.lastSynced {
-                Label("已同步 · \(last.formatted(.relative(presentation: .named)))", systemImage: "checkmark.icloud")
+                Label(L("已同步 · \(last.formatted(.relative(presentation: .named)))"), systemImage: "checkmark.icloud")
             }
             if let error = sync.status.lastError {
                 Text(error).font(.caption).foregroundStyle(.red).lineLimit(4)
@@ -118,7 +118,7 @@ struct SyncPanel: View {
 
     private var conflicts: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("兩台裝置改了同一段，另一份內容存成衝突副本：").font(.caption).foregroundStyle(.secondary)
+            Text(L("兩台裝置改了同一段，另一份內容存成衝突副本：")).font(.caption).foregroundStyle(.secondary)
             ForEach(sync.conflicts, id: \.self) { path in
                 Button((path as NSString).lastPathComponent) {
                     store.selection = path
@@ -126,7 +126,7 @@ struct SyncPanel: View {
                 }
                 .buttonStyle(.borderless)
             }
-            Button("知道了") { sync.dismissConflicts() }.font(.caption)
+            Button(L("知道了")) { sync.dismissConflicts() }.font(.caption)
         }
     }
 }
@@ -143,8 +143,8 @@ struct RecentlyDeletedView: View {
         NavigationStack {
             Group {
                 if let files, files.isEmpty {
-                    ContentUnavailableView("沒有最近刪除的檔案", systemImage: "trash",
-                                           description: Text("刪除的檔案會保留 \(SyncEngine.retentionDays) 天。"))
+                    ContentUnavailableView(L("沒有最近刪除的檔案"), systemImage: "trash",
+                                           description: Text(L("刪除的檔案會保留 \(SyncEngine.retentionDays) 天。")))
                 } else if let files {
                     List(files, id: \.id) { file in
                         row(file)
@@ -153,9 +153,9 @@ struct RecentlyDeletedView: View {
                     ProgressView()
                 }
             }
-            .navigationTitle("最近刪除")
+            .navigationTitle(L("最近刪除"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("完成") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(L("完成")) { dismiss() } }
             }
             .safeAreaInset(edge: .bottom) {
                 if let error {
@@ -177,7 +177,7 @@ struct RecentlyDeletedView: View {
             if restoring == file.id {
                 ProgressView().controlSize(.small)
             } else {
-                Button("還原") { Task { await restore(file) } }
+                Button(L("還原")) { Task { await restore(file) } }
                     .disabled(restoring != nil)
             }
         }
@@ -187,7 +187,7 @@ struct RecentlyDeletedView: View {
         let folder = (file.path as NSString).deletingLastPathComponent
         let left = SyncEngine.retentionDays - Int(Date().timeIntervalSince(file.updatedAt) / 86_400)
         let when = file.updatedAt.formatted(.relative(presentation: .named))
-        return "\(folder.isEmpty ? "Vault" : folder) · \(when)刪除 · 剩 \(max(left, 0)) 天"
+        return L("\(folder.isEmpty ? "Vault" : folder) · \(when)刪除 · 剩 \(max(left, 0)) 天")
     }
 
     private func load() async {

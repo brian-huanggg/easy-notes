@@ -23,14 +23,14 @@ struct MarkdownEditorView: View {
             .task(id: path) {
                 editor.load(id: path, text: session?.readText(path) ?? "", modified: session?.modified(path))
             }
-            .confirmationDialog("封面", isPresented: isPicking { if case .cover = $0 { true } else { false } }) {
-                Button("選擇圖片…") { editor.picker = .coverFile }
+            .confirmationDialog(L("封面"), isPresented: isPicking { if case .cover = $0 { true } else { false } }) {
+                Button(L("選擇圖片…")) { editor.picker = .coverFile }
                 if MarkdownEditor.clipboardHasImage {
-                    Button("貼上剪貼簿的圖片") { Task { await editor.pasteCover() } }
+                    Button(L("貼上剪貼簿的圖片")) { Task { await editor.pasteCover() } }
                         .keyboardShortcut("v", modifiers: .command)
                 }
                 if case .cover(hasCover: true) = editor.picker {
-                    Button("移除封面", role: .destructive) { editor.setFrontmatter("cover", nil) }
+                    Button(L("移除封面"), role: .destructive) { editor.setFrontmatter("cover", nil) }
                 }
             }
             .fileImporter(isPresented: isPicking { $0 == .coverFile || $0 == .image }, allowedContentTypes: [.image]) { result in

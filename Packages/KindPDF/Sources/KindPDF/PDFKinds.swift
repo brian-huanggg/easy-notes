@@ -14,7 +14,7 @@ public enum PDFKind: DocumentKind {
     public static func index(_ data: Data, fileName: String) -> IndexEntry {
         let pages = PDFDocument(data: data)?.pageCount
         return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: "",
-                          summary: pages.map { "\($0) 頁" })
+                          summary: pages.map { L("\($0) 頁") })
     }
 }
 

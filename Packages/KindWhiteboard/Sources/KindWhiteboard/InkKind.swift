@@ -16,7 +16,7 @@ public enum InkKind: DocumentKind {
         let texts = elements.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }
         let links = (try? ExcalidrawScene(data: data))?.noteLinks ?? []
         return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: texts.joined(separator: "\n"),
-                          links: links, summary: "\(elements.count) 個元素")
+                          links: links, summary: L("\(elements.count) 個元素"))
     }
 
     public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
