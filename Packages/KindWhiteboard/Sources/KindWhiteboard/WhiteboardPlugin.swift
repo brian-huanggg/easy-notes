@@ -20,12 +20,3 @@ public enum WhiteboardPlugin: EasyNotesPlugin {
         #endif
     }
 }
-
-/// 白板縮圖：Phase 4 前先用設計稿的佔位樣式（Thumb Board）
-struct BoardPreview: DocumentPreviewProvider {
-    func makePreview(_ data: Data) -> DocumentPreview { DocumentPreview() }
-
-    @MainActor func view(_ preview: DocumentPreview, scale: CGFloat) -> AnyView {
-        AnyView(ThumbBoard(tint: .violet, scale: scale))
-    }
-}

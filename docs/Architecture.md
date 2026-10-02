@@ -213,7 +213,7 @@ vaultFS.deviceID() -> String
 
 2026-10-02 決定（Phase 4）：
 
-- `DocumentPreview` 新增 `image: Data?`（PNG）：圖形類外掛（白板、之後的 PDF）在 `makePreview` 中於背景畫出縮圖，跟著預覽 JSON 依 hash 快取；Core 不認識圖的內容。
+- `DocumentPreview`（EasyNotesUI）新增 `image: Data?`（PNG）：圖形類外掛（白板、之後的 PDF）在 `makePreview` 中於背景畫出縮圖，依 hash 快取成 `<hash>.png`（與 `<hash>.json` 同資料夾，JSON 只記 `hasImage`，不放 base64）；Core 不認識圖的內容。白板縮圖的預設白色背景畫成透明，深色模式由顯示端反相（`invert` + `hue-rotate(180deg)`，與 Excalidraw 深色主題相同）。
 - `embed://<Vault 相對路徑>`：WebEditorHost 新增的 `WKURLSchemeHandler`，回傳該檔案預覽的 `image`（依內容 hash 快取，檔案沒有註冊預覽或沒有圖時回 404）。Markdown 的 `![[x.excalidraw]]` 只放 `<img src="embed://…?h=<hash>">`，不經 Bridge；hash 變了 URL 就變，WebView 自動重新載入。Phase 6 的 `![[x.csv]]` 沿用同一個 scheme。
 
 2026-10-02 決定（2.5c）：`DocumentPreviewProvider` 分兩段。`makePreview(Data) -> DocumentPreview` 在背景執行，結果可序列化，依內容 hash 快取在 `.easynotes/cache/preview/<kind>-v<version>/<hash>.json`；`view(_:)` 在主執行緒用原生 SwiftUI 渲染。沒有註冊預覽的類型顯示骨架佔位。

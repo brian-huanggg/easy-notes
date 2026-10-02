@@ -19,13 +19,16 @@ public final class SceneRenderer: @unchecked Sendable {
     /// 解碼過的圖片（依 fileId 與像素大小）；Mac 檢視重畫時不必重新解碼
     private let imageCache = NSCache<NSString, CGImage>()
 
-    public init(scene: ExcalidrawScene) {
+    /// `transparentDefaultBackground`：白色（預設）背景改為透明，讓縮圖與嵌入融入卡片底色、深色模式可以反相；
+    /// 使用者自訂的背景色仍然畫出來
+    public init(scene: ExcalidrawScene, transparentDefaultBackground: Bool = false) {
         elements = scene.liveElements
         files = scene.raw["files"] as? [String: Any] ?? [:]
         byID = Dictionary(elements.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         boundsCache = elements.map(ElementGeometry.bounds)
         let bg = (scene.raw["appState"] as? [String: Any])?["viewBackgroundColor"] as? String
-        background = SceneColor.parse(bg ?? "#ffffff")
+        let color = SceneColor.parse(bg ?? "#ffffff")
+        background = transparentDefaultBackground && color.map(SceneColor.isWhite) ?? true ? nil : color
         imageCache.countLimit = 64
     }
 
@@ -346,6 +349,10 @@ enum SceneColor {
     static let frameTitle = rgb(0x999999)
     static let placeholderFill = CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0.08)
     static let placeholderStroke = rgb(0x868e96)
+
+    static func isWhite(_ color: CGColor) -> Bool {
+        (color.components ?? []).allSatisfy { $0 > 0.99 }
+    }
 
     /// 透明或無法解析回傳 nil（不畫）
     static func parse(_ string: String) -> CGColor? {
