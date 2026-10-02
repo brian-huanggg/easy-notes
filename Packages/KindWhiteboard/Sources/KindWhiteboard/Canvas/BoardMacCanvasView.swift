@@ -1,6 +1,7 @@
 #if os(macOS)
 import AppKit
 import QuartzCore
+import UniformTypeIdentifiers
 
 /// macOS 的白板畫布（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。沒有 `PKCanvasView`，
 /// 所以不用 `NSScrollView`，自己管平移與縮放：螢幕座標 = (場景座標 − `origin`) × `zoom`。
@@ -30,12 +31,17 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
     /// 目前這次按下：位置（螢幕座標）、按下前的選取、是否移動過、編輯器是否開始了操作
     private struct Down {
         var point: CGPoint
+        /// 最近一次的游標位置（螢幕座標）：自動捲動時每一幀用它重新換算畫布座標
+        var last: CGPoint
         var selection: Set<String>
         var extend: Bool
         var moved = false
         var began: Bool
     }
     private var down: Down?
+    /// 拖曳到邊緣時的自動捲動（有在捲才存在）
+    private var autoscrollLink: CADisplayLink?
+    private var autoscrollTime: CFTimeInterval?
 
     private var textView: BoardTextView?
     private var textZoom: CGFloat = 1
@@ -61,6 +67,8 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
         for child in [pattern.root, lod.root, tree.root] { sceneHost.addSublayer(child) }
         layer?.addSublayer(sceneHost)
         layer?.addSublayer(overlay.root)
+        registerForDraggedTypes(Self.dropTypes)
+        observeTool()
 
         tree.setScene(document.scene)
         editor.undoManager = history
@@ -416,25 +424,30 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
         }
         let before = editor.selection
         let began = editor.begin(at: p, extend: extend)
-        down = Down(point: screen, selection: before, extend: extend, began: began)
+        down = Down(point: screen, last: screen, selection: before, extend: extend, began: began)
         updateVisible()
     }
 
     override func mouseDragged(with event: NSEvent) {
         guard var current = down else { return }
         let screen = location(of: event)
+        current.last = screen
+        down = current
         if !current.moved {
             guard hypot(screen.x - current.point.x, screen.y - current.point.y) >= Self.dragThreshold else { return }
             current.moved = true
             down = current
         }
-        if current.began { editor.drag(to: scenePoint(screen)) }
+        guard current.began else { return }
+        editor.drag(to: scenePoint(screen))
+        updateAutoscroll()
     }
 
     /// 沒有移動 = 點選：取消這次操作、還原選取，改走 `tap`（Shift 加減選才正確）
     override func mouseUp(with event: NSEvent) {
         guard let current = down else { return }
         down = nil
+        stopAutoscroll()
         let p = scenePoint(location(of: event))
         if current.began, current.moved {
             editor.end(at: p)
@@ -444,6 +457,157 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
             editor.tap(at: p, extend: current.extend)
         }
         updateVisible()
+    }
+
+    // MARK: 游標
+
+    /// 建立工具（矩形、橢圓、箭頭、frame）= 十字、文字工具 = I 形、選取 = 箭頭
+    static func cursor(for tool: BoardTool) -> NSCursor {
+        if tool.creates { return .crosshair }
+        return tool == .text ? .iBeam : .arrow
+    }
+
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: Self.cursor(for: editor.tool))
+    }
+
+    /// 工具改變（快捷鍵、工具列、建立完回到選取）時更新游標；游標不動也要立刻換
+    private func observeTool() {
+        withObservationTracking { _ = editor.tool } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                window?.invalidateCursorRects(for: self)
+                if let window, window.isKeyWindow,
+                   bounds.contains(convert(window.mouseLocationOutsideOfEventStream, from: nil)) {
+                    Self.cursor(for: editor.tool).set()
+                }
+                observeTool()
+            }
+        }
+    }
+
+    // MARK: 自動捲動
+
+    /// 游標靠近（或超出）邊緣時開始捲動，回到中間就停
+    private func updateAutoscroll() {
+        guard let last = down?.last, EdgeAutoscroll.velocity(for: last, in: bounds) != .zero else {
+            stopAutoscroll()
+            return
+        }
+        guard autoscrollLink == nil, window != nil else { return }
+        autoscrollTime = nil
+        let link = displayLink(target: DisplayLinkProxy(self), selector: #selector(DisplayLinkProxy.autoscroll))
+        link.add(to: .main, forMode: .common)
+        autoscrollLink = link
+    }
+
+    private func stopAutoscroll() {
+        autoscrollLink?.invalidate()
+        autoscrollLink = nil
+        autoscrollTime = nil
+    }
+
+    /// 每一幀：依游標離邊緣的距離平移畫面，再把同一個螢幕位置交給編輯器（框選、移動、建立都跟著延伸）
+    fileprivate func autoscrollTick(_ link: CADisplayLink) {
+        // 第一幀沒有上一幀的時間：用一幀的長度；卡頓時最多算 50 ms，不會一次跳太遠
+        let dt = min(autoscrollTime.map { link.timestamp - $0 } ?? (link.targetTimestamp - link.timestamp), 0.05)
+        autoscrollTime = link.timestamp
+        if !autoscroll(by: dt) { stopAutoscroll() }
+    }
+
+    /// 自動捲動 `dt` 秒；不需要再捲（放開、取消、游標回到中間）回傳 false
+    @discardableResult
+    func autoscroll(by dt: CFTimeInterval) -> Bool {
+        guard let current = down, current.began, editor.isDragging else { return false }
+        let v = EdgeAutoscroll.velocity(for: current.last, in: bounds)
+        guard v != .zero else { return false }
+        origin.x += v.dx * dt / zoom
+        origin.y += v.dy * dt / zoom
+        viewDidChange()
+        editor.drag(to: scenePoint(current.last))
+        return true
+    }
+
+    // MARK: 拖放圖片
+
+    /// 圖片檔（Finder）、檔案承諾（照片 App 等）、圖片資料（瀏覽器）
+    private static let rawImageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff,
+        NSPasteboard.PasteboardType(UTType.jpeg.identifier), NSPasteboard.PasteboardType(UTType.heic.identifier)]
+    private static var dropTypes: [NSPasteboard.PasteboardType] {
+        [.fileURL] + NSFilePromiseReceiver.readableDraggedTypes.map { NSPasteboard.PasteboardType($0) } + rawImageTypes
+    }
+    private static let imageURLOptions: [NSPasteboard.ReadingOptionKey: Any] = [
+        .urlReadingFileURLsOnly: true, .urlReadingContentsConformToTypes: [UTType.image.identifier],
+    ]
+    private static let promiseQueue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.qualityOfService = .userInitiated
+        return queue
+    }()
+
+    private func imagePromises(in board: NSPasteboard) -> [NSFilePromiseReceiver] {
+        (board.readObjects(forClasses: [NSFilePromiseReceiver.self]) as? [NSFilePromiseReceiver] ?? []).filter { receiver in
+            receiver.fileTypes.contains { UTType($0)?.conforms(to: .image) == true }
+        }
+    }
+
+    private func canAccept(_ board: NSPasteboard) -> Bool {
+        board.canReadObject(forClasses: [NSURL.self], options: Self.imageURLOptions)
+            || !imagePromises(in: board).isEmpty
+            || board.availableType(from: Self.rawImageTypes) != nil
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        canAccept(sender.draggingPasteboard) ? .copy : []
+    }
+
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        canAccept(sender.draggingPasteboard) ? .copy : []
+    }
+
+    /// 放開的位置就是圖片中心；多張依序往右下錯開，每張一筆 Undo
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        let board = sender.draggingPasteboard
+        let drop = scenePoint(convert(sender.draggingLocation, from: nil))
+        if textView != nil { finishText() }
+        var dropped = 0
+        let insert: @MainActor @Sendable (Data) -> Void = { [weak self] data in
+            guard let self else { return }
+            let step = BoardEditor.insertOffset / zoom * CGFloat(dropped)
+            dropped += 1
+            let center = CGPoint(x: drop.x + step, y: drop.y + step)
+            Task { [editor] in await editor.insertImage(data, center: center) }
+            window?.makeFirstResponder(self)
+        }
+
+        if let urls = board.readObjects(forClasses: [NSURL.self], options: Self.imageURLOptions) as? [URL], !urls.isEmpty {
+            Task.detached(priority: .userInitiated) {
+                for url in urls {
+                    guard let data = try? Data(contentsOf: url) else { continue }
+                    await insert(data)
+                }
+            }
+            return true
+        }
+        let promises = imagePromises(in: board)
+        if !promises.isEmpty {
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent("EasyNotesDrop-\(UUID().uuidString)")
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            for receiver in promises {
+                receiver.receivePromisedFiles(atDestination: folder, options: [:], operationQueue: Self.promiseQueue) { @Sendable url, error in
+                    // 在 promiseQueue 上執行（不是主執行緒）：明確標成 @Sendable，避免被推斷成 @MainActor 而在執行時觸發隔離檢查
+                    guard error == nil, let data = try? Data(contentsOf: url) else { return }
+                    try? FileManager.default.removeItem(at: url)
+                    Task { await insert(data) }
+                }
+            }
+            return true
+        }
+        if let type = board.availableType(from: Self.rawImageTypes), let data = board.data(forType: type) {
+            insert(data)
+            return true
+        }
+        return false
     }
 
     // MARK: 鍵盤與選單
@@ -503,6 +667,7 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
         saveNow()
         displayLink?.invalidate()
         displayLink = nil
+        stopAutoscroll()
         settleTask?.cancel()
         lod.deactivate()
     }
@@ -515,5 +680,6 @@ private final class DisplayLinkProxy: NSObject {
     init(_ view: BoardMacCanvasView) { self.view = view }
 
     @MainActor @objc func tick() { view?.tick() }
+    @MainActor @objc func autoscroll(_ link: CADisplayLink) { view?.autoscrollTick(link) }
 }
 #endif

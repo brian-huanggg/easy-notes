@@ -514,7 +514,11 @@
 - 快捷鍵：`Editor/BoardShortcut.swift`（平台無關）。V R O A T F、Delete、⌘D、⌘A、⌘C / ⌘X / ⌘V、Esc；文字編輯中不攔截。Mac 走 `keyDown` / `performKeyEquivalent`，iPad 走 `UIKeyCommand`（字母、Delete、⌘D、⌘A、Esc）與 `copy` / `cut` / `paste` 響應鏈動作（PencilKit 有自己的筆畫剪貼簿，有它的內容時它優先）。剪貼簿貼上邏輯從工具列搬到 `BoardEditor.pasteFromPasteboard()`。
 - LOD：`Canvas/BoardLOD.swift`（兩個平台共用）。縮放 ≤ 0.4 且可見元素 > 1,500、沒有選取或操作時，背景畫一張快照（範圍外擴 25%、最長邊 ≤ 4096 px、iOS 不含手寫）取代個別 layer；快照好之前仍顯示 layer，縮放 / 平移時圖片跟著 transform，停止 150 ms 後重畫；選取、操作或放大回來就改回個別 layer。
 - 測試：`ShortcutTests`、`LODTests`、`MacCanvasTests`（離屏視窗 + 合成滑鼠 / 鍵盤事件：渲染方向、點選 / Shift 多選、拖曳移動與 Undo、拖曳建立、⌘D / Delete、縮放錨點、存檔），`KindWhiteboard` 共 124 個測試通過；macOS 與 iOS Simulator 建置成功。
-- 實機要確認：Mac 上雙指捲動與捏合手感、文字框位置與注音組字（含旋轉的形狀）、Edit 選單的復原 / 重做與剪貼簿、快捷鍵；iPad 外接鍵盤的快捷鍵與 ⌘C / ⌘V；LOD 在 1,000 以上元素縮到最小時的順暢度與切換時的閃爍（10,000 個元素的壓力測試檔）。尚未做：Mac 拖曳到邊緣自動捲動、拖放圖片檔進畫布、游標形狀（建立工具的十字）。
+- 實機要確認：Mac 上雙指捲動與捏合手感、文字框位置與注音組字（含旋轉的形狀）、Edit 選單的復原 / 重做與剪貼簿、快捷鍵；iPad 外接鍵盤的快捷鍵與 ⌘C / ⌘V；LOD 在 1,000 以上元素縮到最小時的順暢度與切換時的閃爍（10,000 個元素的壓力測試檔）。游標形狀見下一段。
+
+2026-10-02：Mac 拖曳到邊緣自動捲動與拖放圖片（程式完成，待實機驗證）。`Editor/EdgeAutoscroll.swift`（平台無關的速度計算：邊緣 32 點內開始、最快 900 點 / 秒）；`BoardMacCanvasView` 拖曳中游標靠近或超出邊緣時以 display link 平移畫面，並把同一個游標位置重新交給 `BoardEditor.drag`（框選、移動、建立都跟著延伸）。拖放：Finder 圖片檔、檔案承諾（照片 App）、瀏覽器的圖片資料，中心放在放開處、多張錯開 20 點；`BoardEditor.insertImage` 新增 `center:`。測試：`AutoscrollTests`、`MacCanvasTests` 新增框選自動捲動與指定中心插入圖片（共 143 個通過）。實機要確認：觸控板拖曳到邊緣的速度手感、從照片 App 與 Safari 拖進圖片。
+
+2026-10-02：Mac 游標：建立工具十字、文字工具 I 形、選取箭頭（`resetCursorRects`，Observation 追蹤 `editor.tool` 立即更新）；`MacCanvasTests` 新增一個（共 144 個通過）。
 
 2026-10-02：樣式面板（程式完成，待 App 內驗證後勾選；設計見 Architecture「4c：樣式面板」）。模型 `Model/Style.swift`：`StyleChange`、`ExcalidrawScene.setStyle` / `styleSummary`（只改適用的元素；形狀內的文字跟著形狀；改字級重新排版，獨立文字依對齊固定錨點、形狀內文字讓容器長高）。編輯器 `Editor/BoardEditor+Style.swift`：每次點選一筆 Undo、透明度滑桿整段一筆、`currentStyle` 給新元素（插入、拖曳建立、新文字；形狀面板不套用邊角，便條紙 / frame / 圖片不套用）。UI `Editor/StylePanel.swift`：工具列有選取時的「樣式」popover（iPad / Mac 同一個 view），箭頭示意圖用 `ElementGeometry.arrowhead` 畫。`StyleTests` 8 個，`KindWhiteboard` 共 132 個測試通過；iOS Simulator 與 macOS 建置成功。實機要確認：popover 在 iPhone / iPad 直向的大小、滑桿手感、多選時的「混合」顯示。
 

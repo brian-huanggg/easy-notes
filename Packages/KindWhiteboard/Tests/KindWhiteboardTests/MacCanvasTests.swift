@@ -153,6 +153,44 @@ struct MacCanvasTests {
         #expect(abs(sceneAfter.x - sceneBefore.x) < 0.5 && abs(sceneAfter.y - sceneBefore.y) < 0.5)
     }
 
+    @Test func marqueeAutoscrollsAtEdgeAndExtendsSelection() throws {
+        var scene = ExcalidrawScene()
+        var near = Element.rectangle(x: 100, y: 100, width: 50, height: 50)
+        near.raw["backgroundColor"] = "#ffc9c9"
+        var far = Element.rectangle(x: 1200, y: 100, width: 50, height: 50) // 畫面外（右邊）
+        far.raw["backgroundColor"] = "#ffc9c9"
+        scene.insert(near); scene.insert(far)
+        let (view, editor, window, _) = try setUp(scene)
+        let start = editor.visibleRect
+        // 從左上空白處拖到右邊緣：框選
+        view.mouseDown(with: mouse(.leftMouseDown, CGPoint(x: 10, y: 10), in: window))
+        view.mouseDragged(with: mouse(.leftMouseDragged, CGPoint(x: 400, y: 200), in: window))
+        view.mouseDragged(with: mouse(.leftMouseDragged, CGPoint(x: 799, y: 200), in: window))
+        #expect(editor.selection == [near.id])
+        for _ in 0..<60 { view.autoscroll(by: 1.0 / 60) } // 一秒
+        #expect(editor.visibleRect.minX > start.minX + 500) // 往右捲了
+        #expect(editor.visibleRect.minY == start.minY)
+        #expect(editor.selection == [near.id, far.id]) // 框選範圍跟著延伸
+        view.mouseUp(with: mouse(.leftMouseUp, CGPoint(x: 799, y: 200), in: window))
+        #expect(!view.autoscroll(by: 1.0 / 60)) // 放開後就停
+    }
+
+    @Test func imageInsertsAtGivenCenter() async throws {
+        let (_, editor, _, _) = try setUp(ExcalidrawScene())
+        #expect(await editor.insertImage(Fixture.pngData(width: 40, height: 20), center: CGPoint(x: 500, y: 700)))
+        let image = try #require(editor.document.scene.liveElements.first { $0.type == .image })
+        #expect(abs(image.rect.midX - 500) < 0.5 && abs(image.rect.midY - 700) < 0.5)
+    }
+
+    @Test func cursorFollowsTool() {
+        #expect(BoardMacCanvasView.cursor(for: .rectangle) === NSCursor.crosshair)
+        #expect(BoardMacCanvasView.cursor(for: .ellipse) === NSCursor.crosshair)
+        #expect(BoardMacCanvasView.cursor(for: .arrow) === NSCursor.crosshair)
+        #expect(BoardMacCanvasView.cursor(for: .frame) === NSCursor.crosshair)
+        #expect(BoardMacCanvasView.cursor(for: .text) === NSCursor.iBeam)
+        #expect(BoardMacCanvasView.cursor(for: .select) === NSCursor.arrow)
+    }
+
     @Test func saveWritesSceneAfterEdit() throws {
         let (view, editor, window, session) = try setUp()
         click(view, window, CGPoint(x: 100, y: 80))
