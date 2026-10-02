@@ -1,11 +1,18 @@
 # EasyNotes
 
-開始任何工作前，先讀架構文件（Claude Docs）：
-- [Architecture](./docs/Architecture.md)
-- [Roadmap](./docs/Roadmap.md)
+## 文件（來源是 `docs/` 的本地 md，三份內容不重複）
 
-- 目前進度以[Roadmap](./docs/Roadmap.md)的勾選狀態為準；完成項目後回去勾選。
-- 架構決策有變動時，先更新文件再改程式。
+- [Architecture](./docs/Architecture.md)：現在的設計與理由（不放進度、日期）
+- [Roadmap](./docs/Roadmap.md)：勾選清單、驗收、Bug；進度以勾選為準（不放設計理由）
+- [Changelog](./docs/Changelog.md)：給使用者看的版本變更
+
+## 工作流程
+
+- **實作前**：只讀 Roadmap 的「狀態總覽」與目前 Phase 小節，再依「設計」欄只讀 Architecture 對應章節（用標題定位、給 offset / limit）；同一內容一個 session 只讀一次。
+- **實作中**：設計有變動，先改 Architecture 再改程式；直接寫成現行規則，不加日期。
+- **實作後**：Roadmap 勾選（沒實際驗證的不勾，寫「尚未驗證」）、Changelog 的 `[Unreleased]` 加一行、測試通過後 commit；三者放同一個 commit。
+- **Changelog**：[Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) 格式、繁體中文，只記使用者看得到的變更（Added / Changed / Fixed…），不記重構、測試、文件、Spike。發版時改成 `## [X.Y.Z] - 日期` 並同步 `MARKETING_VERSION`；打 tag 與 push 先問。
+- **Commit**：訊息用 `Phase 4c: …` / `fix: …` / `docs: …`；只 stage 自己改的檔案（不用 `git add -A`，可能有其他 session 的檔案）；不 push、不 amend。
 
 ## 不可違反的規則
 
