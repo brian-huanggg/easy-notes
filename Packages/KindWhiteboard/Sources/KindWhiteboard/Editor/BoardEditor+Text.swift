@@ -171,13 +171,13 @@ extension BoardEditor {
 
     // MARK: 圖片
 
-    /// 插入圖片：背景解碼與縮圖，中心放在畫面中央，顯示尺寸最長邊約螢幕上 400 點。
+    /// 插入圖片：背景解碼與縮圖，中心放在 `center`（預設畫面中央；拖放時是放開的位置），顯示尺寸最長邊約螢幕上 400 點。
     /// 之後選取工具並選取它。資料不是圖片回傳 false
     @discardableResult
-    func insertImage(_ data: Data) async -> Bool {
+    func insertImage(_ data: Data, center: CGPoint? = nil) async -> Bool {
         let encoded = await Task.detached(priority: .userInitiated) { ExcalidrawScene.downscale(data) }.value
         guard let encoded else { return false }
-        let center = visibleRect.isNull ? .zero : CGPoint(x: visibleRect.midX, y: visibleRect.midY)
+        let center = center ?? (visibleRect.isNull ? .zero : CGPoint(x: visibleRect.midX, y: visibleRect.midY))
         let maxDisplay = 400 / Double(max(zoom, 0.01))
         inking = false
         tool = .select
