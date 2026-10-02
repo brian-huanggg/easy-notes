@@ -17,3 +17,6 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# 安裝包（scripts/make-dmg.sh、upload-testflight.sh）
+/build/

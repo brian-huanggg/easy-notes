@@ -28,7 +28,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
 
 targets:
@@ -56,6 +56,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: EasyNotes
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: zh-Hant
         CFBundleLocalizations: [zh-Hant]
         UILaunchScreen: {}
@@ -70,6 +72,8 @@ targets:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
         LSApplicationCategoryType: public.app-category.productivity
+        # 只用 HTTPS（系統加密），屬豁免；TestFlight 不再每版詢問出口合規
+        ITSAppUsesNonExemptEncryption: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.easynotes.EasyNotes
