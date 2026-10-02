@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
-/// iPad / iPhone 的 PDF 工具列（與白板工具列相同的樣式）：畫筆（手寫模式）| Undo / Redo。導覽列下方獨立一排
+/// iPad / iPhone 的 PDF 工具列（與白板工具列相同的樣式）：畫筆（手寫模式）| 便利貼 | Undo / Redo。導覽列下方獨立一排
 struct PDFToolbar: View {
     @Binding var inking: Bool
     let handle: PDFCanvasHandle
@@ -14,9 +14,11 @@ struct PDFToolbar: View {
             button(inking ? L("結束手寫") : L("畫筆"), inking ? "pencil.tip.crop.circle.fill" : "pencil.tip.crop.circle",
                    active: inking) { inking.toggle() }
             separator
-            button(L("復原"), "arrow.uturn.backward") { handle.canvas?.modelUndo.undo(); refreshUndo() }
+            button(L("便利貼"), "note.text") { handle.canvas?.addSticky() }
+            separator
+            button(L("復原"), "arrow.uturn.backward") { handle.canvas?.undo(); refreshUndo() }
                 .disabled(!canUndo)
-            button(L("重做"), "arrow.uturn.forward") { handle.canvas?.modelUndo.redo(); refreshUndo() }
+            button(L("重做"), "arrow.uturn.forward") { handle.canvas?.redo(); refreshUndo() }
                 .disabled(!canRedo)
         }
         .padding(.horizontal, 12)

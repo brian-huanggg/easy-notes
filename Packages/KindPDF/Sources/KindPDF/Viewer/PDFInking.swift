@@ -40,10 +40,11 @@ extension PDFReaderCanvas {
         updateToolPicker()
     }
 
-    private func updateToolPicker() {
+    /// 工具盤綁在 first responder 上：便利貼文字框拿走之後要搶回來，⌘Z 與工具盤才找得到這裡
+    func updateToolPicker() {
         guard window != nil else { return }
         toolPicker.setVisible(inking, forFirstResponder: self)
-        if inking { becomeFirstResponder() }
+        if inking || !isFirstResponder { becomeFirstResponder() }
     }
 
     private static var drawingPolicy: PKCanvasViewDrawingPolicy {
@@ -54,10 +55,13 @@ extension PDFReaderCanvas {
         #endif
     }
 
+    /// overlay 一律接收觸控（便利貼；非手寫模式由 `hitTest` 只攔便利貼），畫布只在手寫模式
     private func configure(_ overlay: PageOverlayView) {
-        overlay.isUserInteractionEnabled = inking
+        overlay.isUserInteractionEnabled = true
+        overlay.canvas.isUserInteractionEnabled = inking
         overlay.canvas.drawingPolicy = Self.drawingPolicy
         overlay.canvas.drawingGestureRecognizer.isEnabled = inking
+        overlay.applyInking(inking)
     }
 
     /// 新的 overlay：畫布跟著共用工具盤
@@ -71,17 +75,32 @@ extension PDFReaderCanvas {
 
     /// 畫布的筆畫改變：換回頁面座標寫進模型，以「頁碼 + 前後 elements」註冊 Undo
     func canvasDrawingDidChange(_ overlay: PageOverlayView) {
-        let index = overlay.pageIndex
         let strokes = PageInk.strokes(overlay.canvas.drawing, viewToPage: overlay.pageToView.inverted())
-        let before = document.scene(page: index).elements
-        syncingPage = index
-        document.edit(page: index) { $0.replaceInk(with: strokes) }
-        syncingPage = nil
-        let (undo, redo) = PageInk.snapshots(from: before, to: document.scene(page: index).elements)
-        if !undo.isEmpty { register(PageUndo(page: index, undo: undo, redo: redo)) }
+        undoableEdit(page: overlay.pageIndex, fromCanvas: true) { $0.replaceInk(with: strokes) }
         // PencilKit 在 delegate 之後才往畫布註冊自己的 undo（指向會被回收的畫布）：下一輪再丟掉
         let canvas = overlay.canvas
         DispatchQueue.main.async { canvas.privateUndo.removeAllActions() }
+    }
+
+    /// 修改一頁並註冊 Undo（只記有變的元素）。`fromCanvas`：筆畫就是畫布寫回來的，不必再載回畫布
+    func undoableEdit(page: Int, fromCanvas: Bool = false, _ body: (inout ExcalidrawScene) -> Void) {
+        let before = document.scene(page: page).elements
+        if fromCanvas { syncingPage = page }
+        document.edit(page: page, body)
+        syncingPage = nil
+        let (undo, redo) = PageInk.snapshots(from: before, to: document.scene(page: page).elements)
+        if !undo.isEmpty { register(PageUndo(page: page, undo: undo, redo: redo)) }
+    }
+
+    /// 工具列的復原 / 重做：先結束便利貼的文字編輯（寫回後才是一個可復原的步驟）
+    func undo() {
+        endEditing()
+        if modelUndo.canUndo { modelUndo.undo() }
+    }
+
+    func redo() {
+        endEditing()
+        if modelUndo.canRedo { modelUndo.redo() }
     }
 
     private func register(_ record: PageUndo) {
@@ -104,7 +123,10 @@ extension PDFReaderCanvas {
         rasterTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(250))
             guard !Task.isCancelled, let self else { return }
-            for overlay in overlays.values { applyRaster(to: overlay) }
+            for overlay in overlays.values {
+                applyRaster(to: overlay)
+                overlay.refreshSelection() // 外框維持相同的螢幕大小
+            }
         }
     }
 

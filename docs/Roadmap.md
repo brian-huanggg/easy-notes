@@ -423,6 +423,7 @@
 - [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
   - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加，匯出按鈕隨 5d。
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
+  - 實作完成（含工具列的「便利貼」按鈕、選取選單的編輯 / 刪除、模型 Undo），尚未驗證。已知：鍵盤可能蓋住頁面下方的便利貼（PDFView 不會自動捲動）；旋轉頁上的編輯框不跟著旋轉。
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
   - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；iPad 實機已驗證關閉重開後筆畫保存；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
 - [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）

@@ -18,9 +18,8 @@ final class PDFReaderCanvas: PlatformView {
     let document: PDFInkDocument
     private(set) var overlays: [Int: PageOverlayView] = [:]
     private var loadedRevision = -1
-    #if os(macOS)
     var editing: StickyEditing?
-    #else
+    #if os(iOS)
     /// 所有頁面共用的工具盤，綁在這個常駐 first responder 的 view（畫布會隨捲動回收）
     let toolPicker = PKToolPicker(toolItems: [
         PKToolPickerInkingItem(type: .pen), PKToolPickerInkingItem(type: .marker),
@@ -51,11 +50,11 @@ final class PDFReaderCanvas: PlatformView {
         pdfView.pageOverlayViewProvider = self
         addSubview(pdfView)
         document.onInkChange = { [weak self] pages in self?.refresh(pages) }
-        #if os(macOS)
         // 切換檔案、改名、同步合併前：先把編輯中的便利貼文字寫回
         document.flushHandler = { [weak self] in self?.endEditing() }
-        #else
+        #if os(iOS)
         setUpInking()
+        setUpStickies()
         #endif
         reloadIfNeeded()
     }
@@ -115,9 +114,8 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
 
     func pdfView(_ pdfView: PDFView, willEndDisplayingOverlayView overlayView: PlatformView, for page: PDFPage) {
         guard let overlay = overlayView as? PageOverlayView else { return }
-        #if os(macOS)
         if editing?.overlay === overlay { endEditing() }
-        #else
+        #if os(iOS)
         toolPicker.removeObserver(overlay.canvas)
         #endif
         // 標註只存在文件模型，overlay 直接丟掉
@@ -155,10 +153,12 @@ final class PageOverlayView: PlatformView {
             inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
         }
     }
-    #if os(macOS)
     var drag: StickyDrag?
-    /// 滑過的便利貼的外框與縮放點
+    /// 選取（iOS）或滑過（macOS）的便利貼的外框與縮放點
     var chrome: StickyChromeView?
+    #if os(iOS)
+    /// iOS 選取的便利貼（點一下選取，再點一下編輯）
+    var selectedSticky: String?
     #endif
     /// 頁面座標（未旋轉、y 向下）→ overlay 座標
     private(set) var pageToView = CGAffineTransform.identity
@@ -181,6 +181,7 @@ final class PageOverlayView: PlatformView {
         canvas.isScrollEnabled = false
         canvas.delegate = self
         addSubview(canvas)
+        setUpStickyGestures()
         #else
         wantsLayer = true
         layer?.addSublayer(inkLayer)
@@ -197,6 +198,7 @@ final class PageOverlayView: PlatformView {
         inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
         #if os(iOS)
         if updatesCanvas, laidOut { loadDrawing() }
+        refreshSelection()
         #endif
     }
 
@@ -265,6 +267,7 @@ final class PageOverlayView: PlatformView {
         // overlay 的版面改變（例如切換手寫模式）：筆畫重新換算到畫布
         if changed { loadDrawing() }
         host?.applyRaster(to: self)
+        refreshSelection()
         #endif
     }
 
@@ -278,6 +281,14 @@ final class PageOverlayView: PlatformView {
         super.didMoveToWindow()
         inkLayer.contentsScale = window?.screen.scale ?? 2
         setNeedsLayout()
+    }
+
+    /// 非手寫模式只在便利貼（或編輯中的文字框）上接收觸控，其餘交給 PDFView（捲動、選取文字）
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        guard let hit = super.hitTest(point, with: event) else { return nil }
+        if host?.inking == true { return hit }
+        if let textView = host?.editing?.textView, hit.isDescendant(of: textView) { return hit }
+        return sticky(at: point) != nil ? self : nil
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
