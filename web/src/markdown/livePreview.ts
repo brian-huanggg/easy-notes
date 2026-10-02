@@ -65,7 +65,7 @@ class CheckboxWidget extends WidgetType {
 }
 
 // 游標（含多重選取）所在的行號集合
-function activeLines(state: EditorState): Set<number> {
+export function activeLines(state: EditorState): Set<number> {
   const lines = new Set<number>();
   for (const r of state.selection.ranges) {
     const first = state.doc.lineAt(r.from).number;
@@ -103,7 +103,7 @@ const WIKILINK = /\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
 // 與 Swift 端 MarkdownKind 的標籤規則一致
 const TAG = /(?<![\p{L}\p{N}_#&\/])#([\p{L}\p{N}_\/-]+)/gu;
 
-function inCode(state: EditorState, pos: number): boolean {
+export function inCode(state: EditorState, pos: number): boolean {
   for (let n: ReturnType<typeof syntaxTree>["topNode"] | null = syntaxTree(state).resolveInner(pos, 1); n; n = n.parent) {
     if (n.name === "InlineCode" || n.name === "FencedCode" || n.name === "CodeBlock") return true;
   }

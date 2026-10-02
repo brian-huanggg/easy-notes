@@ -11,6 +11,7 @@ public enum MarkdownPlugin: EasyNotesPlugin {
         registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil",
                             shortcut: KeyboardShortcut("n"), defaultName: "未命名")
         registry.addController(editor)
+        registry.addVaultGuide(guide)
         // ⌘B / ⌘I 由 CodeMirror keymap 處理，這裡只提供選單入口
         registry.addMenu("格式", sections: [
             [
@@ -27,4 +28,17 @@ public enum MarkdownPlugin: EasyNotesPlugin {
             ],
         ])
     }
+
+    /// Vault 根目錄 `CLAUDE.md` 的筆記慣例一節
+    static let guide = """
+        ## 筆記（Markdown）
+
+        - 第一個 `# 標題` 是筆記標題；沒有時用檔名。
+        - `[[筆記名稱]]` 連到其他筆記（不含副檔名，別名寫成 `[[名稱|顯示文字]]`）；找不到的名稱，點擊時會建立新筆記。
+        - `[[連結]]` 獨占一行時顯示為連結卡片；`![[附件/圖.png]]` 嵌入圖片。
+        - 標籤：內文 `#標籤`（階層用 `#上層/下層`）或 frontmatter `tags: [a, b]`。
+        - frontmatter 欄位：`pinned: true`（釘選）、`icon: 🗺` 或 `icon: sf:map`（SF Symbol）、`cover: 附件/封面.jpg`、`tags`。其他欄位原樣保留。
+        - 圖片等附件放在 Vault 根目錄的 `附件/`。
+        - callout：`> [!tip] 文字`；待辦：`- [ ] 項目`。
+        """
 }

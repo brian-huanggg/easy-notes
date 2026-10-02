@@ -172,9 +172,16 @@ registry.addMenu("格式", sections: [[...], [...]])          // App 以 Command
 registry.addImport("匯入 PDF…", kind: PDFKind.self, symbol: "doc.richtext", shortcut: "o")  // 新增選單的匯入；檔案複製進目前資料夾
 registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badge: { dueCount }) { ReviewView() }  // 側邊欄項目
 registry.kinds                                                // → KindRegistry，交給 VaultFS、VaultIndex
-// 之後的 Phase：
-registry.addIndexContributor(CardExtractor())                  // Flashcards：從 md 抽出卡片
+registry.addIndexContributor(CardIndexer())                    // Flashcards：從 md 抽出卡片，存成索引的 records
+registry.addContentFixer(CardIDFixer())                         // Flashcards：替缺少 ^id 的卡片補上 id
+registry.addVaultGuide(guide)                                   // Vault 根目錄 CLAUDE.md 的一節（Markdown：筆記慣例；Flashcards：卡片語法）
 ```
+
+2026-10-02 決定（3a）：
+
+- `IndexContributor`（Core，無 UI）：外掛從檔案內容抽出自己的資料，Core 存在通用的 `records(contributor, path, key, value)` 表，`value` 是外掛自訂的 JSON 字串，Core 不解讀。外掛的 `version` 改變時整個索引重建。查詢只有「某 contributor 的全部 records」與「某 key 出現在哪些檔案」，複雜的查詢由外掛在記憶體中做（個人 Vault 的卡片數量級是數千）。
+- `ContentFixer`（Core，無 UI）：外掛在背景改寫檔案內容，App 寫回後照一般路徑索引與同步。App 只對**本機產生**的變動（App 內編輯、外部工具）呼叫，不處理同步拉下來的內容；**開啟中的檔案不改寫**，離開該檔案後才處理，所以不會在打字或注音組字中插入文字，也不必跨 Bridge。連續變動合併後（約 1.5 秒）才執行，讓 Claude Code 搬移內容時兩個檔案都寫完再判斷。
+- `addVaultGuide`：Vault 根目錄沒有 `CLAUDE.md` 時，App 以各外掛提供的段落建立它；已存在就不改寫（使用者可以自行編輯）。
 
 2026-10-01 決定：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。
 
@@ -267,15 +274,17 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 
 | 語法 | 產生 | 卡片 id |
 | --- | --- | --- |
-| `光合作用發生在 :: 葉綠體 ^c-a1b2` | 1 張（正向） | `c-a1b2` |
-| `中文 ;; Chinese ^c-c3d4` | 2 張（正向、反向） | `c-c3d4`、`c-c3d4:r` |
-| `{{粒線體}}是{{細胞的發電廠}} ^c-e5f6` | 每個 `{{}}` 一張 | `c-e5f6:1`、`c-e5f6:2` |
+| `光合作用發生在 :: 葉綠體 ^c-a1b2c3` | 1 張（正向） | `c-a1b2c3` |
+| `中文 ;; Chinese ^c-d4e5f6` | 2 張（正向、反向） | `c-d4e5f6`、`c-d4e5f6:r` |
+| `{{粒線體}}是{{細胞的發電廠}} ^c-g7h8i9` | 每個 `{{}}` 一張 | `c-g7h8i9:1`、`c-g7h8i9:2` |
 
 - 同一行產生的卡片互為 sibling（「埋藏 sibling」的對象）。
 - 卡片身分只跟 `^id` 綁定，與檔案路徑無關：整行剪下貼到別篇筆記，複習歷史跟著走。
 - 複製貼上造成 `^id` 重複時，後出現的那一行重新產生 id。
 - 刪掉這一行卡片就消失，紀錄留在 jsonl；同一個 `^id` 回來時歷史一併恢復。
-- 程式碼區塊與 frontmatter 內不解析卡片。
+- `::`、`;;` 前後要有空白（避免 `std::vector` 之類的文字被當成卡片）；程式碼區塊、行內程式碼與 frontmatter 內不解析卡片。
+- `^id` 格式為 `c-` + 6 碼小寫英數，由「檔案路徑 + 該行內容」的 hash 決定：兩台裝置替同一行補 id 會得到相同結果，diff3 視為相同的修改，不會產生衝突。行尾已有其他 block id（例如 Obsidian 的 `^abc`）時直接沿用。
+- 補 id 由 `ContentFixer` 執行（見「擴充點」）：開啟中的檔案不補，離開後才補。重複的 id：同一檔案內改後出現的那一行；與其他檔案重複時改目前處理的這個檔案（複製貼上的新位置）。
 - 卡片類型是 Flashcards 外掛內部的 enum，Core 不認識。語法規格寫在 Vault 的 `CLAUDE.md`，Markdown 外掛（語法標示）與 Flashcards 外掛（解析）各自依規格實作，不互相 import。
 
 #### 牌組

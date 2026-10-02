@@ -12,6 +12,7 @@ import { EditorSelection, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { post } from "./bridge";
+import { cards } from "./cards";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
 import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
 import { livePreview } from "./livePreview";
@@ -75,6 +76,7 @@ const extensions = [
   markdown({ base: markdownLanguage }),
   syntaxHighlighting(highlight),
   livePreview,
+  cards,
   docHeader,
   linkCards,
   autocompletion({ override: [wikilinkCompletion], icons: false, activateOnTyping: true }),
