@@ -622,15 +622,15 @@ final class VaultStore: DocumentSession {
         let path = "CLAUDE.md"
         guard !plugins.vaultGuides.isEmpty,
               !FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) else { return }
-        // l10n:fixed Vault 的 CLAUDE.md 給 Claude Code 讀，內容語言固定（見 translation.md）
+        // l10n:fixed Vault 的 CLAUDE.md 給 Claude Code 讀，內容固定用英文（見 translation.md）
         let header = """
             # EasyNotes Vault
 
-            這個資料夾是 EasyNotes 的 Vault。每筆筆記都是真實的檔案，App 的資料庫只是可重建的索引：直接讀寫這裡的檔案即可，App 會即時偵測、重新索引並同步到其他裝置。
+            This folder is an EasyNotes vault. Every note is a real file; the app's database is only a rebuildable index. Read and write the files here directly: the app detects changes immediately, re-indexes, and syncs them to other devices.
 
-            - 第一層資料夾是 App 側邊欄的「空間」；子資料夾可以任意建立。
-            - 改名、搬移檔案都可以直接做，App 會以內容推斷並保留同步歷史。
-            - 不要修改 `.easynotes/`（索引快取、同步狀態、複習紀錄與設定）。
+            - Top-level folders are the "spaces" in the app's sidebar; subfolders can be created freely.
+            - Renaming and moving files is fine: the app infers the move from file content and keeps the sync history.
+            - Do not modify `.easynotes/` (index cache, sync state, review logs and settings).
             """
         let text = ([header] + plugins.vaultGuides).joined(separator: "\n\n") + "\n"
         do { try fs.write(Data(text.utf8), to: path) } catch { report(error) }

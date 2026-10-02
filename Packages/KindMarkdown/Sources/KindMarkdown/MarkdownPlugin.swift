@@ -29,16 +29,16 @@ public enum MarkdownPlugin: EasyNotesPlugin {
         ])
     }
 
-    /// Vault 根目錄 `CLAUDE.md` 的筆記慣例一節（l10n:fixed：給 Claude Code 讀，內容語言固定）
+    /// Vault 根目錄 `CLAUDE.md` 的筆記慣例一節（l10n:fixed：給 Claude Code 讀，內容固定用英文）
     static let guide = """
-        ## 筆記（Markdown）
+        ## Notes (Markdown)
 
-        - 第一個 `# 標題` 是筆記標題；沒有時用檔名。
-        - `[[筆記名稱]]` 連到其他筆記（不含副檔名，別名寫成 `[[名稱|顯示文字]]`）；找不到的名稱，點擊時會建立新筆記。
-        - `[[連結]]` 獨占一行時顯示為連結卡片；`![[附件/圖.png]]` 嵌入圖片。
-        - 標籤：內文 `#標籤`（階層用 `#上層/下層`）或 frontmatter `tags: [a, b]`。
-        - frontmatter 欄位：`pinned: true`（釘選）、`icon: 🗺` 或 `icon: sf:map`（SF Symbol）、`cover: 附件/封面.jpg`、`tags`。其他欄位原樣保留。
-        - 圖片等附件放在 Vault 根目錄的 `附件/`。
-        - callout：`> [!tip] 文字`；待辦：`- [ ] 項目`。
+        - The first `# Heading` is the note's title; without one the file name is used.
+        - `[[Note name]]` links to another note (no extension; use `[[Name|Display text]]` for an alias). Clicking a name that does not exist creates a new note.
+        - A `[[link]]` alone on a line is shown as a link card; `![[附件/image.png]]` embeds an image.
+        - Tags: `#tag` in the body (nested as `#parent/child`) or frontmatter `tags: [a, b]`.
+        - Frontmatter fields: `pinned: true`, `icon: 🗺` or `icon: sf:map` (SF Symbol), `cover: 附件/cover.jpg`, `tags`. Other fields are preserved as-is.
+        - Images and other attachments live in `附件/` at the vault root.
+        - Callout: `> [!tip] text`; task: `- [ ] item`.
         """
 }
