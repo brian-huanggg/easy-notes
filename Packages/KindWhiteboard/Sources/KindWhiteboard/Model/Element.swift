@@ -222,10 +222,22 @@ extension Element {
         ]
     }
 
-    public static func rectangle(x: Double, y: Double, width: Double, height: Double) -> Element {
+    public static func rectangle(x: Double, y: Double, width: Double, height: Double, rounded: Bool = true) -> Element {
         var raw = base("rectangle", x: x, y: y, width: width, height: height)
-        raw["roundness"] = ["type": 3]
+        if rounded { raw["roundness"] = ["type": 3] }
         return Element(raw: raw)
+    }
+
+    public static func diamond(x: Double, y: Double, width: Double, height: Double) -> Element {
+        Element(raw: base("diamond", x: x, y: y, width: width, height: height))
+    }
+
+    /// 便條紙：無外框、黃色填滿的方角矩形（文字以 `containerId` 放在裡面）
+    public static func stickyNote(x: Double, y: Double, size: Double) -> Element {
+        var el = rectangle(x: x, y: y, width: size, height: size, rounded: false)
+        el.raw["backgroundColor"] = "#ffec99"
+        el.raw["strokeColor"] = "transparent"
+        return el
     }
 
     public static func ellipse(x: Double, y: Double, width: Double, height: Double) -> Element {
