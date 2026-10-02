@@ -13,7 +13,12 @@ final class VaultStore: DocumentSession {
     private(set) var tree: [VaultNode] = []
     /// 目前位置；`navigate` 會記入上一頁 / 下一頁的歷史
     private(set) var route: Route = .all {
-        didSet { if route != oldValue { refreshBacklinks() } }
+        didSet {
+            guard route != oldValue else { return }
+            refreshBacklinks()
+            // 離開開啟中的檔案：之前延後的 ContentFixer 現在可以處理
+            if let old = oldValue.filePath, old != route.filePath, pendingFixes.contains(old) { scheduleFixes([]) }
+        }
     }
     private(set) var backStack: [Route] = []
     private(set) var forwardStack: [Route] = []
@@ -43,6 +48,9 @@ final class VaultStore: DocumentSession {
     /// 最近一次由 App 寫入的內容，用來分辨外部修改與自己的寫入
     @ObservationIgnored private var lastWritten: [String: Data] = [:]
     @ObservationIgnored private var watcher: VaultWatcher?
+    /// 等待外掛 ContentFixer 處理的檔案（本機的變動）；開啟中的檔案留到離開後
+    @ObservationIgnored private var pendingFixes = Set<String>()
+    @ObservationIgnored private var fixTask: Task<Void, Never>?
 
     /// 本地內容有變動（App 內編輯或外部工具）：同步層據此排程上傳
     @ObservationIgnored var onLocalChange: (() -> Void)?
@@ -53,12 +61,14 @@ final class VaultStore: DocumentSession {
         self.plugins = plugins
         fs = VaultFS(root: root, kinds: kinds)
         writer = VaultWriter(fs: fs)
-        index = try? VaultIndex(fs: fs)
+        index = try? VaultIndex(fs: fs, contributors: plugins.indexContributors)
         previews = PreviewCache(directory: root.appending(path: "\(VaultFS.metaFolder)/cache/preview", directoryHint: .isDirectory))
         seedIfNeeded()
+        writeVaultGuideIfNeeded()
         refresh()
         Task {
-            await syncIndex()
+            // App 關閉期間的外部修改（例如 Claude Code）也交給 ContentFixer
+            scheduleFixes(await syncIndex())
             scheduleDerivedRefresh()
         }
         #if DEBUG
@@ -67,10 +77,7 @@ final class VaultStore: DocumentSession {
         if let query = UserDefaults.standard.string(forKey: "EasyNotesSearch") { searchText = query }
         #endif
         watcher = VaultWatcher(root: root) { [weak self] paths in
-            Task {
-                await self?.syncIndex(paths: paths)
-                self?.onLocalChange?()
-            }
+            Task { await self?.scanLocalChanges(paths: paths) }
         }
         for controller in plugins.controllers { controller.attach(self) }
     }
@@ -168,6 +175,7 @@ final class VaultStore: DocumentSession {
                 try await writer.write(data, to: path)
                 try await index?.update(path, data: data)
                 scheduleDerivedRefresh()
+                scheduleFixes([path])
                 onLocalChange?()
             } catch {
                 report(error)
@@ -177,13 +185,21 @@ final class VaultStore: DocumentSession {
 
     // MARK: 外部修改
 
-    /// 比對磁碟與索引：外部新增、修改、刪除的檔案會更新索引、檔案樹，並推送到開啟中的編輯器。
+    /// 本機的外部修改（Finder、Claude Code、「檔案」App）：更新索引並交給外掛的 ContentFixer。
     /// macOS 由 FSEvents 觸發，只重掃事件帶來的 `paths`；iOS 在回到前景時完整比對（`paths` 為 nil）。
-    func syncIndex(paths: Set<String>? = nil) async {
-        guard let index else { return }
+    func scanLocalChanges(paths: Set<String>? = nil) async {
+        let changed = await syncIndex(paths: paths)
+        scheduleFixes(changed)
+        onLocalChange?()
+    }
+
+    /// 比對磁碟與索引：新增、修改、刪除的檔案會更新索引、檔案樹，並推送到開啟中的編輯器。回傳有變動的路徑
+    @discardableResult
+    func syncIndex(paths: Set<String>? = nil) async -> Set<String> {
+        guard let index else { return [] }
         do {
             let changed = if let paths { try await index.sync(paths: paths) } else { try await index.sync() }
-            guard !changed.isEmpty else { return }
+            guard !changed.isEmpty else { return [] }
             refresh()
             if let current = selection, changed.contains(current) {
                 if FileManager.default.fileExists(atPath: fs.url(for: current).path(percentEncoded: false)) {
@@ -197,8 +213,58 @@ final class VaultStore: DocumentSession {
                 }
             }
             scheduleDerivedRefresh()
+            return changed
         } catch {
             report(error)
+            return []
+        }
+    }
+
+    // MARK: 外掛的背景改寫（ContentFixer）
+
+    /// 只處理本機產生的變動（App 內編輯、外部工具），不處理同步拉下來的內容。
+    /// 連續變動合併後才執行：Claude Code 搬移內容時，兩個檔案都寫完再判斷。
+    private func scheduleFixes(_ paths: Set<String>) {
+        guard !plugins.contentFixers.isEmpty else { return }
+        pendingFixes.formUnion(paths.filter { fs.kinds.kind(for: $0) != nil })
+        guard !pendingFixes.isEmpty else { return }
+        fixTask?.cancel()
+        fixTask = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            await runFixes()
+        }
+    }
+
+    /// 開啟中的檔案不改寫（不在打字、注音組字中插入文字），留在佇列等離開後再處理
+    private func runFixes() async {
+        guard let index else { return }
+        let paths = pendingFixes.filter { $0 != selection }
+        pendingFixes.subtract(paths)
+        var wrote = false
+        for path in paths.sorted() {
+            guard let kind = fs.kinds.kind(for: path), let original = try? fs.read(path) else { continue }
+            var data = original
+            for fixer in plugins.contentFixers {
+                if let fixed = await fixer.fix(path: path, kindID: kind.id, data: data, index: index) { data = fixed }
+            }
+            guard data != original else { continue }
+            // 處理期間被打開了：留到離開後
+            guard path != selection else {
+                pendingFixes.insert(path)
+                continue
+            }
+            do {
+                lastWritten[path] = data
+                try fs.write(data, to: path)
+                for editor in editors { editor.close(path: path) }
+                try await index.update(path, data: data)
+                wrote = true
+            } catch { report(error) }
+        }
+        if wrote {
+            scheduleDerivedRefresh()
+            onLocalChange?()
         }
     }
 
@@ -496,6 +562,26 @@ final class VaultStore: DocumentSession {
     private func report(_ error: Error) {
         lastError = error.localizedDescription
         print("[vault] \(error)")
+    }
+
+    // MARK: Vault 的 CLAUDE.md
+
+    /// Vault 根目錄沒有 `CLAUDE.md` 時，以各外掛的段落建立；已存在就不改寫（使用者可以自行編輯）
+    private func writeVaultGuideIfNeeded() {
+        let path = "CLAUDE.md"
+        guard !plugins.vaultGuides.isEmpty,
+              !FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) else { return }
+        let header = """
+            # EasyNotes Vault
+
+            這個資料夾是 EasyNotes 的 Vault。每筆筆記都是真實的檔案，App 的資料庫只是可重建的索引：直接讀寫這裡的檔案即可，App 會即時偵測、重新索引並同步到其他裝置。
+
+            - 第一層資料夾是 App 側邊欄的「空間」；子資料夾可以任意建立。
+            - 改名、搬移檔案都可以直接做，App 會以內容推斷並保留同步歷史。
+            - 不要修改 `.easynotes/`（索引快取、同步狀態、複習紀錄與設定）。
+            """
+        let text = ([header] + plugins.vaultGuides).joined(separator: "\n\n") + "\n"
+        do { try fs.write(Data(text.utf8), to: path) } catch { report(error) }
     }
 
     // MARK: 首次啟動的範例內容

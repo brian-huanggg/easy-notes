@@ -79,6 +79,10 @@ public final class PluginRegistry {
     public private(set) var panels: [Panel] = []
     public private(set) var controllers: [any EditorController] = []
     public private(set) var menus: [Menu] = []
+    public private(set) var indexContributors: [any IndexContributor] = []
+    public private(set) var contentFixers: [any ContentFixer] = []
+    /// Vault 根目錄 `CLAUDE.md` 的段落（Markdown），依註冊順序
+    public private(set) var vaultGuides: [String] = []
 
     public init() {}
 
@@ -131,6 +135,22 @@ public final class PluginRegistry {
 
     public func addMenu(_ title: String, sections: [[MenuItem]]) {
         menus.append(Menu(title: title, sections: sections))
+    }
+
+    /// 從檔案內容抽出外掛自己的索引資料（`VaultIndex.records`）。`id` 在所有外掛間不可重複
+    public func addIndexContributor(_ contributor: some IndexContributor) {
+        precondition(!indexContributors.contains { $0.id == contributor.id }, "重複註冊的 index contributor：\(contributor.id)")
+        indexContributors.append(contributor)
+    }
+
+    /// 在背景改寫檔案內容；只處理本機的變動，開啟中的檔案離開後才處理
+    public func addContentFixer(_ fixer: some ContentFixer) {
+        contentFixers.append(fixer)
+    }
+
+    /// Vault 沒有 `CLAUDE.md` 時，App 以這些段落建立它（已存在就不改寫）
+    public func addVaultGuide(_ markdown: String) {
+        vaultGuides.append(markdown)
     }
 
     // MARK: 查詢

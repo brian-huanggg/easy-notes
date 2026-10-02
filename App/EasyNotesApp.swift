@@ -1,5 +1,6 @@
 import EasyNotesCore
 import EasyNotesUI
+import Flashcards
 import KindMarkdown
 import KindWhiteboard
 import SwiftUI
@@ -8,6 +9,7 @@ import SwiftUI
 private let plugins: [any EasyNotesPlugin.Type] = [
     MarkdownPlugin.self,
     WhiteboardPlugin.self,
+    FlashcardsPlugin.self,
 ]
 
 @main
@@ -37,7 +39,7 @@ struct EasyNotesApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await store.syncIndex() } // 在「檔案」App 改過的檔案
+                Task { await store.scanLocalChanges() } // 在「檔案」App 改過的檔案
                 sync.scenePhaseChanged(active: true)
             } else {
                 Task {

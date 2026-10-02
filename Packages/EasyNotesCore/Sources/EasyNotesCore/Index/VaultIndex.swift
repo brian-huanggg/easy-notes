@@ -38,18 +38,21 @@ public struct TagCount: Identifiable, Hashable, Sendable {
 public actor VaultIndex {
     public static let hitStart = "\u{1}"
     public static let hitEnd = "\u{2}"
-    static let schemaVersion = 2
+    static let schemaVersion = 3
 
     private let fs: VaultFS
     private let db: SQLiteDB
+    private let contributors: [any IndexContributor]
 
     /// 索引位置：`<vault>/.easynotes/cache/index.sqlite`（cache 不參與同步）
-    public init(fs: VaultFS, location: URL? = nil) throws {
+    public init(fs: VaultFS, location: URL? = nil, contributors: [any IndexContributor] = []) throws {
         self.fs = fs
+        self.contributors = contributors
         let url = location ?? fs.root.appending(path: "\(VaultFS.metaFolder)/cache/index.sqlite")
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         db = try SQLiteDB(path: url.path(percentEncoded: false))
         try Self.migrate(db)
+        try Self.resetIfContributorsChanged(db, contributors)
     }
 
     private static func migrate(_ db: SQLiteDB) throws {
@@ -64,8 +67,24 @@ public actor VaultIndex {
             CREATE TABLE tags(path TEXT NOT NULL, tag TEXT NOT NULL);
             CREATE INDEX tags_tag ON tags(tag);
             CREATE VIRTUAL TABLE fts USING fts5(path UNINDEXED, title, body, tokenize = 'trigram');
+            DROP TABLE IF EXISTS records; DROP TABLE IF EXISTS meta;
+            CREATE TABLE records(contributor TEXT NOT NULL, path TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL);
+            CREATE INDEX records_path ON records(path);
+            CREATE INDEX records_key ON records(contributor, key);
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
             """)
         db.userVersion = schemaVersion
+    }
+
+    /// 外掛的抽取規則改變（新增、移除 contributor 或 version 改變）時清空索引，下一次 sync 全部重建
+    private static func resetIfContributorsChanged(_ db: SQLiteDB, _ contributors: [any IndexContributor]) throws {
+        let signature = contributors.map { "\($0.id):\($0.version)" }.sorted().joined(separator: ",")
+        let stored = try db.query("SELECT value FROM meta WHERE key = 'contributors'") { $0.text(0) }.first
+        guard stored != signature else { return }
+        try db.transaction {
+            for table in ["files", "fts", "links", "tags", "records"] { try db.run("DELETE FROM \(table)") }
+            try db.run("INSERT OR REPLACE INTO meta(key, value) VALUES('contributors', ?)", [.text(signature)])
+        }
     }
 
     // MARK: 更新
@@ -165,6 +184,12 @@ public actor VaultIndex {
         for tag in entry.tags {
             try db.run("INSERT INTO tags(path, tag) VALUES(?, ?)", [.text(path), .text(tag)])
         }
+        for contributor in contributors {
+            for record in contributor.records(path: path, kindID: kind.id, data: data) {
+                try db.run("INSERT INTO records(contributor, path, key, value) VALUES(?, ?, ?, ?)",
+                           [.text(contributor.id), .text(path), .text(record.key), .text(record.value)])
+            }
+        }
     }
 
     private func removeRows(_ path: String) throws {
@@ -173,6 +198,7 @@ public actor VaultIndex {
         }
         try db.run("DELETE FROM links WHERE src = ?", [.text(path)])
         try db.run("DELETE FROM tags WHERE path = ?", [.text(path)])
+        try db.run("DELETE FROM records WHERE path = ?", [.text(path)])
     }
 
     // MARK: 查詢
@@ -257,6 +283,18 @@ public actor VaultIndex {
     private static func indexedFile(_ row: SQLiteDB.Row) -> IndexedFile {
         IndexedFile(path: row.text(0), title: row.text(1), mtime: Date(timeIntervalSince1970: row.double(2)),
                     icon: row.optionalText(3), pinned: row.int(4) != 0, summary: row.optionalText(5), hash: row.text(6))
+    }
+
+    /// 某個 contributor 的所有 records，依路徑排序
+    public func records(_ contributor: String) throws -> [(path: String, record: IndexRecord)] {
+        try db.query("SELECT path, key, value FROM records WHERE contributor = ? ORDER BY path, rowid",
+                     [.text(contributor)]) { ($0.text(0), IndexRecord(key: $0.text(1), value: $0.text(2))) }
+    }
+
+    /// 某個 key 出現在哪些檔案（例如卡片 id 是否已被其他檔案使用）
+    public func paths(withKey key: String, contributor: String) throws -> [String] {
+        try db.query("SELECT DISTINCT path FROM records WHERE contributor = ? AND key = ? ORDER BY path",
+                     [.text(contributor), .text(key)]) { $0.text(0) }
     }
 
     /// `[[` 自動完成用的筆記名稱

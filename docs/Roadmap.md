@@ -25,7 +25,7 @@
 - [x] 拆出 KindWhiteboard（`InkKind`、`ExcalidrawInk`、`PencilKitBridge`、`InkEditorView`）
 - [x] `App/Editors/EditorRegistry.swift` 的 `switch` 改為向 Registry 查詢
 - [x] `web/` 改為多 entry 打包，輸出到各外掛的 Resources
-- [ ] Vault 根目錄建立 `CLAUDE.md`（Vault 慣例）
+- [x] Vault 根目錄建立 `CLAUDE.md`（Vault 慣例）→ 2026-10-02 於 3a 完成（`addVaultGuide`）
 - [ ] 編輯器保留的 `EditorState` 改為 LRU（最近 20 篇），收到記憶體警告時清掉不在畫面上的
 - [ ] 建立 Release build 的大小、記憶體、耗電基準線（見「非功能預算」）
 
@@ -221,18 +221,22 @@
 
 目標：md 中的卡片能被解析、建立索引，並在編輯器中標示出來；還不能複習。
 
-- [ ] 新增 `Flashcards` 外掛 package（只依賴 EasyNotesCore / EasyNotesUI），在 App 註冊
-- [ ] 卡片解析（`::`、`;;`、`{{}}`、`^id`）；卡片 id 後綴（`:r` 反向、`:n` 克漏字）；程式碼區塊與 frontmatter 內不解析
-- [ ] 缺 `^id` 時自動補上（經 Vault 的一般寫檔路徑）；重複 `^id` 只改後出現的那一行
-- [ ] `addIndexContributor`：索引卡片（note id、卡片 id、類型、所在檔案與行、正反面文字）
-- [ ] Markdown 外掛的卡片語法標示（CM6 decorations；`^id` 淡化顯示）
-- [ ] Vault 的 `CLAUDE.md` 寫入卡片語法規格
+- [x] 新增 `Flashcards` 外掛 package（只依賴 EasyNotesCore / EasyNotesUI），在 App 註冊
+- [x] 卡片解析（`::`、`;;`、`{{}}`、`^id`）；卡片 id 後綴（`:r` 反向、`:n` 克漏字）；程式碼區塊與 frontmatter 內不解析
+- [x] 缺 `^id` 時自動補上（`ContentFixer`；id 由路徑 + 行內容的 hash 決定；開啟中的檔案離開後才補）；重複 `^id` 只改後出現的那一行
+- [x] Core 新增 `IndexContributor`（通用 `records` 表）與 `ContentFixer`；PluginRegistry 新增 `addIndexContributor`、`addContentFixer`、`addVaultGuide`
+- [x] 索引卡片（note id、類型、所在行、正反面文字）
+- [x] Markdown 外掛的卡片語法標示（CM6 decorations：非游標行 `::` / `;;` 顯示為箭頭、克漏字隱藏括號並標示、`^id` 隱藏；游標行顯示原始語法，`^id` 淡化）
+- [x] Vault 的 `CLAUDE.md` 寫入卡片語法規格
 
 驗收測試：
 
-- [ ] 解析器 fixture 測試：三種語法、程式碼區塊與 frontmatter 內不視為卡片、編輯卡片文字後 `^id` 不變、重複 `^id` 只改後出現的
+- [x] 解析器 fixture 測試：三種語法、程式碼區塊與 frontmatter 內不視為卡片、編輯卡片文字後 `^id` 不變、重複 `^id` 只改後出現的
+- [x] 兩台裝置替同一行補 `^id` 得到相同結果，diff3 合併不衝突
 - [ ] Claude Code 寫入 50 行 `::` 卡片 → 數秒內全部補上 `^id`，其餘內容逐位元組相同
-- [ ] 注音輸入：在卡片行內組字正常，`^id` 不在組字中被補上（只在存檔路徑）
+- [ ] 注音輸入：在卡片行內組字正常；開啟中的檔案不會被補 `^id`，切到別篇後才補上
+
+2026-10-02：3a 程式完成，單元測試通過（Core 的 `IndexContributorTests`、Flashcards 的 `CardSyntaxTests` / `CardIDsTests` / `CardIndexTests`，後者以 App 相同的流程模擬 50 張卡片補 id）。Vault 的 `CLAUDE.md` 由 Markdown 與 Flashcards 外掛各提供一節，App 加上 Vault 慣例的開頭。尚未在實機驗證：語法標示的外觀、注音組字、FSEvents 觸發後數秒內補上 id。
 
 ### 3b 排程、紀錄與重播
 

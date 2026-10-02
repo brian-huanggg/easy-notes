@@ -88,6 +88,12 @@
   .cm-lp-done { color: var(--text-tertiary); }
 
   /* 連結卡片（獨占一行的 [[連結]]） */
+  /* 卡片語法（Flashcards）：非游標行 `::` 換成箭頭、克漏字隱藏括號、`^id` 隱藏 */
+  .cm-card-sep { color: var(--accent); font-weight: 600; }
+  .cm-card-cloze { background: var(--accent-soft); color: var(--accent-deep); border-radius: 4px; padding: 0 3px; }
+  .cm-card-brace { color: var(--text-tertiary); }
+  .cm-card-id { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 0.78em; }
+
   .cm-lp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 4px 0 6px; font-family: var(--font-ui); }
   .cm-lp-card { display: flex; align-items: center; gap: 11px; box-sizing: border-box; height: 56px; padding: 0 13px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); cursor: pointer; user-select: none; -webkit-user-select: none; }
   .cm-lp-card:hover { border-color: var(--border-strong); }
