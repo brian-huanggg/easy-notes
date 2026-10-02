@@ -1,3 +1,4 @@
+import ExcalidrawKit
 import SwiftUI
 
 /// 樣式面板（見 architecture/whiteboard.md「4c：樣式面板」）：只顯示選取元素適用的區塊，只用預設色盤。

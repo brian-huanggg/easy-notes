@@ -57,6 +57,7 @@ registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pe
 registry.addController(MarkdownEditor.shared)
 registry.addMenu("格式", sections: [[...], [...]])          // App 以 Commands 呈現，最多 4 個頂層選單
 registry.addImport("匯入 PDF…", kind: PDFKind.self, symbol: "doc.richtext", shortcut: "o")  // 新增選單的匯入；檔案複製進目前資料夾
+registry.addCompanionKind(PDFInkKind.self)                    // 伴隨檔類型：進 KindRegistry 照常索引、同步，但不是篩選 chip
 registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badge: { dueCount }) { ReviewView() }  // 側邊欄項目
 registry.kinds                                                // → KindRegistry，交給 VaultFS、VaultIndex
 registry.addIndexContributor(CardIndexer())                    // Flashcards：從 md 抽出卡片，存成索引的 records
@@ -94,6 +95,8 @@ vaultFS.deviceID() -> String
 - `IndexContributor`（Core，無 UI）：外掛從檔案內容抽出自己的資料，Core 存在通用的 `records(contributor, path, key, value)` 表，`value` 是外掛自訂的 JSON 字串，Core 不解讀。外掛的 `version` 改變時整個索引重建。查詢只有「某 contributor 的全部 records」與「某 key 出現在哪些檔案」，複雜的查詢由外掛在記憶體中做（個人 Vault 的卡片數量級是數千）。
 - `ContentFixer`（Core，無 UI）：外掛在背景改寫檔案內容，App 寫回後照一般路徑索引與同步。App 只對**本機產生**的變動（App 內編輯、外部工具）呼叫，不處理同步拉下來的內容；**開啟中的檔案不改寫**，離開該檔案後才處理，所以不會在打字或注音組字中插入文字，也不必跨 Bridge。連續變動合併後（約 1.5 秒）才執行，讓 Claude Code 搬移內容時兩個檔案都寫完再判斷。
 - `addVaultGuide`：Vault 根目錄沒有 `CLAUDE.md` 時，App 以各外掛提供的段落建立它；已存在就不改寫（使用者可以自行編輯）。
+
+**伴隨檔（Phase 5）**：`companionOf` 回傳主檔路徑的檔案（例如 `x.pdf.ink`）。`KindRegistry.mainFile(ofCompanion:)` / `companionPath(_:from:to:)`、`VaultFS.companions(of:)` / `companionMoves(from:to:)` 是共用的查詢。檔案樹（`VaultFS.scan`）、`allFiles`、`VaultIndex.files` / `search`、`SyncEngine.recentlyDeleted` 預設不含伴隨檔；`VaultFS.fileStats` 含（照常索引與同步）。`VaultFS.rename` / `trash` 一併處理伴隨檔；`SyncEngine` 推斷出外部改名時搬移伴隨檔、還原主檔時還原伴隨檔。
 
 **Registry 分兩層**：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。
 
@@ -155,7 +158,7 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 - `.easynotes/device-id`（不同步）：這台裝置的 id（`VaultFS.deviceID()`），`commit_file` 的 `device_id` 與複習紀錄的檔名都用它。
 - `.easynotes/` 只有外掛以 `addSyncedMetaFolder` 註冊的子資料夾參與同步（目前是 Flashcards 的 `srs/`），其餘（`cache/`、`sync.sqlite`、`device-id`）都是本機的。
 - `.easynotes/cache/base/<hash>`：上次同步的內容，當作三方合併的 base。
-- App 內改名直接更新 path；外部工具（Finder、Claude Code 的 `mv`）改名時，VaultWatcher 會看到「刪除 + 新增」，若兩者 hash 相同就推斷為改名並保留 file id。推斷失敗最多失去歷史，不會遺失內容。
+- App 內改名直接更新 path；外部工具（Finder、Claude Code 的 `mv`）改名時，VaultWatcher 會看到「刪除 + 新增」，若兩者 hash 相同就推斷為改名並保留 file id。推斷失敗最多失去歷史，不會遺失內容。主檔被推斷為改名時，留在原地的伴隨檔一起搬過去（經 `Hooks.didChange` 通知 App）。
 
 ### 流程
 

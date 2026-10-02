@@ -204,13 +204,15 @@ final class VaultStore: DocumentSession {
             refresh()
             if let current = selection, changed.contains(current) {
                 if FileManager.default.fileExists(atPath: fs.url(for: current).path(percentEncoded: false)) {
-                    let data = readData(current)
-                    if data != lastWritten[current] {
-                        lastWritten[current] = data
-                        for editor in editors { editor.externalChange(path: current, data: data) }
-                    }
+                    pushExternalChange(current)
                 } else {
                     routesDeleted(current)
+                }
+            }
+            // 開啟中檔案的伴隨檔（例如 PDF 的標註旁檔）被外部修改：交給同一個編輯器合併
+            if let current = selection {
+                for companion in changed where fs.kinds.mainFile(ofCompanion: companion) == current && fs.exists(companion) {
+                    pushExternalChange(companion)
                 }
             }
             scheduleDerivedRefresh()
@@ -220,6 +222,19 @@ final class VaultStore: DocumentSession {
             report(error)
             return []
         }
+    }
+
+    private func pushExternalChange(_ path: String) {
+        let data = readData(path)
+        guard data != lastWritten[path] else { return }
+        lastWritten[path] = data
+        for editor in editors { editor.externalChange(path: path, data: data) }
+    }
+
+    /// 開啟中的檔案或它的伴隨檔
+    private func isOpen(_ path: String) -> Bool {
+        guard let selection else { return false }
+        return path == selection || fs.kinds.mainFile(ofCompanion: path) == selection
     }
 
     // MARK: 外掛的背景改寫（ContentFixer）
@@ -360,11 +375,16 @@ final class VaultStore: DocumentSession {
         let newTitle = (name as NSString).deletingPathExtension
         do {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
+            let newPathGuess = ((path as NSString).deletingLastPathComponent as NSString).appendingPathComponent(name)
+            let companions = isFolder(path) ? [] : fs.companionMoves(from: path, to: newPathGuess)
             let newPath = try fs.rename(path, to: name)
-            onMove?(path, newPath)
-            for editor in editors {
-                editor.close(path: path)
-                editor.moved(from: path, to: newPath)
+            // 伴隨檔由 `fs.rename` 一起搬移；同步層與編輯器也要知道
+            for move in [(from: path, to: newPath)] + companions where fs.exists(move.to) {
+                onMove?(move.from, move.to)
+                for editor in editors {
+                    editor.close(path: move.from)
+                    editor.moved(from: move.from, to: move.to)
+                }
             }
             refresh()
             routesMoved(from: path, to: newPath)
@@ -388,8 +408,9 @@ final class VaultStore: DocumentSession {
     func delete(_ path: String) async {
         await flushEditors()
         do {
-            try fs.trash(path)
-            for editor in editors { editor.close(path: path) }
+            let companions = fs.companions(of: path)
+            try fs.trash(path) // 伴隨檔一起刪除
+            for closed in [path] + companions { for editor in editors { editor.close(path: closed) } }
             routesDeleted(path)
             refresh()
             await syncIndex()
@@ -414,7 +435,7 @@ final class VaultStore: DocumentSession {
         if let data {
             lastWritten[path] = data
             for editor in editors {
-                if path == selection { editor.externalChange(path: path, data: data) } else { editor.close(path: path) }
+                if isOpen(path) { editor.externalChange(path: path, data: data) } else { editor.close(path: path) }
             }
         } else if oldPath == nil {
             for editor in editors { editor.close(path: path) }

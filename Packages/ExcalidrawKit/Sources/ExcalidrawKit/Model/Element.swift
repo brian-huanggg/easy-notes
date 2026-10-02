@@ -51,7 +51,7 @@ public enum ArrowEnd: Sendable {
 /// 型別化的元素包裝。底層仍是原始字典：不認識的欄位與類型原樣保留，寫回時不會遺失。
 /// setter 只改欄位，不遞增 version；要遞增請走 `ExcalidrawScene.mutate`。
 public struct Element {
-    public internal(set) var raw: [String: Any]
+    public var raw: [String: Any]
 
     public init(raw: [String: Any]) {
         self.raw = raw

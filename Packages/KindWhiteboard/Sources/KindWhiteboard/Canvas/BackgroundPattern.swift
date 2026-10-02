@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import QuartzCore
 
 /// 編輯器的畫布背景：網格或點（見 architecture/whiteboard.md「工具列改版」）。放在結構層底下、跟著同一個 transform

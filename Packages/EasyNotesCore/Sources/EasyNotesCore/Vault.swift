@@ -53,21 +53,23 @@ public struct VaultFS: Sendable {
 
     // MARK: 掃描
 
-    public func scan() throws -> [VaultNode] {
+    /// 檔案樹；伴隨檔（`DocumentKind.companionOf`）預設不列出
+    public func scan(includingCompanions: Bool = false) throws -> [VaultNode] {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        return try children(of: root)
+        return try children(of: root, includingCompanions: includingCompanions)
     }
 
-    private func children(of dir: URL) throws -> [VaultNode] {
+    private func children(of dir: URL, includingCompanions: Bool) throws -> [VaultNode] {
         let items = try FileManager.default.contentsOfDirectory(
             at: dir, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
         return try items.compactMap { url -> VaultNode? in
             let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
             if isDir {
                 return VaultNode(path: path(for: url), name: url.lastPathComponent, isFolder: true,
-                                 children: try children(of: url))
+                                 children: try children(of: url, includingCompanions: includingCompanions))
             }
             guard kinds.kind(for: url) != nil else { return nil }
+            if !includingCompanions, kinds.isCompanion(url.lastPathComponent) { return nil }
             return VaultNode(path: path(for: url), name: url.lastPathComponent, isFolder: false, children: nil)
         }
         .sorted { lhs, rhs in
@@ -77,11 +79,11 @@ public struct VaultFS: Sendable {
         }
     }
 
-    public func allFiles() throws -> [VaultNode] {
+    public func allFiles(includingCompanions: Bool = false) throws -> [VaultNode] {
         func flatten(_ nodes: [VaultNode]) -> [VaultNode] {
             nodes.flatMap { $0.isFolder ? flatten($0.children ?? []) : [$0] }
         }
-        return flatten(try scan())
+        return flatten(try scan(includingCompanions: includingCompanions))
     }
 
     public struct FileStat: Sendable {
@@ -91,7 +93,8 @@ public struct VaultFS: Sendable {
     }
 
     public func fileStats() throws -> [FileStat] {
-        try allFiles().compactMap { try fileStat($0.path) }
+        // 伴隨檔照常索引（外部修改、同步拉下來的旁檔才能通知編輯器）
+        try allFiles(includingCompanions: true).compactMap { try fileStat($0.path) }
     }
 
     public func fileStat(_ path: String) throws -> FileStat? {
@@ -151,15 +154,40 @@ public struct VaultFS: Sendable {
         return path
     }
 
+    /// 改名；檔案的伴隨檔一起改名（見 `companionMoves`）
     public func rename(_ path: String, to newName: String) throws -> String {
         let parent = (path as NSString).deletingLastPathComponent
         let newPath = join(parent, newName)
+        let companions = companionMoves(from: path, to: newPath)
         try FileManager.default.moveItem(at: url(for: path), to: url(for: newPath))
+        for move in companions where !exists(move.to) {
+            try FileManager.default.moveItem(at: url(for: move.from), to: url(for: move.to))
+        }
         return newPath
     }
 
+    /// 刪除（移到垃圾桶）；檔案的伴隨檔一起刪除
     public func trash(_ path: String) throws {
+        let companions = companions(of: path)
         try FileManager.default.trashItem(at: url(for: path), resultingItemURL: nil)
+        for companion in companions { try FileManager.default.trashItem(at: url(for: companion), resultingItemURL: nil) }
+    }
+
+    /// 與 `path` 同資料夾、主檔是 `path` 的伴隨檔
+    public func companions(of path: String) -> [String] {
+        let parent = (path as NSString).deletingLastPathComponent
+        let dir = parent.isEmpty ? root : url(for: parent)
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path(percentEncoded: false))) ?? []
+        return names.map { join(parent, $0) }.filter { kinds.mainFile(ofCompanion: $0) == path }.sorted()
+    }
+
+    /// 主檔從 `path` 搬到 `newPath` 時，各伴隨檔的搬移（資料夾不處理：伴隨檔本來就在裡面）
+    public func companionMoves(from path: String, to newPath: String) -> [(from: String, to: String)] {
+        companions(of: path).compactMap { c in kinds.companionPath(c, from: path, to: newPath).map { (c, $0) } }
+    }
+
+    public func exists(_ path: String) -> Bool {
+        FileManager.default.fileExists(atPath: url(for: path).path(percentEncoded: false))
     }
 
     private func join(_ folder: String, _ name: String) -> String {

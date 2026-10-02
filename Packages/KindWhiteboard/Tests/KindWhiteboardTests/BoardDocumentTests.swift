@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import EasyNotesCore
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4a：開啟中的白板接收外部變動

@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 
 /// 無限畫布的捲動範圍。Excalidraw 的座標可以是負數，`PKCanvasView` 的內容座標從 0 開始，
 /// 所以 `內容座標 = 場景座標 − origin`。範圍 = 內容外擴一圈留白，捲到接近邊緣時擴大；

@@ -1,3 +1,5 @@
+import ExcalidrawKit
+
 /// 白板的結構工具（`BoardEditor` 處理）。手寫不是工具：iOS 的畫筆按鈕切換 `BoardEditor.inking`，
 /// 由 PencilKit 的工具盤選筆、橡皮擦與套索。拖曳建立的工具給 Mac 與鍵盤快捷鍵用；
 /// iOS 工具列改為插在畫面中央（`BoardEditor.insert`）。

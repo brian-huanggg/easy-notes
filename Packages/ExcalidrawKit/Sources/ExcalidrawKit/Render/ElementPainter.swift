@@ -5,12 +5,12 @@ import ImageIO
 
 /// 畫單一元素（CoreGraphics，畫布座標、y 向下）。`SceneRenderer` 依序畫整個場景；
 /// 編輯器的 layer 樹用它畫文字、圖片、手寫與佔位框這些不是純路徑的元素，所以兩邊看起來一致。
-final class ElementPainter: @unchecked Sendable {
+public final class ElementPainter: @unchecked Sendable {
     private let files: [String: Any]
     /// 解碼過的圖片（依 fileId 與像素大小）；重畫時不必重新解碼
     private let imageCache = NSCache<NSString, CGImage>()
 
-    init(files: [String: Any]) {
+    public init(files: [String: Any]) {
         self.files = files
         imageCache.countLimit = 64
     }
@@ -31,7 +31,7 @@ final class ElementPainter: @unchecked Sendable {
     }
 
     /// 畫元素本身，不含旋轉與透明度（layer 樹由 layer 的 transform 與 opacity 處理）
-    func drawContent(_ el: Element, in ctx: CGContext, pixelScale: CGFloat) {
+    public func drawContent(_ el: Element, in ctx: CGContext, pixelScale: CGFloat) {
         switch el.type {
         case .rectangle, .diamond, .ellipse: drawShape(el, in: ctx)
         case .line, .arrow: drawLinear(el, in: ctx)
@@ -234,7 +234,7 @@ final class ElementPainter: @unchecked Sendable {
     }
 
     /// 標題在 frame 外，不受子元素的裁切影響（frame 本身沒有 frameId）
-    func drawFrameTitle(_ el: Element, in ctx: CGContext) {
+    public func drawFrameTitle(_ el: Element, in ctx: CGContext) {
         let name = (el.raw["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Frame"
         drawLines([name], in: ElementGeometry.frameTitleRect(el), fontSize: ElementGeometry.frameTitleSize,
                   lineHeight: 1.25, align: "left", color: SceneColor.frameTitle, ctx: ctx)

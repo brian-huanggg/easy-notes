@@ -63,7 +63,7 @@ struct Device {
 
     init(_ name: String, backend: FakeBackend, root: URL? = nil, metaFolders: [String] = []) throws {
         let root = root ?? FileManager.default.temporaryDirectory.appending(path: "sync-\(name)-\(UUID().uuidString)")
-        fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self, AnnotationKind.self]))
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         engine = try SyncEngine(fs: fs, backend: backend, userID: "me", deviceName: name, syncedMetaFolders: metaFolders)
     }
@@ -302,7 +302,7 @@ struct SyncEngineTests {
         let mac = try Device("Mac", backend: backend)
         let root = FileManager.default.temporaryDirectory.appending(path: "sync-hooks-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self, AnnotationKind.self]))
         let log = Log()
         let ipad = try SyncEngine(fs: fs, backend: backend, userID: "me", deviceName: "iPad",
                                   hooks: .init(didChange: { path, old, data in await log.add("\(path)|\(old ?? "-")|\(data.map { String(decoding: $0, as: UTF8.self) } ?? "-")") }))
@@ -367,7 +367,7 @@ struct SyncMetaFolderTests {
     @Test func deviceIDMigratesFromSyncState() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "device-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: root) }
-        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self, AnnotationKind.self]))
         #expect(try fs.deviceID(migrating: "OLD-ID") == "OLD-ID")
         #expect(try fs.deviceID(migrating: "OTHER") == "OLD-ID") // 已存在就不覆寫
         try FileManager.default.removeItem(at: fs.url(for: ".easynotes/device-id"))

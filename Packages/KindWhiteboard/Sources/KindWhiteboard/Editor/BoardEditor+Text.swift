@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
 /// 正在用原生文字框編輯的文字。編輯器只記錄目標與樣式；文字框（iOS `UITextView`、Mac `NSTextView`）

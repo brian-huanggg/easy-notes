@@ -89,8 +89,8 @@ public final class SceneRenderer: @unchecked Sendable {
 }
 
 /// Excalidraw 的顏色字串（`#rgb`、`#rrggbb`、`#rrggbbaa`、`transparent`、少數 CSS 名稱）
-enum SceneColor {
-    static let frameStroke = rgb(0xbbbbbb)
+public enum SceneColor {
+    public static let frameStroke = rgb(0xbbbbbb)
     static let frameTitle = rgb(0x999999)
     static let placeholderFill = CGColor(srgbRed: 0.5, green: 0.5, blue: 0.5, alpha: 0.08)
     static let placeholderStroke = rgb(0x868e96)
@@ -100,7 +100,7 @@ enum SceneColor {
     }
 
     /// 透明或無法解析回傳 nil（不畫）
-    static func parse(_ string: String) -> CGColor? {
+    public static func parse(_ string: String) -> CGColor? {
         let s = string.trimmingCharacters(in: .whitespaces).lowercased()
         switch s {
         case "", "transparent", "none": return nil
@@ -118,7 +118,7 @@ enum SceneColor {
         return rgb(Int(value >> 8), alpha: alpha)
     }
 
-    static func rgb(_ v: Int, alpha: Double = 1) -> CGColor {
+    public static func rgb(_ v: Int, alpha: Double = 1) -> CGColor {
         CGColor(srgbRed: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255,
                 blue: Double(v & 0xff) / 255, alpha: alpha)
     }

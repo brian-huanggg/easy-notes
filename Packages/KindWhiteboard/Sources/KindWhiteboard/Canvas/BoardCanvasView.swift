@@ -1,3 +1,5 @@
+import ExcalidrawKit
+
 #if os(iOS)
 import PencilKit
 import UIKit

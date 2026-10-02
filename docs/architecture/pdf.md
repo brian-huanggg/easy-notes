@@ -37,7 +37,50 @@
 - **存檔與外部變動**：停止操作 500 ms 後寫入旁檔；註冊 `EditorController`，`externalChange`（同步拉下來的旁檔）以元素合併併進記憶體並更新可見頁面，`flush` 立即存檔。
 - **合併**：`.pdf` 是不透明檔案（內容不同 → 衝突副本）。`.pdf.ink` 依頁合併，每頁用白板的元素合併（`id` + `version`）；`pdfHash` 不同時保留本機的。
 - **PDF 被換掉**（`pdfHash` 不符）：仍依頁碼顯示標註，頂端提示「PDF 已變更，標註可能錯位」，按「保留標註」才更新 `pdfHash`。
-- **伴隨檔案（Core 擴充點，不認識類型）**：`DocumentKind.companionOf`（預設 nil），`.pdf.ink` 回傳「去掉 `.ink` 的路徑」。Core 據此：檔案樹、文件列表、搜尋不顯示伴隨檔；App 內改名、搬移、刪除、還原主檔時伴隨檔一起處理；仍照常索引 hash、同步與合併。外部工具改名 PDF 時，VaultWatcher 推斷出主檔改名就一併搬移旁檔；推斷不到時，開啟沒有旁檔的 PDF 會以 `pdfHash` 找主檔不存在的孤兒旁檔認領。
+- **伴隨檔案（Core 擴充點，不認識類型）**：`DocumentKind.companionOf`（預設 nil），`.pdf.ink` 回傳「去掉 `.ink` 的路徑」；伴隨檔路徑必須以主檔路徑開頭，改名時 Core 只換掉主檔路徑、後綴不變。`PDFKind` 以 `addKind` 註冊，`PDFInkKind` 以 `addCompanionKind` 註冊（進 KindRegistry，但不是篩選 chip）。Core 據此：
+  - 檔案樹、文件列表、搜尋、`[[連結]]` 解析、「最近刪除」不顯示伴隨檔；仍照常索引 hash、同步與合併。
+  - App 內改名、搬移（`VaultFS.rename`）、刪除（`VaultFS.trash`）主檔時伴隨檔一起處理，並通知同步層與編輯器；從「最近刪除」還原主檔時，同路徑最近刪除的伴隨檔一起還原到主檔旁。
+  - 開啟中檔案的伴隨檔被外部修改或同步改寫時，`externalChange` 帶伴隨檔的路徑送給編輯器（PDF 編輯器合併旁檔）。
+  - 外部工具改名 PDF：同步層的掃描推斷出主檔改名（hash 相同）時，把留在原地的旁檔搬到新名字旁並保留 file id。推斷不到（例如未登入同步）時，開啟沒有旁檔的 PDF 以 `PDFInk.claimOrphan` 找主檔不存在、`pdfHash` 相同的孤兒旁檔認領（同資料夾優先），搬移後由呼叫端通知同步層。
+- **程式結構**：`KindPDF/Model/`：`PDFInk`（旁檔讀寫、依頁合併；`scene(page:)` 把一頁當成 `ExcalidrawScene`，筆畫轉換、渲染、便利貼都沿用 `ExcalidrawKit`）、`PDFPageGeometry`（未旋轉頁面座標 ⇄ 顯示座標、`displayTransform`、PDF 使用者空間）。`pdfHash` 與同步層的內容 hash 同格式（SHA-256 小寫 hex）。
 - **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）。
 - **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `附件/`）因為註冊了 `.pdf` 也會出現在列表。
 - **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
+
+## Spike (S4) 測試結果
+
+2026-10-03：原型完成（新外掛 `KindPDF`，目前只有 `Spike/PDFOverlaySpike.swift`），iOS Simulator 與 macOS 建置成功，尚未在 iPad 實機量測。用法：
+
+- 側邊欄「PDF Spike」面板只在 DEBUG 或啟動參數 `-PDFSpike YES` 時出現（Release 量測同 S3）。不讀寫 Vault；預設載入程式產生的 200 頁範例，「選項 → 開啟 PDF…」可換成真實講義。
+- 範例：每 10 頁有一頁橫向（第 4、14…頁），第 6 / 8 / 10…頁設 `rotation` 90 / 180 / 270。每頁印藍色參考框（內縮 36 pt）與左上 L 記號；「加入對齊參考筆畫」從模型（未旋轉頁面座標）畫紅線，正確時紅線完全疊在藍線上，縮放、旋轉頁都應如此。
+- 做法：模型是「頁碼 → `PKDrawing`（未旋轉頁面座標）」，overlay 只是暫時檢視，每次畫完立刻換算寫回模型；`PKToolPicker` 綁在常駐 first responder 的容器 view，各頁畫布只當 observer；畫布子類別回傳私有 `undoManager`，模型 Undo 註冊在容器（工具列按鈕、⌘Z、三指撥動）。
+- HUD：FPS / 最長一幀、記憶體（phys_footprint）與峰值、目前頁 / overlay 數（累計建立數）/ 有筆畫頁數、縮放與畫布點陣倍率、overlay 重新換算次數、目前頁 overlay 尺寸 / cropBox / 旋轉、Undo 狀態、最近復原的頁、PencilKit undo 被吞的次數。
+- 選項：自動捲動（約 6,000 pt/s 來回，壓力測試）、縮放後重設 `contentScaleFactor`、模型 Undo（關閉 = PencilKit 原生，用來對照回收後的 undo）、手指也能書寫（Simulator）、每頁加 30 筆隨機筆畫、清除、重設記憶體峰值。
+
+實機待確認：(1) 4× 時筆畫是否清晰，重設 `contentScaleFactor` 有沒有效（overlay 尺寸若跟著縮放變，「重新載入」會一直增加）；(2) 旋轉頁紅藍線是否重疊；(3) 手指捲動不畫、Pencil 書寫；(4) 換頁畫時工具選擇器不消失、選的工具各頁一致；(5) 第 1 頁畫 → 捲到第 150 頁畫 → 連按 ⌘Z 依序復原兩頁，「PencilKit 被吞」> 0；(6) 每頁加隨機筆畫後自動捲動一分鐘，overlay 數與記憶體不持續成長。
+
+### 2026-10-03 第一輪實機結果（iPad Air M1，60Hz）：
+
+| 項目 | 結果 |
+| --- | --- |
+| 幀率 | 60 FPS，最長一幀 16.7 ms（= 該機型上限） |
+| 跨頁 Undo / Redo | 正常 |
+| 旋轉頁對齊 | 正常（紅藍線重疊） |
+| 記憶體 | 100–200 MB |
+| 4–5× 縮放 | Pencil 筆畫解析度下降 |
+
+第一輪後的修改（待第二輪驗證）：
+
+- 解析度：推測是點陣倍率上限。原型把畫布 `contentScaleFactor` 限制在「螢幕倍率 × 4」，但倍率是依 overlay 在螢幕上的實際大小算（包含 PDFView 開啟時的 fit 縮放），4–5× 縮放時超過上限。選項新增「點陣上限」（螢幕 × 4 / 6 / 8 / 不限，預設不限）；HUD 新增「螢幕上」倍率（overlay 1 pt 在視窗上的大小），raster 應等於它 × 螢幕倍率。
+- 第二輪要量：預設「不限」時 4–5× 是否清晰、記憶體峰值多少；與「螢幕 × 4」對照。若不限就清晰但記憶體過高，再考慮只對畫面內的區域提高點陣（或縮放到某倍率以上改用單一 `PKCanvasView` 疊在 PDFView 之上）。
+
+### 2026-10-03 第二輪實機結果：
+
+| 項目 | 結果 |
+| --- | --- |
+| 共用 `PKToolPicker` | 換頁書寫時工具選擇器不消失，各頁工具一致 |
+| 吞掉 PencilKit 的 undo | 「PencilKit 被吞」> 0，跨頁 Undo 正常（第一輪） |
+| 200 頁 + 每頁 30 筆、自動捲動 | 記憶體 280–300 MB，持續捲動不成長 |
+| 4–5× 清晰度（點陣上限「不限」） | 清晰 |
+
+S4 通過：疊層架構不需修改，結論與實作規則寫入 [pdf.md](./architecture/pdf.md)。正式版（5c）點陣倍率不設上限。

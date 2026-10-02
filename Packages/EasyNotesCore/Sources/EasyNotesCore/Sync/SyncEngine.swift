@@ -94,7 +94,7 @@ public actor SyncEngine {
             status.conflicts = []
             await publish()
             do {
-                try scanLocal()
+                for move in try scanLocal() { await hooks.didChange(move.to, move.from, nil) }
                 for _ in 0..<3 {
                     try await pull()
                     if try await push() == 0 { break }
@@ -121,8 +121,12 @@ public actor SyncEngine {
 
     // MARK: 最近刪除
 
-    /// 30 天內在任何裝置上刪除、本地也不存在的檔案，最新刪除的在前
+    /// 30 天內在任何裝置上刪除、本地也不存在的檔案，最新刪除的在前；伴隨檔不列出（隨主檔還原）
     public func recentlyDeleted() async throws -> [RemoteFile] {
+        try await deletedLocally().filter { !fs.kinds.isCompanion($0.path) }
+    }
+
+    private func deletedLocally() async throws -> [RemoteFile] {
         let since = Date().addingTimeInterval(-Double(Self.retentionDays) * 86_400)
         return try await backend.deletedFiles(since: since).filter { file in
             guard let r = state.records[file.id] else { return true }
@@ -130,11 +134,25 @@ public actor SyncEngine {
         }
     }
 
-    /// 以同一個 file id 還原到原路徑（被佔用時改用衝突副本的命名），回傳還原後的路徑
+    /// 以同一個 file id 還原到原路徑（被佔用時改用衝突副本的命名），回傳還原後的路徑。
+    /// 同一路徑最近刪除的伴隨檔一起還原到主檔旁
     @discardableResult
     public func restore(_ file: RemoteFile) async throws -> String {
+        let path = try await restoreFile(file, to: file.path)
+        var latest: [String: RemoteFile] = [:]
+        for c in try await deletedLocally() where fs.kinds.mainFile(ofCompanion: c.path) == file.path {
+            if latest[c.path].map({ c.updatedAt > $0.updatedAt }) ?? true { latest[c.path] = c }
+        }
+        for c in latest.values.sorted(by: { $0.path < $1.path }) {
+            guard let target = fs.kinds.companionPath(c.path, from: file.path, to: path) else { continue }
+            _ = try await restoreFile(c, to: target)
+        }
+        return path
+    }
+
+    private func restoreFile(_ file: RemoteFile, to original: String) async throws -> String {
         let data = try await content(hash: file.hash)
-        var path = file.path
+        var path = original
         if FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) {
             path = conflictPath(for: path)
         }
@@ -162,8 +180,10 @@ public actor SyncEngine {
     // MARK: 掃描本地
 
     /// 比對磁碟與同步狀態：只在 mtime 或大小改變時重算 hash。
-    /// 外部工具改名會看到「刪除 + 新增」，兩者 hash 相同時推斷為改名並保留 file id。
-    func scanLocal() throws {
+    /// 外部工具改名會看到「刪除 + 新增」，兩者 hash 相同時推斷為改名並保留 file id；
+    /// 主檔被推斷為改名時，留在原地的伴隨檔一起搬過去。回傳搬移的伴隨檔
+    @discardableResult
+    func scanLocal() throws -> [(from: String, to: String)] {
         let disk = try diskFiles()
         var unseen = Dictionary(state.records.values.filter { !$0.localDeleted }.map { ($0.path, $0.id) },
                                 uniquingKeysWith: { a, _ in a })
@@ -182,11 +202,13 @@ public actor SyncEngine {
         }
         // 消失的檔案與之前已刪除、尚未上傳的檔案，都可能是改名的來源
         var vanished = unseen.values.map { state.records[$0]! } + state.records.values.filter(\.localDeleted)
+        var renamed: [(from: String, to: String)] = []
         for path in added.sorted() {
             let stat = disk[path]!
             let hash = try hash(of: path)
             if let i = vanished.firstIndex(where: { $0.hash == hash }) {
                 var r = vanished.remove(at: i)
+                renamed.append((r.path, path))
                 r.path = path
                 r.localDeleted = false
                 r.mtime = stat.mtime
@@ -204,6 +226,24 @@ public actor SyncEngine {
                 try state.save(r)
             }
         }
+        return try moveCompanions(renamed)
+    }
+
+    /// 外部工具只改了主檔的名字：把原地的伴隨檔搬到新名字旁，保留 file id
+    private func moveCompanions(_ renamed: [(from: String, to: String)]) throws -> [(from: String, to: String)] {
+        var moves: [(from: String, to: String)] = []
+        for (old, new) in renamed where !fs.exists(old) {
+            for move in fs.companionMoves(from: old, to: new) where !fs.exists(move.to) {
+                try FileManager.default.moveItem(at: fs.url(for: move.from), to: fs.url(for: move.to))
+                if var r = state.records.values.first(where: { $0.path == move.from && !$0.localDeleted }) {
+                    r.path = move.to
+                    try state.save(r)
+                }
+                Self.log.info("companion \(move.from, privacy: .public) → \(move.to, privacy: .public)")
+                moves.append(move)
+            }
+        }
+        return moves
     }
 
     /// 參與同步的檔案：Vault 內所有一般檔案，略過隱藏檔與 `.easynotes/`（索引、快取、同步狀態），

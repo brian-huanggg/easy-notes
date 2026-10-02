@@ -19,7 +19,7 @@ extension ExcalidrawScene {
 
     /// 插入已縮圖的圖片（編輯器在背景執行 `downscale`），中心放在 `center`
     @discardableResult
-    mutating func insertImage(_ encoded: EncodedImage, center: CGPoint, maxDisplay: Double) -> String {
+    public mutating func insertImage(_ encoded: EncodedImage, center: CGPoint, maxDisplay: Double) -> String {
         insertImage(encoded, maxDisplay: maxDisplay) { CGPoint(x: center.x - $0.width / 2, y: center.y - $0.height / 2) }
     }
 
@@ -54,14 +54,14 @@ extension ExcalidrawScene {
         return Data(base64Encoded: String(url[url.index(after: comma)...]))
     }
 
-    struct EncodedImage: Sendable {
-        var data: Data
-        var mimeType: String
-        var width: Int
-        var height: Int
+    public struct EncodedImage: Sendable {
+        public var data: Data
+        public var mimeType: String
+        public var width: Int
+        public var height: Int
     }
 
-    static func downscale(_ data: Data) -> EncodedImage? {
+    public static func downscale(_ data: Data) -> EncodedImage? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,

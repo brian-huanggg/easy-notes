@@ -23,7 +23,7 @@ public enum StyleChange: Equatable, Sendable {
     case opacity(Double)
 
     /// 改動的欄位種類（新元素沿用上次的樣式時，同一種只記最後一次）
-    var property: StyleProperty {
+    public var property: StyleProperty {
         switch self {
         case .fill: .fill
         case .strokeColor: .strokeColor
@@ -46,7 +46,7 @@ public enum StyleProperty: Hashable, Sendable {
 
 extension Element {
     /// 這個元素在樣式面板上可以改的欄位
-    var styleProperties: Set<StyleProperty> {
+    public var styleProperties: Set<StyleProperty> {
         switch type {
         case .rectangle, .diamond:
             [.fill, .strokeColor, .strokeWidth, .strokeStyle, .rounded, .opacity]
@@ -66,7 +66,7 @@ extension Element {
     }
 
     /// 修改一個欄位（不檢查是否適用；文字排版由 `SceneEditor.setStyle` 處理）
-    mutating func apply(_ change: StyleChange) {
+    public mutating func apply(_ change: StyleChange) {
         switch change {
         case let .fill(color): raw["backgroundColor"] = color
         case let .strokeColor(color), let .textColor(color): raw["strokeColor"] = color

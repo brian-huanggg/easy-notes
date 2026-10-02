@@ -15,7 +15,7 @@
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
-| 5 PDF 手寫與標註 | S4 原型完成（待 iPad 實機）；5a 起未開始 | [pdf.md](./architecture/pdf.md) |
+| 5 PDF 手寫與標註 | S4、5a 完成（App 內伴隨檔流程待 5b 實機驗證）；5b 起未開始 | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -396,48 +396,13 @@
 - [x] 私有 `undoManager` 吞掉 PencilKit 的 undo，改在模型註冊，overlay 回收後仍可跨頁復原
 - [x] 200 頁快速捲動，記憶體穩定
 
-2026-10-03：原型完成（新外掛 `KindPDF`，目前只有 `Spike/PDFOverlaySpike.swift`），iOS Simulator 與 macOS 建置成功，尚未在 iPad 實機量測。用法：
-
-- 側邊欄「PDF Spike」面板只在 DEBUG 或啟動參數 `-PDFSpike YES` 時出現（Release 量測同 S3）。不讀寫 Vault；預設載入程式產生的 200 頁範例，「選項 → 開啟 PDF…」可換成真實講義。
-- 範例：每 10 頁有一頁橫向（第 4、14…頁），第 6 / 8 / 10…頁設 `rotation` 90 / 180 / 270。每頁印藍色參考框（內縮 36 pt）與左上 L 記號；「加入對齊參考筆畫」從模型（未旋轉頁面座標）畫紅線，正確時紅線完全疊在藍線上，縮放、旋轉頁都應如此。
-- 做法：模型是「頁碼 → `PKDrawing`（未旋轉頁面座標）」，overlay 只是暫時檢視，每次畫完立刻換算寫回模型；`PKToolPicker` 綁在常駐 first responder 的容器 view，各頁畫布只當 observer；畫布子類別回傳私有 `undoManager`，模型 Undo 註冊在容器（工具列按鈕、⌘Z、三指撥動）。
-- HUD：FPS / 最長一幀、記憶體（phys_footprint）與峰值、目前頁 / overlay 數（累計建立數）/ 有筆畫頁數、縮放與畫布點陣倍率、overlay 重新換算次數、目前頁 overlay 尺寸 / cropBox / 旋轉、Undo 狀態、最近復原的頁、PencilKit undo 被吞的次數。
-- 選項：自動捲動（約 6,000 pt/s 來回，壓力測試）、縮放後重設 `contentScaleFactor`、模型 Undo（關閉 = PencilKit 原生，用來對照回收後的 undo）、手指也能書寫（Simulator）、每頁加 30 筆隨機筆畫、清除、重設記憶體峰值。
-
-實機待確認：(1) 4× 時筆畫是否清晰，重設 `contentScaleFactor` 有沒有效（overlay 尺寸若跟著縮放變，「重新載入」會一直增加）；(2) 旋轉頁紅藍線是否重疊；(3) 手指捲動不畫、Pencil 書寫；(4) 換頁畫時工具選擇器不消失、選的工具各頁一致；(5) 第 1 頁畫 → 捲到第 150 頁畫 → 連按 ⌘Z 依序復原兩頁，「PencilKit 被吞」> 0；(6) 每頁加隨機筆畫後自動捲動一分鐘，overlay 數與記憶體不持續成長。
-
-2026-10-03 第一輪實機結果（iPad Air M1，60Hz）：
-
-| 項目 | 結果 |
-| --- | --- |
-| 幀率 | 60 FPS，最長一幀 16.7 ms（= 該機型上限） |
-| 跨頁 Undo / Redo | 正常 |
-| 旋轉頁對齊 | 正常（紅藍線重疊） |
-| 記憶體 | 100–200 MB |
-| 4–5× 縮放 | Pencil 筆畫解析度下降 |
-
-第一輪後的修改（待第二輪驗證）：
-
-- 解析度：推測是點陣倍率上限。原型把畫布 `contentScaleFactor` 限制在「螢幕倍率 × 4」，但倍率是依 overlay 在螢幕上的實際大小算（包含 PDFView 開啟時的 fit 縮放），4–5× 縮放時超過上限。選項新增「點陣上限」（螢幕 × 4 / 6 / 8 / 不限，預設不限）；HUD 新增「螢幕上」倍率（overlay 1 pt 在視窗上的大小），raster 應等於它 × 螢幕倍率。
-- 第二輪要量：預設「不限」時 4–5× 是否清晰、記憶體峰值多少；與「螢幕 × 4」對照。若不限就清晰但記憶體過高，再考慮只對畫面內的區域提高點陣（或縮放到某倍率以上改用單一 `PKCanvasView` 疊在 PDFView 之上）。
-
-2026-10-03 第二輪實機結果：
-
-| 項目 | 結果 |
-| --- | --- |
-| 共用 `PKToolPicker` | 換頁書寫時工具選擇器不消失，各頁工具一致 |
-| 吞掉 PencilKit 的 undo | 「PencilKit 被吞」> 0，跨頁 Undo 正常（第一輪） |
-| 200 頁 + 每頁 30 筆、自動捲動 | 記憶體 280–300 MB，持續捲動不成長 |
-| 4–5× 清晰度（點陣上限「不限」） | 清晰 |
-
-S4 通過：疊層架構不需修改，結論與實作規則寫入 [pdf.md](./architecture/pdf.md)。正式版（5c）點陣倍率不設上限。
-
 ### 5a 模型與格式（無 UI，單元測試）
 
-- [ ] 抽出 `ExcalidrawKit`（元素模型、merge、`InkStroke`、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer`），KindWhiteboard 測試全部通過
-- [ ] `.pdf.ink` 讀寫、頁面座標換算（含 `rotation`、cropBox）
-- [ ] `PDFKind`（不透明）+ `PDFInkKind`（依頁 + 元素合併）
-- [ ] Core 伴隨檔案：檔案樹 / 列表 / 搜尋隱藏；App 內改名、搬移、刪除、還原一起處理；孤兒旁檔以 `pdfHash` 認領
+- [x] 抽出 `ExcalidrawKit`（元素模型、merge、`InkStroke`、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer`），KindWhiteboard 測試全部通過
+- [x] `.pdf.ink` 讀寫、頁面座標換算（含 `rotation`、cropBox）
+- [x] `PDFKind`（不透明）+ `PDFInkKind`（依頁 + 元素合併）
+- [x] Core 伴隨檔案：檔案樹 / 列表 / 搜尋隱藏；App 內改名、搬移、刪除、還原一起處理；孤兒旁檔以 `pdfHash` 認領
+  - 單元測試涵蓋 VaultFS、VaultIndex、SyncEngine 與 `PDFInk.claimOrphan`；`VaultStore` 的串接（改名 / 刪除通知同步與編輯器、伴隨檔的 `externalChange`）只確認建置成功，尚未驗證。Kind 在 5b 才註冊，App 內目前看不到 PDF。
 
 ### 5b 檢視、縮圖與 Mac
 

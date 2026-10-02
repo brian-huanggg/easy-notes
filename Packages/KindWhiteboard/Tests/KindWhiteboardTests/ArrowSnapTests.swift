@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：箭頭連接點吸附（形狀上下左右 4 個連接點，寫入 `fixedPoint`）

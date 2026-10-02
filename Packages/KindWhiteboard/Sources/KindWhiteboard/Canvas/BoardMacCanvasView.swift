@@ -1,3 +1,5 @@
+import ExcalidrawKit
+
 #if os(macOS)
 import AppKit
 import QuartzCore

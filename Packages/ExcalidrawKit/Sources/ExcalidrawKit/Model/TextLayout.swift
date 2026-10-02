@@ -60,7 +60,7 @@ public enum TextLayout {
     // MARK: 容器內文字
 
     /// 容器內可放文字的最大寬度（橢圓、菱形取內接矩形，與 Excalidraw 相同）
-    static func maxWidth(in container: Element) -> Double {
+    public static func maxWidth(in container: Element) -> Double {
         let inner: Double
         switch container.type {
         case .ellipse: inner = (container.width / 2 * 2.0.squareRoot()).rounded()

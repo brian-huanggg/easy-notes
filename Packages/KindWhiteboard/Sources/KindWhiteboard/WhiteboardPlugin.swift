@@ -1,4 +1,5 @@
 import EasyNotesUI
+import ExcalidrawKit
 import SwiftUI
 
 /// .excalidraw：白板（結構元素 + PencilKit 手寫，見 architecture/whiteboard.md）

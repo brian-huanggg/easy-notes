@@ -9,6 +9,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../EasyNotesCore"),
+        .package(path: "../ExcalidrawKit"),
     ],
     targets: [
         .target(
@@ -16,7 +17,12 @@ let package = Package(
             dependencies: [
                 .product(name: "EasyNotesCore", package: "EasyNotesCore"),
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
+                .product(name: "ExcalidrawKit", package: "ExcalidrawKit"),
             ]
         ),
+        .testTarget(name: "KindPDFTests", dependencies: [
+            "KindPDF", .product(name: "EasyNotesCore", package: "EasyNotesCore"),
+            .product(name: "ExcalidrawKit", package: "ExcalidrawKit"),
+        ]),
     ]
 )

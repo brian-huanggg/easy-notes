@@ -2,8 +2,8 @@ import CoreGraphics
 import Foundation
 
 /// 綁定用的幾何。形狀可旋轉：先轉回未旋轉的座標計算，結果再轉回去。
-enum Geometry {
-    static func rotate(_ p: CGPoint, around c: CGPoint, by angle: Double) -> CGPoint {
+public enum Geometry {
+    public static func rotate(_ p: CGPoint, around c: CGPoint, by angle: Double) -> CGPoint {
         guard angle != 0 else { return p }
         let s = sin(angle), co = cos(angle)
         let dx = p.x - c.x, dy = p.y - c.y
@@ -11,13 +11,13 @@ enum Geometry {
     }
 
     /// 形狀上 `ratio`（0...1）位置的絕對座標
-    static func point(in shape: Element, ratio: CGPoint) -> CGPoint {
+    public static func point(in shape: Element, ratio: CGPoint) -> CGPoint {
         rotate(CGPoint(x: shape.x + ratio.x * shape.width, y: shape.y + ratio.y * shape.height),
                around: shape.center, by: shape.angle)
     }
 
     /// 連接點：上、右、下、左邊的中點（形狀上的比例）與各自的外法線（未旋轉）
-    static let sides: [(ratio: CGPoint, normal: CGPoint)] = [
+    public static let sides: [(ratio: CGPoint, normal: CGPoint)] = [
         (CGPoint(x: 0.5, y: 0), CGPoint(x: 0, y: -1)),
         (CGPoint(x: 1, y: 0.5), CGPoint(x: 1, y: 0)),
         (CGPoint(x: 0.5, y: 1), CGPoint(x: 0, y: 1)),
@@ -30,7 +30,7 @@ enum Geometry {
     }
 
     /// 綁在連接點上的端點：該邊中點沿外法線外移 `gap`
-    static func sideEndpoint(_ shape: Element, side: Int, gap: Double) -> CGPoint {
+    public static func sideEndpoint(_ shape: Element, side: Int, gap: Double) -> CGPoint {
         let (ratio, n) = sides[side]
         let local = CGPoint(x: shape.x + ratio.x * shape.width + n.x * gap,
                             y: shape.y + ratio.y * shape.height + n.y * gap)

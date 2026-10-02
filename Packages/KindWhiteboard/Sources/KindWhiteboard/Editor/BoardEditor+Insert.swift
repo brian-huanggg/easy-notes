@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
 /// 工具列插入（見 architecture/whiteboard.md「工具列改版」）：形狀、便條紙、文字框插在畫面中央，先離開手寫模式。

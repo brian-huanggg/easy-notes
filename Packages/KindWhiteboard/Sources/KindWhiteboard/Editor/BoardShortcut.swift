@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
 /// 白板的鍵盤快捷鍵（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。平台無關：

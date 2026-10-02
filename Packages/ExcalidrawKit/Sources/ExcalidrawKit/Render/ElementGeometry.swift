@@ -153,7 +153,7 @@ public enum ElementGeometry {
     }
 
     /// 首尾相接的線（`polygon` 或兩端距離 ≤ 8，與 Excalidraw 相同）可以填色
-    static func isClosedLine(_ el: Element) -> Bool {
+    public static func isClosedLine(_ el: Element) -> Bool {
         guard el.type == .line else { return false }
         if el.raw["polygon"] as? Bool == true { return true }
         let pts = el.points
@@ -181,12 +181,12 @@ public enum ElementGeometry {
         return result
     }
 
-    static func strokeWidth(_ el: Element) -> Double {
+    public static func strokeWidth(_ el: Element) -> Double {
         (el.raw["strokeWidth"] as? NSNumber)?.doubleValue ?? 2
     }
 
     /// 曲線在端點的切線方向等於最後一段線段的方向（Catmull-Rom 端點重複），所以直線與曲線共用
-    static func arrowhead(_ kind: String, tip: CGPoint, from prev: CGPoint, strokeWidth: Double) -> [Arrowhead] {
+    public static func arrowhead(_ kind: String, tip: CGPoint, from prev: CGPoint, strokeWidth: Double) -> [Arrowhead] {
         let length = hypot(tip.x - prev.x, tip.y - prev.y)
         guard length > 0 else { return [] }
         let dir = CGPoint(x: (tip.x - prev.x) / length, y: (tip.y - prev.y) / length)
@@ -273,7 +273,7 @@ public enum ElementGeometry {
     static let frameTitleSize: Double = 14
 
     /// frame 標題在 frame 左上方外側
-    static func frameTitleRect(_ el: Element) -> CGRect {
+    public static func frameTitleRect(_ el: Element) -> CGRect {
         CGRect(x: el.x, y: el.y - frameTitleSize * 1.25 - 4, width: max(el.width, 1), height: frameTitleSize * 1.25)
     }
 }

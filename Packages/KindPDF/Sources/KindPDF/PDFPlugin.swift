@@ -1,7 +1,7 @@
 import EasyNotesUI
 import SwiftUI
 
-/// .pdf + .pdf.ink 標註旁檔（見 architecture/pdf.md）。目前只有 Spike S4。
+/// .pdf + .pdf.ink 標註旁檔（見 architecture/pdf.md）。5a 只有模型與格式（`PDFKind`、`PDFInkKind`），檢視器完成（5b）才註冊 Kind。
 public enum PDFPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         #if os(iOS)

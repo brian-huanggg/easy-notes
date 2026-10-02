@@ -1,3 +1,4 @@
+import ExcalidrawKit
 import Foundation
 
 /// 樣式面板（見 architecture/whiteboard.md「4c：樣式面板」）：修改選取元素的樣式，並記住上次的值給新元素用

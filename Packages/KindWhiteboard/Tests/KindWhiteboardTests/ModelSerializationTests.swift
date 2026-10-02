@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import EasyNotesCore
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4a：序列化、共用修改路徑、fractional index
