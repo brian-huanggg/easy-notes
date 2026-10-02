@@ -4,11 +4,15 @@ import SwiftUI
 public struct PreviewFrame<Content: View>: View {
     let height: CGFloat
     let fill: ColorToken
+    /// 滑鼠移過：邊框加深並浮起
+    let isHighlighted: Bool
     let content: Content
 
-    public init(height: CGFloat, fill: ColorToken = Palette.bgCanvas, @ViewBuilder content: () -> Content) {
+    public init(height: CGFloat, fill: ColorToken = Palette.bgCanvas, isHighlighted: Bool = false,
+                @ViewBuilder content: () -> Content) {
         self.height = height
         self.fill = fill
+        self.isHighlighted = isHighlighted
         self.content = content()
     }
 
@@ -19,7 +23,9 @@ public struct PreviewFrame<Content: View>: View {
             .frame(height: height)
             .background(fill)
             .clipShape(shape)
-            .overlay(shape.strokeBorder(Palette.border))
+            .overlay(shape.strokeBorder(isHighlighted ? Palette.borderStrong : Palette.border))
+            .shadow(color: .black.opacity(isHighlighted ? 0.08 : 0), radius: 8, y: 3)
+            .animation(.easeOut(duration: 0.12), value: isHighlighted)
     }
 }
 
@@ -88,6 +94,7 @@ public struct DocCard<Preview: View>: View {
     let badge: PreviewBadge?
     let size: Size
     let preview: Preview
+    @State private var hovering = false
 
     public init(_ title: String, symbol: String, tint: KindTint, meta: String, badge: PreviewBadge? = nil,
                 size: Size = .regular, @ViewBuilder preview: () -> Preview) {
@@ -103,7 +110,7 @@ public struct DocCard<Preview: View>: View {
     public var body: some View {
         let compact = size == .compact
         VStack(alignment: .leading, spacing: compact ? 10 : 11) {
-            PreviewFrame(height: compact ? 102 : 154) { preview }
+            PreviewFrame(height: compact ? 102 : 154, isHighlighted: hovering) { preview }
                 .overlay(alignment: .bottomLeading) {
                     badge?.padding(10)
                 }
@@ -126,6 +133,8 @@ public struct DocCard<Preview: View>: View {
         }
         .frame(width: compact ? 158 : nil)
         .contentShape(Rectangle())
+        .modifier(Hovering(isHovering: $hovering))
+        .clickablePointer()
         .accessibilityElement(children: .combine)
     }
 }
@@ -176,6 +185,7 @@ public struct DocRow: View {
     let tint: KindTint
     let meta: String
     let style: Style
+    @State private var hovering = false
 
     public init(_ title: String, symbol: String, tint: KindTint, meta: String, style: Style = .list) {
         self.title = title
@@ -208,11 +218,17 @@ public struct DocRow: View {
         .padding(.horizontal, card ? 13 : 0)
         .background {
             if card {
-                RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).fill(Palette.bgPanel)
-                RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).strokeBorder(Palette.border)
+                RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous)
+                    .fill(hovering ? Palette.bgHover : Palette.bgPanel)
+                RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous)
+                    .strokeBorder(hovering ? Palette.borderStrong : Palette.border)
             }
         }
+        // 列表樣式沒有左右內距：hover 底色往外延伸
+        .hoverBackground(cornerRadius: Metrics.radiusMedium, outset: 8, isActive: !card)
         .contentShape(Rectangle())
+        .modifier(Hovering(isHovering: $hovering))
+        .clickablePointer()
         .accessibilityElement(children: .combine)
     }
 }

@@ -36,6 +36,7 @@ final class VaultStore: DocumentSession {
     private(set) var lastError: String?
 
     @ObservationIgnored private let index: VaultIndex?
+    @ObservationIgnored private let previews: PreviewCache
     @ObservationIgnored private let writer: VaultWriter
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var derivedTask: Task<Void, Never>?
@@ -53,6 +54,7 @@ final class VaultStore: DocumentSession {
         fs = VaultFS(root: root, kinds: kinds)
         writer = VaultWriter(fs: fs)
         index = try? VaultIndex(fs: fs)
+        previews = PreviewCache(directory: root.appending(path: "\(VaultFS.metaFolder)/cache/preview", directoryHint: .isDirectory))
         seedIfNeeded()
         refresh()
         Task {
@@ -240,15 +242,40 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 把 Vault 外的檔案（匯入 PDF、CSV…）複製進目前所在的資料夾
-    func importFile(_ url: URL) async {
+    /// 把 Vault 外的檔案（匯入 PDF、CSV…）複製進 `folder`（預設為目前所在的資料夾）；`open` 時匯入後開啟
+    func importFile(_ url: URL, into folder: String? = nil, open: Bool = true) async {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
-            let path = try fs.importFile(from: url, in: currentFolder)
+            let path = try fs.importFile(from: url, in: folder ?? currentFolder)
             refresh()
             await syncIndex(paths: [path])
-            navigate(.file(path))
+            if open { navigate(.file(path)) }
+            onLocalChange?()
+        } catch { report(error) }
+    }
+
+    /// 拖入列表頁的檔案：只接受已註冊的類型，匯入後留在原頁面
+    func importDropped(_ urls: [URL], into folder: String) async -> Bool {
+        let accepted = urls.filter { fs.kinds.kind(for: $0) != nil }
+        for url in accepted { await importFile(url, into: folder, open: false) }
+        return !accepted.isEmpty
+    }
+
+    /// 釘選寫在檔案內（Markdown 為 frontmatter），由 DocumentKind 決定格式。
+    /// 寫入後還原 mtime：釘選不算編輯，不應讓文件跑到「最近」最上面。
+    func setPinned(_ path: String, _ pinned: Bool) async {
+        guard let kind = fs.kinds.kind(for: path) else { return }
+        await flushEditors()
+        let url = fs.url(for: path)
+        let mtime = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        guard let data = kind.setPinned(pinned, in: readData(path)) else { return }
+        do {
+            lastWritten[path] = data
+            try fs.write(data, to: path)
+            if let mtime { try? FileManager.default.setAttributes([.modificationDate: mtime], ofItemAtPath: url.path(percentEncoded: false)) }
+            if path == selection { for editor in editors { editor.externalChange(path: path, data: data) } }
+            await syncIndex(paths: [path])
             onLocalChange?()
         } catch { report(error) }
     }
@@ -400,6 +427,18 @@ final class VaultStore: DocumentSession {
     /// `folder` 之下（含子資料夾）的檔案數
     func fileCount(in folder: String) -> Int {
         files.count { $0.path.hasPrefix(folder + "/") }
+    }
+
+    func file(at path: String) -> IndexedFile? {
+        files.first { $0.path == path }
+    }
+
+    /// 列表卡片的縮圖資料：依內容 hash 快取，在背景產生；外掛沒有註冊預覽時回傳 nil
+    func preview(for file: IndexedFile) async -> DocumentPreview? {
+        guard let kindID = kindID(file.path), let provider = plugins.preview(for: kindID) else { return nil }
+        let fs = fs
+        let path = file.path
+        return await previews.preview(kindID: kindID, hash: file.hash, provider: provider) { try fs.read(path) }
     }
 
     func files(taggedWith tag: String) async -> [IndexedFile] {

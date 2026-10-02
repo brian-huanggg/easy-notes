@@ -3,24 +3,58 @@ import SwiftUI
 // MARK: - Hover
 
 private struct HoverBackground: ViewModifier {
-    let shape: AnyShape
+    let cornerRadius: CGFloat
+    let outset: CGFloat
     let isActive: Bool
     @State private var hovering = false
 
     func body(content: Content) -> some View {
         content
-            .background(shape.fill(Palette.bgHover).opacity(hovering && isActive ? 1 : 0))
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .inset(by: -outset)
+                    .fill(Palette.bgHover)
+                    .opacity(hovering && isActive ? 1 : 0)
+            )
             #if os(macOS)
             .onHover { hovering = $0 }
             #endif
     }
 }
 
+/// 可點擊的列表項目：macOS 滑鼠移過時游標變成手指；iPad 指標移過時有系統的 highlight
+private struct ClickablePointer: ViewModifier {
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.pointerStyle(.link)
+        #else
+        content.hoverEffect(.highlight)
+        #endif
+    }
+}
+
 public extension View {
-    /// macOS 滑鼠移過時顯示 `bg-hover`；iOS 不做事
-    func hoverBackground(cornerRadius: CGFloat = Metrics.radiusSmall, isActive: Bool = true) -> some View {
-        modifier(HoverBackground(shape: AnyShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)),
-                                 isActive: isActive))
+    /// macOS 滑鼠移過時顯示 `bg-hover`；iOS 不做事。`outset`：hover 底色超出內容的距離（內容本身沒有內距時）
+    func hoverBackground(cornerRadius: CGFloat = Metrics.radiusSmall, outset: CGFloat = 0, isActive: Bool = true) -> some View {
+        modifier(HoverBackground(cornerRadius: cornerRadius, outset: outset, isActive: isActive))
+    }
+
+    /// 文件、資料夾等可點擊項目的游標
+    func clickablePointer() -> some View {
+        modifier(ClickablePointer())
+    }
+}
+
+/// 滑鼠是否在 view 上（只有 macOS 會變成 true）
+struct Hovering: ViewModifier {
+    @Binding var isHovering: Bool
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.onHover { isHovering = $0 }
+        #else
+        content
+        #endif
     }
 }
 
