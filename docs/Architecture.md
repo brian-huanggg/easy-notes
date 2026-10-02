@@ -300,6 +300,7 @@ vaultFS.deviceID() -> String
 - **工具列**：獨立的 SwiftUI 工具列，與 `PKToolPicker` 分開：工具列放筆、橡皮擦、套索、選取、矩形、橢圓、箭頭、文字、圖片、frame；只有選到筆類工具時才顯示 `PKToolPicker`，用來選顏色與粗細。兩者在畫面上明確區隔；Mac 共用同一個 SwiftUI 工具列（沒有筆類工具）。
 - **編輯核心不依賴平台**：工具狀態、選取、hit test、拖曳 / 縮放 / 建立的手勢狀態機都在畫布座標下運作，只呼叫 `ExcalidrawScene` 的編輯 API，可以用單元測試驗證；iOS（`PKCanvasView`）與 macOS（`NSView`）只負責把觸控 / 滑鼠事件換成畫布座標交給它。layer 樹（`CALayer`）兩個平台共用。
 - **無限畫布**：Excalidraw 的座標可以是負數，`PKCanvasView` 的內容座標從 0 開始，所以 `內容座標 = 場景座標 − origin`。開啟時 origin 與 `contentSize` 取「內容範圍外擴一圈留白」；捲到接近邊緣時擴大，origin 變動時筆畫平移、`contentOffset` 跟著補償，畫面不跳動。存檔時把筆畫換回場景座標，檔案裡永遠是場景座標。
+- **畫布固定淺色**：結構元素的顏色寫在檔案裡（`#1e1e1e` 等），PencilKit 在深色模式會自動反轉筆畫顏色，兩者會不一致，所以編輯器畫布固定淺色（`overrideUserInterfaceStyle = .light`、背景用 `viewBackgroundColor`）。深色模式（像 Excalidraw 那樣整張反相）之後再做。
 - **Undo**：每個結構操作記下受影響元素修改前後的字典，註冊在 `PKCanvasView` 的 `undoManager`（與筆畫共用一個堆疊）。復原時寫回修改前的內容，但 `version` 一律繼續遞增（不回到舊版號），否則其他裝置會以為沒有變動、合併時丟掉復原。
 
 #### 筆記卡片放進白板（Heptabase / Obsidian Canvas 式，選做）

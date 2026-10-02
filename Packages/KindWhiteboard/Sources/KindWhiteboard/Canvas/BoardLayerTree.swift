@@ -56,8 +56,9 @@ final class BoardLayerTree {
 
     func layer(for id: String) -> CALayer? { layers[id] }
 
-    /// 是否還有沒做完的分批工作（建立 layer 或重新點陣化）
-    private(set) var hasPendingWork = false
+    /// 是否還有沒做完的分批工作（建立 layer 或重新點陣化），宿主據此決定是否在下一幀繼續
+    var hasPendingWork: Bool { needsMoreLayers || !rasterQueue.isEmpty }
+    private var needsMoreLayers = false
 
     // MARK: 場景
 
@@ -139,7 +140,7 @@ final class BoardLayerTree {
                 }
             }
         }
-        hasPendingWork = more || !rasterQueue.isEmpty
+        needsMoreLayers = more
         return more
     }
 
@@ -167,7 +168,6 @@ final class BoardLayerTree {
         rasterQueue = layers.compactMap { id, layer in
             layer.painted.contains { $0.contentsScale != scale } ? id : nil
         }
-        hasPendingWork = hasPendingWork || !rasterQueue.isEmpty
     }
 
     /// 重畫一批點陣 layer；還有剩回傳 true
@@ -186,8 +186,7 @@ final class BoardLayerTree {
                 }
             }
         }
-        hasPendingWork = !rasterQueue.isEmpty
-        return hasPendingWork
+        return !rasterQueue.isEmpty
     }
 
     // MARK: 建立 layer

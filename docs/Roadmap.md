@@ -486,6 +486,8 @@
 
 2026-10-02：layer 樹完成（`KindWhiteboard/Canvas/BoardLayerTree.swift`，iOS / macOS 共用）。形狀、線、箭頭、frame 外框是 `CAShapeLayer`；文字、圖片、手寫、佔位框與 frame 標題由 `ElementPainter`（從 `SceneRenderer` 抽出的單一元素繪製）畫進點陣 layer，所以編輯器與縮圖畫法相同。每個元素 layer 的 bounds 原點 = 畫布座標、以 `angle` 繞中心旋轉；依 version + versionNonce 只重建有變的元素；frame 子元素超出 frame 時才加 mask。iOS 不畫 freedraw（`PKCanvasView` 畫）。`LayerTreeTests`：可見範圍、分批建立、順序、重建、點陣倍率，以及 layer 樹 `render(in:)` 與 `SceneRenderer` 逐像素比對（fixture 與 styles，容許 2%）。macOS 宿主要讓 root 的 geometry 翻轉（y 向下）。
 
+2026-10-02：iOS 畫布完成（`Canvas/BoardCanvasView.swift`、`CanvasRegion.swift`），取代 `InkEditorView`（改名 `BoardEditorView`，macOS 暫時仍是唯讀手寫預覽）；新增選單改為「新白板」。依 S3 規則：結構層在 `PKCanvasView` 底下、transform 在 scroll / zoom 回呼中同步、`bouncesZoom = false`、縮放中只降低新 layer 的點陣倍率、結束後分批重新點陣化；display link 只在有分批工作時開啟。無限畫布：`CanvasRegion`（內容外擴 6,000、對齊 1,000），停止捲動後接近邊緣才擴大，往左 / 上擴大時筆畫與 `contentOffset` 一起平移。外部變動：更新結構層與筆畫，必要時擴大範圍。Spike 面板與 `CanvasSpike.swift` 移除（S3 未勾的「選取工具時 Pencil 也能選取」併入 4c 手勢）；壓力測試檔改用 `./scripts/whiteboard-stress.py`。待 iPad 實機確認後勾選第一項：開啟既有手寫白板筆畫位置不變、平移縮放時結構層與筆畫對齊、捲到遠處會擴大且畫面不跳、1,000 個元素流暢。
+
 ### 4d 選做：筆記卡片
 
 - [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 Architecture「筆記卡片放進白板」）
