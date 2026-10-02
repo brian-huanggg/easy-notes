@@ -40,6 +40,29 @@ enum Snapshot {
                 sourceLocation: sourceLocation)
     }
 
+    /// 兩張同尺寸的圖相似：通道差 > 48 的像素不超過 `tolerance`。不同時兩張都寫到 `EASYNOTES_SNAPSHOT_DIR`
+    static func assertSimilar(_ image: CGImage, to reference: CGImage, named name: String, tolerance: Double,
+                              sourceLocation: SourceLocation = #_sourceLocation) throws {
+        try #require(image.width == reference.width && image.height == reference.height, sourceLocation: sourceLocation)
+        let a = rgba(image), b = rgba(reference)
+        var differing = 0
+        for i in stride(from: 0, to: a.count, by: 4) where (0..<4).contains(where: { abs(Int(a[i + $0]) - Int(b[i + $0])) > 48 }) {
+            differing += 1
+        }
+        let ratio = Double(differing) / Double(image.width * image.height)
+        if let dir = ProcessInfo.processInfo.environment["EASYNOTES_SNAPSHOT_DIR"] {
+            try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+            try png(image).write(to: URL(filePath: dir).appending(path: "\(name).png"))
+            try png(reference).write(to: URL(filePath: dir).appending(path: "\(name)-reference.png"))
+        }
+        #expect(ratio <= tolerance, "\(name)：\(differing) 個像素不同（\(String(format: "%.2f", ratio * 100))%）",
+                sourceLocation: sourceLocation)
+    }
+
+    private static func png(_ image: CGImage) throws -> Data {
+        try #require(SceneRenderer.png(image))
+    }
+
     static func rgba(_ image: CGImage) -> [UInt8] {
         var buffer = [UInt8](repeating: 0, count: image.width * image.height * 4)
         buffer.withUnsafeMutableBytes { raw in

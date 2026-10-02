@@ -458,10 +458,12 @@
 
 目標：可以日常使用的白板編輯。
 
+2026-10-02 開工決定（見 Architecture「Whiteboard」4c 開工前）：獨立 SwiftUI 工具列；編輯核心不依賴平台（可單元測試）；無限畫布以 origin 偏移對應 `PKCanvasView` 內容座標；Undo 復原時 version 仍遞增。實作順序：layer 樹 → iOS 畫布 → 編輯核心 → iOS 手勢與工具列 → 文字 → 圖片 → macOS → 快捷鍵與 LOD。
+
 - [ ] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
 - [ ] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
 - [ ] 手勢：筆模式手指點一下選取、長按才拖曳；選取模式碰到就拖曳
-- [ ] 工具列：筆 / 橡皮擦 / 套索（PencilKit）、選取、矩形、橢圓、箭頭、文字、圖片、frame
+- [ ] 工具列（獨立 SwiftUI，與 `PKToolPicker` 分開；筆類工具才顯示 `PKToolPicker` 選顏色粗細）：筆 / 橡皮擦 / 套索（PencilKit）、選取、矩形、橢圓、箭頭、文字、圖片、frame
 - [ ] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
 - [ ] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
 - [ ] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
@@ -481,6 +483,8 @@
 - [ ] 多裝置：Mac 移動形狀、iPad 同時加筆畫 → 同步後兩邊都保留
 - [ ] 開著白板時 Claude Code 加入一個 text 元素 → 數秒內出現在畫面，之後存檔不會消失
 - [ ] 基準線符合非功能預算（記憶體：開著 1,000 個元素的白板）
+
+2026-10-02：layer 樹完成（`KindWhiteboard/Canvas/BoardLayerTree.swift`，iOS / macOS 共用）。形狀、線、箭頭、frame 外框是 `CAShapeLayer`；文字、圖片、手寫、佔位框與 frame 標題由 `ElementPainter`（從 `SceneRenderer` 抽出的單一元素繪製）畫進點陣 layer，所以編輯器與縮圖畫法相同。每個元素 layer 的 bounds 原點 = 畫布座標、以 `angle` 繞中心旋轉；依 version + versionNonce 只重建有變的元素；frame 子元素超出 frame 時才加 mask。iOS 不畫 freedraw（`PKCanvasView` 畫）。`LayerTreeTests`：可見範圍、分批建立、順序、重建、點陣倍率，以及 layer 樹 `render(in:)` 與 `SceneRenderer` 逐像素比對（fixture 與 styles，容許 2%）。macOS 宿主要讓 root 的 geometry 翻轉（y 向下）。
 
 ### 4d 選做：筆記卡片
 
