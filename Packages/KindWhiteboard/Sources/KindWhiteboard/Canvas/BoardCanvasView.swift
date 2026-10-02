@@ -43,10 +43,12 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate {
         canvas.maximumZoomScale = Self.maxZoom
         // 回彈是 Core Animation 動畫，期間沒有逐幀回呼，結構層會與筆畫對不上
         canvas.bouncesZoom = false
+        // 手勢分工：iPad 上 Pencil 書寫、手指捲動與縮放（不跟隨系統「僅使用 Apple Pencil 繪圖」設定，
+        // 否則沒開那個設定時單指會畫出筆畫）。iPhone 通常沒有 Pencil，手指也能畫；模擬器沒有 Pencil
         #if targetEnvironment(simulator)
-        canvas.drawingPolicy = .anyInput // 模擬器沒有 Pencil
+        canvas.drawingPolicy = .anyInput
         #else
-        canvas.drawingPolicy = .default // 跟隨系統「僅使用 Apple Pencil 繪圖」設定
+        canvas.drawingPolicy = UIDevice.current.userInterfaceIdiom == .pad ? .pencilOnly : .anyInput
         #endif
         canvas.contentSize = region.size
         canvas.drawing = contentDrawing()

@@ -490,6 +490,8 @@
 
 2026-10-02 修正（實機回報 iPad 與 Mac 開白板全白）：`BoardEditorView` 用 `Group { if let document … }.onAppear`，Group 的修飾器套在子 view 上，document 為 nil 時沒有子 view，`onAppear` 不會被呼叫 → 永遠建立不了 document。4a（`e688e47`）就有這個問題，只跑了單元測試沒在 App 內開過。改用 `ZStack`；`becomeFirstResponder` 延到下一輪（工具盤才會出現）。另外 excalidraw.com 的筆畫轉成 PencilKit 時粗細改用渲染器的 perfect-freehand 寬度（原本直接用 `strokeWidth`，1 的筆畫幾乎看不見）。模擬器以 `-EasyNotesOpen <路徑>` 開檔驗證：結構層、筆畫與工具盤都出現，筆畫與圖形位置對齊。
 
+2026-10-02 修正（實機回報單指會畫出筆畫）：`drawingPolicy` 原本沿用舊手寫畫面的 `.default`（跟隨系統設定），改為 iPad 固定 `.pencilOnly`、iPhone `.anyInput`。
+
 ### 4d 選做：筆記卡片
 
 - [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 Architecture「筆記卡片放進白板」）

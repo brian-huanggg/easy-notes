@@ -289,7 +289,7 @@ vaultFS.deviceID() -> String
 - **圖片**：標準格式 `files[fileId].dataURL`（base64 內嵌，excalidraw.com 才打得開）。插入時用 ImageIO 縮到最長邊 2048px 並轉 JPEG（有透明度的圖保留 PNG），避免 JSON 暴增；`fileId` 由內容 hash 決定，同一張圖只內嵌一次；刪除元素不刪 `files`（與 Excalidraw 相同）。顯示依尺寸產生縮圖，不解碼原圖。
 - **frame**：子元素以 `frameId` 指向 frame；移動 frame 時子元素一起移動，frame 內容依 frame 範圍裁切。
 - **修改即遞增 version**：任何元素改動都遞增 `version`、重抽 `versionNonce`、更新 `updated`，元素層級合併（`ExcalidrawScene.merge`）依賴它們。
-- **手勢分工**：筆模式下 Pencil 書寫、手指捲動與縮放；手指點一下選取（空白處取消），長按約 0.35 秒才拖曳圖形，避免捲動時誤抓。選取模式停用 PencilKit 的手勢，手指與 Pencil 碰到圖形就拖曳。
+- **手勢分工**：筆模式下 Pencil 書寫、手指捲動與縮放（iPad 固定 `drawingPolicy = .pencilOnly`，不跟隨系統「僅使用 Apple Pencil 繪圖」設定；iPhone 通常沒有 Pencil，手指也能書寫）；手指點一下選取（空白處取消），長按約 0.35 秒才拖曳圖形，避免捲動時誤抓。選取模式停用 PencilKit 的手勢，手指與 Pencil 碰到圖形就拖曳。
 - **Undo**：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫依時間順序共用一個堆疊（⌘Z、三指手勢都適用）。
 - **開啟中的白板接收外部變動**：Whiteboard 註冊 `EditorController`：`externalChange` 把磁碟內容以 `ExcalidrawScene.merge` 併進記憶體中的場景並更新畫面；`flush` 立即存檔。否則開著白板時同步或 Claude Code 寫入的元素會被舊場景覆蓋。
 - **連結**：元素的 `link` 若是 `[[筆記]]`，`index()` 收進 `links`（白板出現在反向連結）；`renameLinks` 更新 `link` 與 `customData.easynotes.file`。
