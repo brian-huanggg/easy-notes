@@ -462,8 +462,10 @@
 
 - [ ] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
 - [ ] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
-- [ ] 手勢：筆模式手指點一下選取、長按才拖曳；選取模式碰到就拖曳
-- [ ] 工具列（獨立 SwiftUI，與 `PKToolPicker` 分開；筆類工具才顯示 `PKToolPicker` 選顏色粗細）：筆 / 橡皮擦 / 套索（PencilKit）、選取、矩形、橢圓、箭頭、文字、圖片、frame
+- [ ] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
+- [ ] 工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
+- [ ] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
+- [ ] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
 - [ ] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
 - [ ] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
 - [ ] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
@@ -491,6 +493,26 @@
 2026-10-02 修正（實機回報 iPad 與 Mac 開白板全白）：`BoardEditorView` 用 `Group { if let document … }.onAppear`，Group 的修飾器套在子 view 上，document 為 nil 時沒有子 view，`onAppear` 不會被呼叫 → 永遠建立不了 document。4a（`e688e47`）就有這個問題，只跑了單元測試沒在 App 內開過。改用 `ZStack`；`becomeFirstResponder` 延到下一輪（工具盤才會出現）。另外 excalidraw.com 的筆畫轉成 PencilKit 時粗細改用渲染器的 perfect-freehand 寬度（原本直接用 `strokeWidth`，1 的筆畫幾乎看不見）。模擬器以 `-EasyNotesOpen <路徑>` 開檔驗證：結構層、筆畫與工具盤都出現，筆畫與圖形位置對齊。
 
 2026-10-02 修正（實機回報單指會畫出筆畫）：`drawingPolicy` 原本沿用舊手寫畫面的 `.default`（跟隨系統設定），改為 iPad 固定 `.pencilOnly`、iPhone `.anyInput`。
+
+2026-10-02：編輯核心與 iOS 工具列（程式完成，待 iPad 實機驗證）。`Editor/BoardEditor.swift`（平台無關：hit test、點選 / Shift / 群組、框選、移動、控制點縮放（含旋轉）、拖曳建立矩形 / 橢圓 / 箭頭 / frame、箭頭端點重新綁定、刪除、再製、剪貼簿、Undo / Redo 記錄前後內容與選取）；`EditorTests` 22 個，全部 89 個測試通過。`BoardDocument.edit` 只改記憶體，停止操作 500 ms 後 `commit`。iOS：`BoardToolbar`（SwiftUI）、`PKToolPicker` 只放墨水類且只在筆工具顯示、`SelectionOverlay`、`BoardLayerTree.refresh`（拖曳中只重建變動的 layer）、手勢依 Architecture 規則。iOS Simulator 建置成功。尚未做：文字、圖片、macOS 互動、鍵盤快捷鍵、LOD。
+
+2026-10-02：文字與圖片（程式完成，待 iPad 實機驗證）。編輯核心 `Editor/BoardEditor+Text.swift`：`TextEditing` 只記目標與樣式，`rect(for:)` 用 `TextLayout` 排版（編輯中換行與結束後一致）；文字工具點一下、選取工具雙擊（筆模式手指雙擊只編輯既有文字 / 形狀）；結束時一次寫回、一筆 Undo，空白新文字不建立、清空既有文字則刪除（形狀保留）。iOS：`BoardTextView`（`UITextView`，自己的 undoManager、組字中 Esc 交給輸入法）疊在元素上，字級 / 行高 / 顏色 / 對齊 / 旋轉同元素，之後的縮放用 transform 不改字型；點畫布其他地方、換工具、Esc、收鍵盤、離開白板都會結束編輯。雙擊用時間判定，單擊選取不必等雙擊失敗。圖片：工具列「圖片」選單（照片 `PhotosPicker`、檔案、貼上；貼上也接受 Excalidraw 剪貼簿），背景縮圖、放在畫面中央、螢幕上約 400 點。順帶修正：再製 / 貼上 / 刪除的選取在註冊 Undo 前設定，重做時選回新元素。`EditorTests` 增加 6 個（共 95 個測試通過），iOS Simulator 建置成功。已知限制：鍵盤可能蓋住畫面下方的文字框（尚未自動捲動）；編輯中 App 被系統結束會遺失這段未寫回的文字。實機要確認：注音組字、文字框與結束後的位置是否對齊、雙擊手感、照片 / 檔案 / 貼上插入。
+
+2026-10-02：工具列改版（實機回報：工具列的筆 / 橡皮擦 / 套索與 PencilKit 重複；換工具後工具盤叫不回來；筆模式選形狀變成套索）。改成 Freeform 式（見 Architecture「工具列改版」）：畫筆改為手寫模式開關（`BoardEditor.inking`），開啟時顯示含橡皮擦、套索、尺的 `PKToolPicker` 並讓畫布成為 first responder；便條紙、形狀面板（矩形、圓角矩形、橢圓、菱形、箭頭、Frame）、文字框插在畫面中央（`BoardEditor+Insert`），與手寫模式無關；Undo / Redo 按鈕；iPad 工具列在導覽列中央，iPhone 浮在畫布上方。畫布背景（無 / 網格 / 點狀，`appState.easynotesBackground`，新白板預設點狀）用 `BackgroundPattern`（`CAReplicatorLayer`）。`BoardTool` 移除筆 / 橡皮擦 / 套索。`EditorTests` 增加 5 個（共 100 個測試通過），iOS Simulator 建置成功並以 `-EasyNotesOpen` 確認點狀背景與導覽列工具列出現。順帶修正：工具列聽 `NSUndoManagerCheckpoint` 更新 Undo 狀態會無限迴圈（`canUndo` 本身發出 checkpoint），改聽 close group / undo / redo。實機要確認：畫筆開關與工具盤、形狀面板、便條紙打字、背景切換、iPad 直向加側欄時工具列是否擠得下。
+
+2026-10-02 第二輪回饋：工具列移出導覽列，改為導覽列下方獨立一排（iPad / iPhone 相同）；形狀面板只顯示圖示；畫布背景改為 App 偏好設定（`@AppStorage`），不再寫入 `appState.easynotesBackground`（非 Excalidraw 欄位，避免相容性問題），新白板不再預設寫入背景。
+
+2026-10-02 第三輪：選取方式可在矩形 / 套索之間切換（工具列按鈕，App 偏好設定；手寫模式時停用）。編輯核心新增 `.lasso` 手勢與 `lassoed(_:)`（`HitTest.samplePoints`：形狀取輪廓節點、線取各點、其他取四角，含旋轉），`SelectionOverlay` 畫虛線套索。`EditorTests` 增加 4 個（共 104 個測試通過），iOS Simulator 建置成功。實機要確認：Pencil 畫套索的手感、凹形套索與旋轉元素的選取結果。
+
+2026-10-02 第四輪：選其他工具（便條紙、形狀、文字框、圖片、選取方式）時自動離開手寫模式、回到選取；選取方式按鈕在手寫模式也可以按（按了就離開手寫模式）。
+
+2026-10-02：macOS 宿主、快捷鍵與 LOD（程式完成，待實機驗證，所以上面對應的項目先不勾；設計見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。
+
+- macOS：`Canvas/BoardMacCanvasView.swift`（`NSView`，自己管 `origin` / `zoom`，不用 `NSScrollView`）。雙指捲動平移、⌘ / ⌥ + 捲動與捏合以游標為中心縮放（0.25…4）；滑鼠按下 / 拖曳 / 放開交給 `BoardEditor`，沒移動的按下改走 `tap`（Shift 加減選）、雙擊編輯文字；文字框是 `NSTextView`（`bounds` 與 `frame` 分開縮放，編輯中縮放不改字型）；Undo 用視圖自己的堆疊並接上 Edit 選單。手寫由結構層畫（`drawsFreedraw: true`），只能看。`BoardEditorView` 的 macOS 分支改用它，工具列沿用 iPad 那一排（`showsInk: false`），選了建立工具時按鈕反白。
+- 快捷鍵：`Editor/BoardShortcut.swift`（平台無關）。V R O A T F、Delete、⌘D、⌘A、⌘C / ⌘X / ⌘V、Esc；文字編輯中不攔截。Mac 走 `keyDown` / `performKeyEquivalent`，iPad 走 `UIKeyCommand`（字母、Delete、⌘D、⌘A、Esc）與 `copy` / `cut` / `paste` 響應鏈動作（PencilKit 有自己的筆畫剪貼簿，有它的內容時它優先）。剪貼簿貼上邏輯從工具列搬到 `BoardEditor.pasteFromPasteboard()`。
+- LOD：`Canvas/BoardLOD.swift`（兩個平台共用）。縮放 ≤ 0.4 且可見元素 > 1,500、沒有選取或操作時，背景畫一張快照（範圍外擴 25%、最長邊 ≤ 4096 px、iOS 不含手寫）取代個別 layer；快照好之前仍顯示 layer，縮放 / 平移時圖片跟著 transform，停止 150 ms 後重畫；選取、操作或放大回來就改回個別 layer。
+- 測試：`ShortcutTests`、`LODTests`、`MacCanvasTests`（離屏視窗 + 合成滑鼠 / 鍵盤事件：渲染方向、點選 / Shift 多選、拖曳移動與 Undo、拖曳建立、⌘D / Delete、縮放錨點、存檔），`KindWhiteboard` 共 124 個測試通過；macOS 與 iOS Simulator 建置成功。
+- 實機要確認：Mac 上雙指捲動與捏合手感、文字框位置與注音組字（含旋轉的形狀）、Edit 選單的復原 / 重做與剪貼簿、快捷鍵；iPad 外接鍵盤的快捷鍵與 ⌘C / ⌘V；LOD 在 1,000 以上元素縮到最小時的順暢度與切換時的閃爍（10,000 個元素的壓力測試檔）。尚未做：Mac 拖曳到邊緣自動捲動、拖放圖片檔進畫布、游標形狀（建立工具的十字）。
 
 ### 4d 選做：筆記卡片
 
@@ -536,7 +558,7 @@
 - [ ] 儲存格內注音輸入正常
 - [ ] 1 萬列捲動流暢n
 
-## Bug Repots
+## Bug Reports
 
 ### Mobiles
 
@@ -544,6 +566,11 @@
 - [x] 點擊檔案中的資料夾，會跳轉頁面：**選擇或建立一篇筆記** 所有筆記都存在 /var/mobile/... 應該要改成點擊後展開資料夾而非跳轉錯誤頁面 [R1]（2.5b：點資料夾改為推入資料夾頁，實機確認正常）
 - [x] 當進入iOS > 複習 檢視所有卡牌，該頁面並沒有根據iOS手機螢幕（直立）進行排版優化（牌組列固定寬度的數字欄把內容撐出螢幕。compact 寬度改為：左右邊距 20、今日橫幅上下排且「開始複習」滿版、隱藏圖例、牌組列兩行〔名稱 + 選項 / 「● 數字 名稱」+ 複習〕，待實機確認）
 - [x] 在 Mac 或 iOS 裝置的畫面頂端（狀態列或選單列附近）出現的小橘點，代表目前有 App 正在使用你的麥克風。 請確認是否有在Background執行或是存取麥克風等設備 → 不是麥克風：主畫面 App 名稱前的黃 / 橘點是 TestFlight 測試版的標記（App Store 版不會有）；麥克風指示燈在狀態列右上角。程式中沒有 AVAudio / AVCapture / Speech、沒有 `NSMicrophoneUsageDescription` 與 `UIBackgroundModes`，CM6 也不呼叫 `getUserMedia`
+
+### Review
+
+- [ ] 當卡片都複習完時，"開始複習" 按鈕應該會變灰色不可點擊
+- [ ] 自定義複習 (Custom Study)
 
 ### Editor
 
@@ -562,6 +589,7 @@
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
 - [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言
+- [ ] Settings > 支援Light/Dark Theme
 - [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
 ## 風險與待決事項

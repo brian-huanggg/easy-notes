@@ -19,6 +19,12 @@ final class BoardLayerTree {
     /// 建立與重新點陣化每次最多處理的 layer 數
     static let batchSize = 120
 
+    /// LOD 啟用中（畫面改由 `BoardLOD` 的點陣快照顯示）：不建立任何 layer，已建立的移除；
+    /// 關閉時宿主要再呼叫 `updateVisible` 分批重建
+    var lodActive = false {
+        didSet { if lodActive != oldValue, !visibleRect.isNull { updateVisible(visibleRect) } }
+    }
+
     /// 點陣 layer 的 `contentsScale`（螢幕倍率 × 點陣倍率）。新建的 layer 直接用它；
     /// 改變時既有的 layer 排入佇列，由 `drainRaster` 分批重畫
     private(set) var contentsScale: CGFloat = 2
@@ -116,7 +122,39 @@ final class BoardLayerTree {
         if !visibleRect.isNull { updateVisible(visibleRect) }
     }
 
+    /// 拖曳中：只更新 `ids` 的元素（順序不變），省掉 `setScene` 對整個場景的排序與比對。
+    /// 有新元素或改到 frame（子元素的裁切跟著變）時改走 `setScene`。
+    func refresh(_ ids: Set<String>, in scene: ExcalidrawScene) {
+        guard !ids.isEmpty else { return }
+        var updates: [(Int, Element)] = []
+        for raw in scene.elements {
+            guard let id = raw["id"] as? String, ids.contains(id) else { continue }
+            let el = Element(raw: raw)
+            if el.type == .freedraw, !drawsFreedraw { continue }
+            guard let i = position[id], !el.isDeleted, el.type != .frame else { setScene(scene); return }
+            updates.append((i, el))
+        }
+        withoutAnimation {
+            for (i, el) in updates {
+                items[i] = Item(element: el, bounds: ElementGeometry.bounds(el), order: items[i].order,
+                                stamp: "\(el.version)-\(el.versionNonce)")
+                if let layer = layers[el.id] {
+                    let fresh = makeLayer(items[i])
+                    root.replaceSublayer(layer, with: fresh)
+                    layers[el.id] = fresh
+                }
+            }
+        }
+        // 移進或移出可見範圍
+        if !visibleRect.isNull { updateVisible(visibleRect) }
+    }
+
     // MARK: 可見範圍
+
+    /// 與 `rect` 相交的元素數（LOD 的門檻判斷；不看 layer 有沒有建立）
+    func visibleCount(in rect: CGRect) -> Int {
+        items.reduce(0) { $0 + (rect.intersects($1.bounds) ? 1 : 0) }
+    }
 
     /// 建立可見範圍內的 layer、移除範圍外的。一次最多建立 `batchSize` 個，還有剩回傳 true（下一幀再呼叫）
     @discardableResult
@@ -128,7 +166,7 @@ final class BoardLayerTree {
         withoutAnimation {
             for item in items {
                 let id = item.element.id
-                let inside = rect.intersects(item.bounds)
+                let inside = !lodActive && rect.intersects(item.bounds)
                 if inside, layers[id] == nil {
                     guard budget > 0 else { more = true; continue }
                     budget -= 1

@@ -14,6 +14,17 @@ extension ExcalidrawScene {
     @discardableResult
     public mutating func insertImage(_ data: Data, at origin: CGPoint, maxDisplay: Double = 400) -> String? {
         guard let encoded = Self.downscale(data) else { return nil }
+        return insertImage(encoded, maxDisplay: maxDisplay) { _ in origin }
+    }
+
+    /// 插入已縮圖的圖片（編輯器在背景執行 `downscale`），中心放在 `center`
+    @discardableResult
+    mutating func insertImage(_ encoded: EncodedImage, center: CGPoint, maxDisplay: Double) -> String {
+        insertImage(encoded, maxDisplay: maxDisplay) { CGPoint(x: center.x - $0.width / 2, y: center.y - $0.height / 2) }
+    }
+
+    private mutating func insertImage(_ encoded: EncodedImage, maxDisplay: Double,
+                                      origin: (CGSize) -> CGPoint) -> String {
         let fileId = SHA256.hash(data: encoded.data).map { String(format: "%02x", $0) }.joined().prefix(40).description
         var files = raw["files"] as? [String: Any] ?? [:]
         if files[fileId] == nil {
@@ -28,9 +39,9 @@ extension ExcalidrawScene {
             raw["files"] = files
         }
         let scale = min(1, maxDisplay / Double(max(encoded.width, encoded.height)))
-        let el = Element.image(fileId: fileId, x: origin.x, y: origin.y,
-                               width: (Double(encoded.width) * scale).rounded(),
-                               height: (Double(encoded.height) * scale).rounded())
+        let size = CGSize(width: (Double(encoded.width) * scale).rounded(), height: (Double(encoded.height) * scale).rounded())
+        let o = origin(size)
+        let el = Element.image(fileId: fileId, x: o.x, y: o.y, width: size.width, height: size.height)
         insert(el)
         return el.id
     }
@@ -43,7 +54,7 @@ extension ExcalidrawScene {
         return Data(base64Encoded: String(url[url.index(after: comma)...]))
     }
 
-    struct EncodedImage {
+    struct EncodedImage: Sendable {
         var data: Data
         var mimeType: String
         var width: Int

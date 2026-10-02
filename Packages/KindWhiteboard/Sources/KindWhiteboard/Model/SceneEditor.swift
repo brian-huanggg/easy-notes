@@ -75,7 +75,7 @@ struct SceneEditor {
         Self.sorted(elements).firstIndex { $0.id == id }
     }
 
-    private mutating func rebuildPosition() {
+    mutating func rebuildPosition() {
         position = Dictionary(elements.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
@@ -149,23 +149,26 @@ struct SceneEditor {
 
     // MARK: 縮放
 
-    /// 把元素縮放到 `rect`。線與箭頭的點等比例縮放；獨立文字依高度縮放字級；
-    /// 形狀內的文字重新排版（容器高度不夠會長高）；綁定的箭頭重算端點。
-    mutating func resize(_ id: String, to rect: CGRect) {
-        guard let old = self[id], !old.isDeleted else { return }
+    /// 把元素縮放到 `rect`（未旋轉的外框，見 `ElementGeometry.box`）。線與箭頭的點依外框等比例換算；
+    /// 獨立文字依高度縮放字級；形狀內的文字重新排版（容器高度不夠會長高）；綁定的箭頭重算端點。
+    /// `original` = 開始縮放時的元素：拖曳中每一幀都從它計算，不累積誤差（省略時用目前的元素）。
+    mutating func resize(_ id: String, to rect: CGRect, from original: Element? = nil) {
+        guard let current = self[id], !current.isDeleted else { return }
+        let old = original ?? current
         var touched: Set<String> = [id]
         switch old.type {
         case .line, .arrow, .freedraw:
-            let sx = old.width > 0 ? rect.width / old.width : 1
-            let sy = old.height > 0 ? rect.height / old.height : 1
-            update(id) { el in
-                el.points = el.points.map { CGPoint(x: $0.x * sx, y: $0.y * sy) }
-                el.x = rect.minX; el.y = rect.minY; el.width = rect.width; el.height = rect.height
+            let box = ElementGeometry.box(old)
+            let sx = box.width > 0 ? rect.width / box.width : 1
+            let sy = box.height > 0 ? rect.height / box.height : 1
+            let pts = old.absolutePoints.map {
+                CGPoint(x: rect.minX + ($0.x - box.minX) * sx, y: rect.minY + ($0.y - box.minY) * sy)
             }
+            update(id) { $0.setAbsolutePoints(pts) }
         case .text where old.containerId == nil:
             let scale = old.height > 0 ? rect.height / old.height : 1
             update(id) { el in
-                el.raw["fontSize"] = (el.fontSize * scale).rounded()
+                el.raw["fontSize"] = (old.fontSize * scale * 10).rounded() / 10
                 el.x = rect.minX; el.y = rect.minY
                 TextLayout.fit(&el, maxWidth: el.raw["autoResize"] as? Bool == false ? rect.width : nil)
             }

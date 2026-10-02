@@ -74,8 +74,9 @@ public final class SceneRenderer: @unchecked Sendable {
 
     /// 在已設定成畫布座標（y 向下）的 `ctx` 上繪製。只畫與 `visible` 相交的元素；
     /// `pixelScale` = 每個畫布單位的像素數，決定圖片解碼的大小。不畫背景。
-    public func draw(in ctx: CGContext, visible: CGRect? = nil, pixelScale: CGFloat = 1) {
+    public func draw(in ctx: CGContext, visible: CGRect? = nil, pixelScale: CGFloat = 1, drawsFreedraw: Bool = true) {
         for (i, el) in elements.enumerated() {
+            if !drawsFreedraw, el.type == .freedraw { continue }
             if let visible, !boundsCache[i].intersects(visible) { continue }
             // frame 內的元素依 frame 範圍裁切
             let frame = el.frameId.flatMap { byID[$0] }.flatMap { $0.type == .frame ? $0 : nil }

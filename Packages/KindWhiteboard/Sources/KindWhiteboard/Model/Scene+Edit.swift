@@ -40,8 +40,9 @@ extension ExcalidrawScene {
         edit { $0.move(ids, dx: dx, dy: dy) }
     }
 
-    public mutating func resize(_ id: String, to rect: CGRect) {
-        edit { $0.resize(id, to: rect) }
+    /// 縮放到 `rect`（未旋轉的外框）；`original` = 開始縮放時的元素，拖曳中每一幀都從它計算
+    public mutating func resize(_ id: String, to rect: CGRect, from original: Element? = nil) {
+        edit { $0.resize(id, to: rect, from: original) }
     }
 
     public mutating func setFrame(_ ids: Set<String>, to frameID: String?) {

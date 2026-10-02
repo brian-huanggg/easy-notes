@@ -14,6 +14,10 @@ final class BoardDocument {
     @ObservationIgnored var flushHandler: (() -> Void)?
     @ObservationIgnored private let session: any DocumentSession
     @ObservationIgnored private var lastData: Data?
+    /// `edit` 改過、還沒寫檔
+    @ObservationIgnored private(set) var hasUnsavedEdits = false
+    /// 寫檔次數（編輯器取消拖曳時，據此判斷中途是否存過檔）
+    @ObservationIgnored private(set) var writeCount = 0
 
     init(path: String, session: any DocumentSession) {
         self.path = path
@@ -23,17 +27,24 @@ final class BoardDocument {
         lastData = data
     }
 
-    /// 修改場景；內容有變才寫檔
-    func commit(_ body: (inout ExcalidrawScene) -> Void) {
-        let before = try? scene.data()
+    /// 修改場景；內容有變（或之前 `edit` 過）才寫檔
+    func commit(_ body: (inout ExcalidrawScene) -> Void = { _ in }) {
+        let before = hasUnsavedEdits ? nil : try? scene.data()
         body(&scene)
-        guard let data = try? scene.data(), data != before else { return }
+        hasUnsavedEdits = false
+        guard let data = try? scene.data(), data != before, data != lastData else { return }
         write(data)
+    }
+
+    /// 只改記憶體中的場景、標記待存（編輯器拖曳中逐幀修改）；宿主停止操作後 `commit` 一次寫入
+    func edit<T>(_ body: (inout ExcalidrawScene) -> T) -> T {
+        hasUnsavedEdits = true
+        return body(&scene)
     }
 
     /// 立即把編輯器的待存內容寫回（改名、刪除、進背景前）
     func flush() {
-        flushHandler?()
+        if let flushHandler { flushHandler() } else if hasUnsavedEdits { commit() }
     }
 
     /// 檔案被外部修改或同步：依元素 id + version 併進記憶體中的場景。
@@ -52,6 +63,7 @@ final class BoardDocument {
     }
 
     private func write(_ data: Data) {
+        writeCount += 1
         lastData = data
         session.write(data, to: path)
     }
