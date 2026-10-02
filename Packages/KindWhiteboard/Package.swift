@@ -20,6 +20,7 @@ let package = Package(
         ),
         .testTarget(name: "KindWhiteboardTests", dependencies: [
             "KindWhiteboard", .product(name: "EasyNotesCore", package: "EasyNotesCore"),
-        ]),
+            .product(name: "EasyNotesUI", package: "EasyNotesCore"),
+        ], resources: [.copy("Fixtures")]),
     ]
 )

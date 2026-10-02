@@ -283,10 +283,10 @@ vaultFS.deviceID() -> String
   - 1,000 個元素在 60Hz 機型維持 60 FPS；10,000 個元素降到約 30 FPS（縮小時全部在畫面內），需要 LOD（縮放倍率低時改畫點陣快照）。
 - **疊放順序**：編輯器中手寫一律在結構元素之上（`PKCanvasView` 是獨立的一層，無法插在圖形之間）。存檔時保留檔案中的元素順序；縮圖、嵌入與 Mac 檢視依檔案順序繪製。
 - **元素範圍**：可**顯示**所有標準類型（rectangle、diamond、ellipse、line、arrow、text、freedraw、image、frame，含 `angle` 旋轉、曲線與 elbow 箭頭）；可**建立**的是 rectangle、ellipse、arrow（直線，可綁定）、text、image、frame。`embeddable`、`iframe` 等顯示為帶標題的佔位框，原樣保留。不模擬 rough.js 的手繪風格：`roughness`、`fillStyle`、`fontFamily` 原樣保留，顯示時用乾淨線條與系統字型；新元素 `roughness: 0`。
-- **元素順序與 fractional index**：新版 Excalidraw 的元素有 `index`（fractional index）。有 `index` 時依它排序，新元素產生合法的 index（插在兩者之間）；合併後依 `index` 排序，沒有 `index` 的舊檔案沿用陣列順序。
-- **箭頭綁定**：箭頭的 `startBinding` / `endBinding`（`elementId`、`focus`、`gap`，新版另有 `fixedPoint`）與形狀的 `boundElements` 兩邊一起維護。形狀移動或縮放後重算綁定箭頭的端點；只修改需要變的欄位並遞增 `version`。以 excalidraw.com 匯出的檔案當 fixture。
+- **元素順序與 fractional index**：新版 Excalidraw 的元素有 `index`（fractional index）。有 `index` 時依它排序，新元素產生合法的 index（插在兩者之間）；合併後依 `index` 排序，沒有 `index` 的舊檔案沿用陣列順序。2026-10-02（4a）：演算法照 rocicorp/fractional-indexing（Excalidraw 用的同一套，base62）。所有元素都有合法 index 才算「有 index 的場景」；舊檔案不補 index（補了每個元素都要遞增 version），新元素也不加。index 相同（兩台裝置在同一處插入）時以 id 排序，兩邊合併結果一致。
+- **箭頭綁定**：箭頭的 `startBinding` / `endBinding`（`elementId`、`focus`、`gap`，新版另有 `fixedPoint`）與形狀的 `boundElements` 兩邊一起維護。形狀移動或縮放後重算綁定箭頭的端點；只修改需要變的欄位並遞增 `version`。以 excalidraw.com 匯出的檔案當 fixture。2026-10-02（4a）：端點 = 從相鄰點朝錨點（`fixedPoint` 在形狀上的位置，沒有時用中心）的射線，與「形狀輪廓向外擴 `gap`」的交點，所以端點到輪廓的距離就是 `gap`；形狀可旋轉，矩形、橢圓、菱形各自算輪廓。`focus` 只為舊版 Excalidraw 近似計算，以 `fixedPoint` 為準。elbow 箭頭的端點暫不重算（需要重新走線）。刪除形狀 → 箭頭的該端綁定清除；刪除箭頭 → 從形狀的 `boundElements` 移除；箭頭單獨移動而形狀沒動 → 解除該端綁定。
 - **文字**：`containerId` 綁在形狀內的文字隨形狀移動、在形狀內置中換行。編輯時在元素上疊原生 `UITextView` / `NSTextView`（注音組字是原生的），結束編輯才寫回元素。
-- **圖片**：標準格式 `files[fileId].dataURL`（base64 內嵌，excalidraw.com 才打得開）。插入時用 ImageIO 縮到最長邊 2048px 並轉 JPEG，避免 JSON 暴增；顯示依尺寸產生縮圖，不解碼原圖。
+- **圖片**：標準格式 `files[fileId].dataURL`（base64 內嵌，excalidraw.com 才打得開）。插入時用 ImageIO 縮到最長邊 2048px 並轉 JPEG（有透明度的圖保留 PNG），避免 JSON 暴增；`fileId` 由內容 hash 決定，同一張圖只內嵌一次；刪除元素不刪 `files`（與 Excalidraw 相同）。顯示依尺寸產生縮圖，不解碼原圖。
 - **frame**：子元素以 `frameId` 指向 frame；移動 frame 時子元素一起移動，frame 內容依 frame 範圍裁切。
 - **修改即遞增 version**：任何元素改動都遞增 `version`、重抽 `versionNonce`、更新 `updated`，元素層級合併（`ExcalidrawScene.merge`）依賴它們。
 - **手勢分工**：筆模式下 Pencil 書寫、手指捲動與縮放；手指點一下選取（空白處取消），長按約 0.35 秒才拖曳圖形，避免捲動時誤抓。選取模式停用 PencilKit 的手勢，手指與 Pencil 碰到圖形就拖曳。

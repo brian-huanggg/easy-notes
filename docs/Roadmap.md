@@ -385,25 +385,40 @@
 
 目標：元素模型、綁定與連結都能以單元測試驗證；還沒有介面。
 
-- [ ] 修正：Whiteboard 註冊 `EditorController`，`externalChange` 以 `ExcalidrawScene.merge` 併進開啟中的場景、`flush` 立即存檔（避免外部寫入被舊場景覆蓋）
-- [ ] 型別化的 `Element` 包裝（底層仍是原始字典，未知欄位原樣保留）：共用欄位、各類型的欄位、`angle`、`groupIds`、`frameId`、`containerId`
-- [ ] 修改元素的共用路徑：遞增 `version`、重抽 `versionNonce`、更新 `updated`
-- [ ] fractional `index`：讀取排序、插入時產生、合併後排序；沒有 `index` 的舊檔案沿用陣列順序
-- [ ] 箭頭綁定：`startBinding` / `endBinding`（含 `fixedPoint`）與 `boundElements` 雙向維護；`rebindArrows(movedIDs:)` 重算端點
-- [ ] 文字：`containerId` 綁定、在容器內換行與置中的排版（CoreText，與渲染共用）
-- [ ] frame：`frameId` 子元素、移動 frame 帶動子元素
-- [ ] 圖片：插入時 ImageIO 縮到最長邊 2048px、JPEG、寫入 `files`；刪除元素時不刪 `files`（與 Excalidraw 相同）
-- [ ] 連結：`index()` 把 `link` 中的 `[[筆記]]` 收進 `links`；`renameLinks` 更新 `link` 與 `customData.easynotes.file`
-- [ ] 索引摘要改為「N 個元素」（筆畫與圖形合計）
+- [x] 修正：Whiteboard 註冊 `EditorController`，`externalChange` 以 `ExcalidrawScene.merge` 併進開啟中的場景、`flush` 立即存檔（避免外部寫入被舊場景覆蓋）
+- [x] 型別化的 `Element` 包裝（底層仍是原始字典，未知欄位原樣保留）：共用欄位、各類型的欄位、`angle`、`groupIds`、`frameId`、`containerId`
+- [x] 修改元素的共用路徑：遞增 `version`、重抽 `versionNonce`、更新 `updated`
+- [x] fractional `index`：讀取排序、插入時產生、合併後排序；沒有 `index` 的舊檔案沿用陣列順序
+- [x] 箭頭綁定：`startBinding` / `endBinding`（含 `fixedPoint`）與 `boundElements` 雙向維護；`rebindArrows(movedIDs:)` 重算端點
+- [x] 文字：`containerId` 綁定、在容器內換行與置中的排版（CoreText，與渲染共用）
+- [x] frame：`frameId` 子元素、移動 frame 帶動子元素
+- [x] 圖片：插入時 ImageIO 縮到最長邊 2048px、JPEG、寫入 `files`；刪除元素時不刪 `files`（與 Excalidraw 相同）
+- [x] 連結：`index()` 把 `link` 中的 `[[筆記]]` 收進 `links`；`renameLinks` 更新 `link` 與 `customData.easynotes.file`
+- [x] 索引摘要改為「N 個元素」（筆畫與圖形合計）
 
 驗收測試：
 
 - [ ] 序列化：excalidraw.com 匯出的 fixture（含 6 種可建立的元素、diamond、line、elbow 箭頭、embeddable）讀入再寫出，元素與欄位不變；未知元素與欄位原樣保留
-- [ ] 修改一個元素只改變它的 `version` / `versionNonce` / `updated` 與被修改的欄位
-- [ ] fractional index：在兩元素之間插入 100 次，順序正確且 index 合法；兩邊各插入後合併，順序確定（兩台裝置結果相同）
-- [ ] 綁定：移動 / 縮放形狀後，綁定箭頭的端點落在形狀邊上（`gap` 正確）；刪除形狀後箭頭的 binding 清除；`boundElements` 與箭頭兩邊一致
-- [ ] 外部變動：開啟中的場景收到加了元素的 `externalChange` 後再存檔，該元素仍在
+- [x] 修改一個元素只改變它的 `version` / `versionNonce` / `updated` 與被修改的欄位
+- [x] fractional index：在兩元素之間插入 100 次，順序正確且 index 合法；兩邊各插入後合併，順序確定（兩台裝置結果相同）
+- [x] 綁定：移動 / 縮放形狀後，綁定箭頭的端點落在形狀邊上（`gap` 正確）；刪除形狀後箭頭的 binding 清除；`boundElements` 與箭頭兩邊一致
+- [x] 外部變動：開啟中的場景收到加了元素的 `externalChange` 後再存檔，該元素仍在
 - [ ] 連結改名：白板中 `[[舊名]]` 的 `link` 跟著改名；反向連結出現白板
+
+2026-10-02：4a 程式完成，`KindWhiteboard` 單元測試 39 個通過（`ModelSerializationTests`、`ModelEditingTests`、`BoardDocumentTests`；原有的 `InkRoundTripTests`、`InkMergeTests` 不變），macOS 與 iOS Simulator 建置成功。模型放在 `KindWhiteboard/Model/`（`Element`、`SceneEditor`、`Binding`、`TextLayout`、`FractionalIndex`、`Scene+Edit` / `+Image` / `+Links`）；開啟中的白板為 `BoardDocument`，由 `WhiteboardController`（`EditorController`）管理。
+
+未勾的兩項：
+
+- 序列化：fixture（`Tests/KindWhiteboardTests/Fixtures/excalidraw-export.excalidraw`）是依 Excalidraw 0.18 格式**手寫**的，涵蓋 6 種可建立的元素、diamond、line、elbow 箭頭、embeddable、未知類型與欄位、墓碑，來回測試通過。還要換成（或補上）excalidraw.com 實際匯出的檔案再驗一次才勾選。
+- 連結改名：`renameLinks` 與 `index().links` 的單元測試通過；「反向連結出現白板」要在 App 內（VaultIndex 實際建立反向連結）驗證。
+
+實作中的補充決定（見 Architecture「Whiteboard」）：
+
+- `gap` = 端點到形狀輪廓的距離（射線與「輪廓向外擴 gap」的交點），不是沿射線往回退 gap。
+- 沒有 `index` 的舊檔案不補 index（補了每個元素都要遞增 version）；新元素也不加 index，維持陣列順序。兩台裝置在同一處插入會得到相同 index，排序以 id 決定；之後再插入時跳過這串相同的 index。
+- elbow 箭頭的端點不隨形狀重算（轉折路徑要重新走線，4c 以後再處理），綁定保留。
+- 有透明度的圖片存 PNG，其他轉 JPEG（JPEG 沒有 alpha，透明處會變黑）。
+- 箭頭單獨移動、但綁定的形狀沒一起移動 → 解除該端綁定（與 Excalidraw 相同）。
 
 ### 4b 渲染器、縮圖與嵌入
 
