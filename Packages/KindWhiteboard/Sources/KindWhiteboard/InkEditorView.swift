@@ -7,32 +7,39 @@ import SwiftUI
 struct InkEditorView: View {
     let path: String
     @Environment(\.documentSession) private var session
+    @State private var document: BoardDocument?
 
     var body: some View {
-        if let session {
-            #if os(iOS)
-            InkCanvas(path: path, session: session)
-                .ignoresSafeArea(edges: .bottom)
-            #else
-            InkPreview(scene: (try? ExcalidrawScene(data: session.readData(path))) ?? ExcalidrawScene())
-            #endif
+        Group {
+            if let document {
+                #if os(iOS)
+                InkCanvas(document: document)
+                    .ignoresSafeArea(edges: .bottom)
+                #else
+                InkPreview(scene: document.scene)
+                #endif
+            }
         }
+        .onAppear {
+            if document == nil, let session { document = WhiteboardController.shared.open(path, session: session) }
+        }
+        .onDisappear { WhiteboardController.shared.close(path: path) }
     }
 }
 
 #if os(iOS)
 private struct InkCanvas: UIViewRepresentable {
-    let path: String
-    let session: any DocumentSession
+    let document: BoardDocument
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(path: path, session: session)
+        Coordinator(document: document)
     }
 
     func makeUIView(context: Context) -> PKCanvasView {
         let canvas = PKCanvasView()
-        canvas.drawing = context.coordinator.scene.drawing
+        canvas.drawing = document.scene.drawing
         canvas.delegate = context.coordinator
+        context.coordinator.canvas = canvas
         #if targetEnvironment(simulator)
         canvas.drawingPolicy = .anyInput // 模擬器沒有 Pencil
         #else
@@ -59,16 +66,23 @@ private struct InkCanvas: UIViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, PKCanvasViewDelegate {
-        let path: String
-        let session: any DocumentSession
+        let document: BoardDocument
         let toolPicker = PKToolPicker()
-        var scene: ExcalidrawScene
+        weak var canvas: PKCanvasView?
         private var saveTask: Task<Void, Never>?
 
-        init(path: String, session: any DocumentSession) {
-            self.path = path
-            self.session = session
-            scene = (try? ExcalidrawScene(data: session.readData(path))) ?? ExcalidrawScene()
+        init(document: BoardDocument) {
+            self.document = document
+            super.init()
+            // 外部寫入併進場景後，把新內容畫到畫布上；存檔時筆畫與場景比對，沒變的元素不會被改動
+            document.onExternalChange = { [weak self] in
+                guard let self, let canvas else { return }
+                canvas.drawing = document.scene.drawing
+            }
+            document.flushHandler = { [weak self] in
+                guard let self, let canvas else { return }
+                saveNow(canvas.drawing)
+            }
         }
 
         func canvasViewDrawingDidChange(_ canvas: PKCanvasView) {
@@ -83,10 +97,7 @@ private struct InkCanvas: UIViewRepresentable {
 
         func saveNow(_ drawing: PKDrawing) {
             saveTask?.cancel()
-            let before = try? scene.data()
-            scene.update(from: drawing)
-            guard let data = try? scene.data(), data != before else { return }
-            session.write(data, to: path)
+            document.commit { $0.update(from: drawing) }
         }
     }
 }

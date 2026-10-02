@@ -6,6 +6,7 @@ public enum WhiteboardPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         registry.addKind(InkKind.self, name: "白板", symbol: "pencil.tip", tint: .violet)
         registry.addPreview(for: InkKind.id, BoardPreview())
+        registry.addController(WhiteboardController.shared)
         registry.addEditor(for: InkKind.id) { InkEditorView(path: $0).id($0) }
         registry.addNewFile("新手寫", kind: InkKind.self, symbol: "pencil.tip",
                             shortcut: KeyboardShortcut("n", modifiers: [.command, .shift]), defaultName: "手寫")

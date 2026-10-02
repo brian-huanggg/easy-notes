@@ -48,7 +48,7 @@ public struct ExcalidrawScene {
     public static let maxForce = 4.166_666_7
     static let customKey = "easynotes"
 
-    public private(set) var raw: [String: Any]
+    public internal(set) var raw: [String: Any]
 
     public init() {
         raw = [
@@ -101,7 +101,8 @@ public struct ExcalidrawScene {
             return !seen.contains(id)
         }
         var merged = local
-        merged.raw["elements"] = result
+        // 有 index 就依它排序（相同時依 id），兩台裝置合併出來的順序一致；舊檔案沿用本地順序
+        merged.raw["elements"] = SceneEditor.sorted(result.map(Element.init(raw:))).map(\.raw)
         let localFiles = local.raw["files"] as? [String: Any] ?? [:]
         let remoteFiles = remote.raw["files"] as? [String: Any] ?? [:]
         merged.raw["files"] = localFiles.merging(remoteFiles) { mine, _ in mine }
@@ -138,14 +139,15 @@ public struct ExcalidrawScene {
                 remaining.remove(at: i)
                 result.append(el)
             } else {
-                var tomb = el
-                tomb["isDeleted"] = true
-                Self.bumpVersion(&tomb)
-                result.append(tomb)
+                var tomb = Element(raw: el)
+                tomb.isDeleted = true
+                tomb.touch()
+                result.append(tomb.raw)
             }
         }
-        result += remaining.map { Self.encode($0) }
         raw["elements"] = result
+        // 新筆畫放最上層；有 index 的場景替它們產生 index
+        for stroke in remaining { insert(Element(raw: Self.encode(stroke))) }
     }
 
     static func decode(_ el: [String: Any]) -> InkStroke? {
@@ -224,17 +226,11 @@ public struct ExcalidrawScene {
         ]
     }
 
-    private static func bumpVersion(_ el: inout [String: Any]) {
-        el["version"] = (number(el["version"]).map { Int($0) } ?? 1) + 1
-        el["versionNonce"] = Int.random(in: 1...Int(Int32.max))
-        el["updated"] = Int(Date().timeIntervalSince1970 * 1000)
-    }
-
     private static func number(_ value: Any?) -> Double? {
         (value as? NSNumber)?.doubleValue
     }
 
-    private static func randomID() -> String {
+    static func randomID() -> String {
         let chars = Array("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
         return String((0..<21).map { _ in chars.randomElement()! })
     }
@@ -252,9 +248,14 @@ public enum InkKind: DocumentKind {
         // 白板內的文字元素也納入搜尋
         let elements = ((try? ExcalidrawScene(data: data))?.elements ?? []).filter { $0["isDeleted"] as? Bool != true }
         let texts = elements.filter { $0["type"] as? String == "text" }.compactMap { $0["text"] as? String }
-        let strokes = elements.count { $0["type"] as? String == "freedraw" }
+        let links = (try? ExcalidrawScene(data: data))?.noteLinks ?? []
         return IndexEntry(title: (fileName as NSString).deletingPathExtension, plainText: texts.joined(separator: "\n"),
-                          summary: "\(strokes) 筆畫")
+                          links: links, summary: "\(elements.count) 個元素")
+    }
+
+    public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
+        guard var scene = try? ExcalidrawScene(data: data), scene.renameLinks(from: oldName, to: newName) else { return nil }
+        return try? scene.data()
     }
 
     /// 依元素 id + version 合併，不需要 base；任一邊不是合法的 .excalidraw 才交給衝突副本
