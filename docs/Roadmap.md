@@ -159,6 +159,14 @@
 - [ ] 預覽快取：依 hash 存在 `.easynotes/cache/preview/`，檔案未變就不重算
 - [ ] 索引補欄位：frontmatter 的 `icon`、`pinned`、字數（`IndexEntry` 新增欄位，Core 只存不解讀）
 
+2026-10-02 實作決定：
+
+- 釘選存 frontmatter `pinned: true`（見待決事項）。`DocumentKind.setPinned(_:in:)` 預設回傳 nil = 不支援，列表的「釘選」選單只對支援的類型顯示。App 寫入後把 mtime 還原，釘選不會讓文件跑到「最近」最上面。白板之後改存 `customData`，PDF 等外掛完成再處理。
+- `IndexEntry` 新增 `icon`、`pinned`、`summary`（外掛提供的一行摘要，例如「1,240 字」「32 筆畫」），Core 不認識「字數」；索引另存內容 `hash` 作為預覽快取的 key。
+- `addKind(..., name:)` 提供篩選 chip 的名稱（筆記、白板），App 不寫死。
+- Mobile 的篩選與 Desktop 相同（全部 + 已註冊的類型）；Pen 的 Mobile 首頁 chips 與 `C/M Doc Row` 的「blocks」一併改掉。
+- 封面（frontmatter `cover`）的卡片縮圖留到 2.5d。
+
 ### 2.5d 編輯器
 
 - [ ] Markdown 文件頭：frontmatter 在 CM6 以 block widget 顯示為封面、icon、標題、meta（編輯時間、閱讀時間、標籤），游標進入時才顯示原始 YAML
@@ -172,7 +180,7 @@
 待決事項：
 
 - [x] 字型 → 實作用系統字型（SF Pro + 蘋方-繁），Pen 的 Inter 只是替代
-- [ ] 釘選存 frontmatter 會改動檔案（mtime、同步）；若不想讓釘選觸發同步，改存 `.easynotes/pins.json`（需要集合型合併）
+- [x] 釘選存 frontmatter 會改動檔案（mtime、同步）；若不想讓釘選觸發同步，改存 `.easynotes/pins.json`（需要集合型合併）→ 2026-10-02 決定存 frontmatter：Claude Code 可直接讀寫、`.easynotes/` 不必加入同步；寫入後還原 mtime
 - [ ] 設計稿的「關聯頁面」是內文還是自動產生的區塊？建議當作內文樣式（`[[連結]]` 獨占一行）；反向連結 inspector 已於 2026-10-02 移除
 - [ ] 匯入 PDF / CSV 的目的地：目前所在資料夾，或固定的 `Inbox/`？
 
