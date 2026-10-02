@@ -418,13 +418,14 @@
 
 ### 5c iPad 編輯器
 
-- [ ] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
-  - 實作完成（含模型 Undo、`contentScaleFactor`、共用 `PKToolPicker`），單元測試涵蓋筆畫換算與 Undo 快照；尚未驗證（要等工具列的畫筆開關才能在 App 內書寫）。
+- [x] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
+  - iPad 實機已驗證：書寫、縮放流暢且筆畫清晰、Undo / Redo、關閉重開後筆畫保存。
 - [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
-  - 畫筆開關與 Undo / Redo 實作完成，尚未驗證；便利貼按鈕隨 5c 便利貼一起加，匯出按鈕隨 5d。
+  - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加，匯出按鈕隨 5d。
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
-  - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
+  - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；iPad 實機已驗證關閉重開後筆畫保存；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
+- [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）
 
 ### 5d 匯出
 
@@ -432,7 +433,7 @@
 
 驗收測試：
 
-- [ ] 縮放、捲動後筆畫位置正確；關閉重開後完整還原
+- [x] 縮放、捲動後筆畫位置正確；關閉重開後完整還原
 - [ ] 旋轉頁面上的筆畫位置正確（App 內與匯出）
 - [ ] 200 頁 PDF 快速捲動，記憶體穩定（Instruments 觀察）
 - [ ] 跨頁交錯書寫後連按 ⌘Z，依時間順序復原（含已捲出畫面的頁）
