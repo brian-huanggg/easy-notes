@@ -41,8 +41,13 @@ struct Sidebar: View {
                 item(.panel(panel.id), panel.title, symbol: panel.symbol, count: panel.badge(), countTint: panel.badgeTint)
             }
             item(.recents, "最近", symbol: "clock.arrow.circlepath")
-            item(.pinned, "釘選", symbol: "pin")
+            item(.pinned, "釘選", symbol: "pin", count: pinnedCount)
         }
+    }
+
+    private var pinnedCount: Int? {
+        let count = store.files.count(where: \.pinned)
+        return count > 0 ? count : nil
     }
 
     private func item(_ route: Route, _ title: String, symbol: String, count: Int? = nil,
@@ -165,6 +170,11 @@ struct NodeMenu: View {
     var body: some View {
         Button("重新命名", systemImage: "pencil") {
             shell.rename(path, current: isFolder ? (path as NSString).lastPathComponent : store.displayName(path))
+        }
+        if !isFolder, let file = store.file(at: path), store.fs.kinds.kind(for: path)?.supportsPinning == true {
+            Button(file.pinned ? "取消釘選" : "釘選", systemImage: file.pinned ? "pin.slash" : "pin") {
+                Task { await store.setPinned(path, !file.pinned) }
+            }
         }
         Button(revealTitle, systemImage: "folder") { reveal(store.fs.url(for: path)) }
         Divider()

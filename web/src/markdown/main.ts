@@ -11,6 +11,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { frontmatter, frontmatterRange } from "./frontmatter";
 import { livePreview } from "./livePreview";
 
 type Outgoing =
@@ -81,6 +82,7 @@ const extensions = [
   markdown({ base: markdownLanguage }),
   syntaxHighlighting(highlight),
   livePreview,
+  frontmatter,
   autocompletion({ override: [wikilinkCompletion], icons: false, activateOnTyping: true }),
   keymap.of([
     ...completionKeymap,
@@ -147,7 +149,10 @@ const api = {
     if (currentId !== null) states.set(currentId, view.state);
     let state = states.get(id);
     if (!state || state.doc.toString() !== text) {
-      state = EditorState.create({ doc: text, extensions, selection: EditorSelection.cursor(0) });
+      state = EditorState.create({ doc: text, extensions });
+      // 游標放在 frontmatter 之後，開檔時屬性是收合的
+      const fm = frontmatterRange(state);
+      if (fm) state = state.update({ selection: EditorSelection.cursor(Math.min(fm.to + 1, state.doc.length)) }).state;
     }
     currentId = id;
     view.setState(state);
