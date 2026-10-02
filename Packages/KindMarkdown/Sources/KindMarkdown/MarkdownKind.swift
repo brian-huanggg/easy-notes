@@ -11,7 +11,8 @@ public enum MarkdownKind: DocumentKind {
 
     public static func index(_ data: Data, fileName: String) -> IndexEntry {
         let text = String(decoding: data, as: UTF8.self)
-        let body = stripFrontmatter(text)
+        let frontmatter = Frontmatter(text)
+        let body = String(Frontmatter.body(of: text))
 
         let heading = body.split(separator: "\n", omittingEmptySubsequences: true)
             .first { $0.hasPrefix("# ") }
@@ -22,7 +23,10 @@ public enum MarkdownKind: DocumentKind {
             title: heading ?? fallback,
             plainText: body,
             links: matches(of: #"\[\[([^\]\n|]+)(?:\|[^\]\n]*)?\]\]"#, in: body),
-            tags: matches(of: #"(?<![\p{L}\p{N}_#&/])#([\p{L}\p{N}_/-]+)"#, in: body)
+            tags: unique(frontmatter.list("tags") + matches(of: #"(?<![\p{L}\p{N}_#&/])#([\p{L}\p{N}_/-]+)"#, in: body)),
+            icon: frontmatter.scalar("icon"),
+            pinned: frontmatter.bool("pinned"),
+            summary: "\(wordCount(body).formatted(.number.locale(Locale(identifier: "zh-Hant")))) 字"
         )
     }
 
@@ -46,11 +50,40 @@ public enum MarkdownKind: DocumentKind {
         return regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: template)
     }
 
-    static func stripFrontmatter(_ text: String) -> String {
-        guard text.hasPrefix("---\n"),
-              let end = text.range(of: "\n---\n", range: text.index(text.startIndex, offsetBy: 4)..<text.endIndex)
-        else { return text }
-        return String(text[end.upperBound...])
+    /// 釘選寫在 frontmatter 的 `pinned: true`；取消時移除該行（frontmatter 變空就整個移除）
+    public static func setPinned(_ pinned: Bool, in data: Data) -> Data? {
+        let text = String(decoding: data, as: UTF8.self)
+        return Data(Frontmatter(text).setting("pinned", to: pinned ? "true" : nil, in: text).utf8)
+    }
+
+    /// 字數：中日韓文字每字算一個，其他語言以連續的字母數字為一個詞
+    static func wordCount(_ text: String) -> Int {
+        var count = 0
+        var inWord = false
+        for scalar in text.unicodeScalars {
+            if isCJK(scalar) {
+                count += 1
+                inWord = false
+            } else if CharacterSet.alphanumerics.contains(scalar) {
+                if !inWord { count += 1 }
+                inWord = true
+            } else {
+                inWord = false
+            }
+        }
+        return count
+    }
+
+    private static func isCJK(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.value {
+        case 0x3040...0x30FF, 0x3400...0x4DBF, 0x4E00...0x9FFF, 0xAC00...0xD7AF, 0xF900...0xFAFF, 0x20000...0x2FA1F: true
+        default: false
+        }
+    }
+
+    private static func unique(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0).inserted }
     }
 
     private static func matches(of pattern: String, in text: String) -> [String] {

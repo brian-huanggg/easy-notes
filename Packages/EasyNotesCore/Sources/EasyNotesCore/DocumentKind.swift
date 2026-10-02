@@ -14,19 +14,31 @@ public protocol DocumentKind: SendableMetatype {
     static func merge(base: Data?, local: Data, remote: Data) -> Data?
     /// 筆記改名時更新內容中指向它的連結；回傳 nil 代表沒有要改的
     static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data?
+    /// 設定或取消釘選，其餘內容不變；回傳 nil 代表這個類型不支援釘選
+    static func setPinned(_ pinned: Bool, in data: Data) -> Data?
 }
 
+/// `icon`、`pinned`、`summary` 由外掛決定，Core 只存不解讀
 public struct IndexEntry: Equatable, Sendable {
     public var title: String
     public var plainText: String
     public var links: [String]
     public var tags: [String]
+    /// 文件圖示（例如 frontmatter 的 emoji）
+    public var icon: String?
+    public var pinned: Bool
+    /// 列表卡片副標的一行摘要，例如「1,240 字」
+    public var summary: String?
 
-    public init(title: String, plainText: String, links: [String] = [], tags: [String] = []) {
+    public init(title: String, plainText: String, links: [String] = [], tags: [String] = [],
+                icon: String? = nil, pinned: Bool = false, summary: String? = nil) {
         self.title = title
         self.plainText = plainText
         self.links = links
         self.tags = tags
+        self.icon = icon
+        self.pinned = pinned
+        self.summary = summary
     }
 }
 
@@ -81,5 +93,14 @@ extension DocumentKind {
 
     public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
         nil
+    }
+
+    public static func setPinned(_ pinned: Bool, in data: Data) -> Data? {
+        nil
+    }
+
+    /// 是否支援釘選（列表的釘選選單只對支援的類型顯示）
+    public static var supportsPinning: Bool {
+        setPinned(true, in: template(title: "")) != nil
     }
 }
