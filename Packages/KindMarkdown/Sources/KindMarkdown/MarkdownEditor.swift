@@ -4,6 +4,8 @@ import Observation
 #if os(iOS)
 import SwiftUI
 import UIKit
+#else
+import AppKit
 #endif
 
 /// 全 App 共用一個預先載入的 CodeMirror 6 WebView。
@@ -80,6 +82,38 @@ public final class MarkdownEditor: EditorController {
     func chooseCover(_ url: URL) async {
         guard let path = await session?.importAttachment(url) else { return }
         setFrontmatter("cover", path)
+    }
+
+    /// 剪貼簿是否有圖片（封面選單用來決定「貼上」是否可用）
+    static var clipboardHasImage: Bool {
+        #if os(iOS)
+        UIPasteboard.general.hasImages
+        #else
+        NSPasteboard.general.canReadObject(forClasses: [NSImage.self], options: nil)
+        #endif
+    }
+
+    /// 把剪貼簿的圖片存成暫存 PNG 當封面（⌘V）；`chooseCover` 會再複製到附件資料夾
+    @discardableResult
+    func pasteCover() async -> Bool {
+        #if os(iOS)
+        let png = UIPasteboard.general.image?.pngData()
+        #else
+        let png = (NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage)
+            .flatMap { $0.tiffRepresentation }
+            .flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
+        #endif
+        guard let png else { return false }
+        let stamp = Int(Date().timeIntervalSince1970)
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let url = dir.appendingPathComponent("貼上的圖片-\(stamp).png")
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            try png.write(to: url)
+        } catch { return false }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        await chooseCover(url)
+        return true
     }
 
     /// 格式工具列的插入圖片：`![[附件/x.png]]` 獨占一行

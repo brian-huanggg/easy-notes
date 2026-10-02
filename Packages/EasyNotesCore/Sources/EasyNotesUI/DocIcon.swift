@@ -144,6 +144,7 @@ public struct DocIconPicker: View {
         }
         .padding(20)
         .frame(minWidth: 420, minHeight: 420)
+        .background(Palette.bgCanvas)
         .onAppear {
             selection = current
             tab = current?.emoji != nil ? .emoji : .symbol
@@ -176,7 +177,7 @@ public struct DocIconPicker: View {
                             grid(group.symbols) { name in
                                 Image(systemName: name)
                                     .font(.system(size: 17))
-                                    .foregroundStyle(Palette.textSecondary)
+                                    .foregroundStyle(Palette.textPrimary)
                             } select: { .symbol($0) }
                         }
                     }
@@ -238,7 +239,9 @@ public struct DocIconPicker: View {
                     label(item)
                         .frame(width: 36, height: 36)
                         .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall)
-                            .fill(selection == icon ? Palette.accentSoft : ColorToken.clear))
+                            .fill(selection == icon ? Palette.accentSoft : Palette.bgPanel))
+                        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusSmall)
+                            .strokeBorder(selection == icon ? Palette.accent : Palette.border))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
