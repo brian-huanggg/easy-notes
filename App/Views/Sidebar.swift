@@ -15,7 +15,7 @@ struct Sidebar: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    VaultHeader(name: store.vaultName, account: sync.accountEmail)
+                    VaultHeader(name: store.vaultName, account: sync.accountEmail, icon: Image("AppLogo"))
                         .padding(.bottom, 10)
                     SearchFieldButton("搜尋", shortcut: "⌘K") { shell.showQuickOpen = true }
                         .padding(.bottom, 12)

@@ -89,23 +89,21 @@ public struct SidebarGroupLabel: View {
     }
 }
 
-/// Vault 標頭：頭像（名稱首字）+ Vault 名稱 + 帳號。單一 Vault，不可切換
+/// Vault 標頭：圖示（App 提供的 logo；沒有時為名稱首字）+ Vault 名稱 + 帳號。單一 Vault，不可切換
 public struct VaultHeader: View {
     let name: String
     let account: String?
+    let icon: Image?
 
-    public init(name: String, account: String?) {
+    public init(name: String, account: String?, icon: Image? = nil) {
         self.name = name
         self.account = account
+        self.icon = icon
     }
 
     public var body: some View {
         HStack(spacing: 9) {
-            Text(name.prefix(1).uppercased())
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(width: 24, height: 24)
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Palette.accent))
+            badge
             VStack(alignment: .leading, spacing: 1) {
                 Text(name).textStyle(.sectionTitle).foregroundStyle(Palette.textPrimary).lineLimit(1)
                 if let account {
@@ -116,6 +114,19 @@ public struct VaultHeader: View {
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 7)
+    }
+
+    @ViewBuilder private var badge: some View {
+        if let icon {
+            icon.resizable().scaledToFit()
+                .frame(width: 24, height: 24)
+        } else {
+            Text(name.prefix(1).uppercased())
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 24)
+                .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Palette.accent))
+        }
     }
 }
 
