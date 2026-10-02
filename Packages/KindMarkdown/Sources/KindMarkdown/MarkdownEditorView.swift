@@ -25,6 +25,10 @@ struct MarkdownEditorView: View {
             }
             .confirmationDialog("封面", isPresented: isPicking { if case .cover = $0 { true } else { false } }) {
                 Button("選擇圖片…") { editor.picker = .coverFile }
+                if MarkdownEditor.clipboardHasImage {
+                    Button("貼上剪貼簿的圖片") { Task { await editor.pasteCover() } }
+                        .keyboardShortcut("v", modifiers: .command)
+                }
                 if case .cover(hasCover: true) = editor.picker {
                     Button("移除封面", role: .destructive) { editor.setFrontmatter("cover", nil) }
                 }
@@ -43,6 +47,7 @@ struct MarkdownEditorView: View {
                 DocIconPicker(current: DocIcon(currentIcon)) { icon in
                     editor.setFrontmatter("icon", icon?.frontmatterValue)
                 }
+                .background(Palette.bgCanvas)
             }
     }
 
