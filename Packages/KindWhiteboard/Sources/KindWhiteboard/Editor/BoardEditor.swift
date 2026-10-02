@@ -17,6 +17,15 @@ struct SelectionFrame: Equatable {
     var center: CGPoint { CGPoint(x: rect.midX, y: rect.midY) }
 }
 
+/// 箭頭端點要綁上去的形狀；`side` = 吸附到的連接點（`Geometry.sides` 的索引，nil = 沒吸附）
+struct BindPick: Equatable {
+    var id: String
+    var side: Int?
+
+    /// 綁定時寫入的 `fixedPoint`（nil = 依放開位置計算）
+    var fixedPoint: CGPoint? { side.map { Geometry.sides[$0].ratio } }
+}
+
 /// 編輯器通知宿主的變動
 struct BoardChange {
     /// 內容有變的元素
@@ -53,11 +62,16 @@ final class BoardEditor {
     @ObservationIgnored private(set) var lasso: [CGPoint]?
     /// 空白處拖曳的範圍選取方式（宿主依 App 偏好設定）
     @ObservationIgnored var selectionShape: SelectionShape = .rectangle
-    /// 拖曳箭頭端點時，放開就會綁上去的形狀
-    @ObservationIgnored private(set) var bindTarget: String?
+    /// 拖曳箭頭端點時，放開就會綁上去的形狀與連接點
+    @ObservationIgnored private(set) var bindTarget: BindPick?
 
     /// 正在用原生文字框編輯的文字（見 `BoardEditor+Text`）
     var textEditing: TextEditing?
+
+    /// 樣式面板上次改的值，新元素沿用（只在記憶體，見 `BoardEditor+Style`）
+    @ObservationIgnored var currentStyle: [StyleProperty: StyleChange] = [:]
+    /// 透明度滑桿拖曳中
+    @ObservationIgnored var stylePreviewing = false
 
     /// 目前的縮放倍率：容差與控制點大小是螢幕上固定的點數
     @ObservationIgnored var zoom: CGFloat = 1
@@ -75,6 +89,10 @@ final class BoardEditor {
     static let handleRadius: CGFloat = 16
     /// 點選元素的容差（螢幕點）
     static let hitTolerance: CGFloat = 8
+    /// 箭頭端點吸附到連接點的距離（螢幕點）
+    static let snapRadius: CGFloat = 14
+    /// 箭頭端點與形狀的距離（Excalidraw 的 binding gap）
+    static let bindingGap: Double = 5
     /// 套索相鄰兩點的最小距離（螢幕點）
     static let lassoSpacing: CGFloat = 3
     /// 拖曳超過這個距離（螢幕點）才建立元素
@@ -88,7 +106,7 @@ final class BoardEditor {
         case end(id: String, end: ArrowEnd, original: Element)
         case marquee(start: CGPoint, base: Set<String>)
         case lasso(base: Set<String>)
-        case create(tool: BoardTool, start: CGPoint, id: String?, startTarget: String?)
+        case create(tool: BoardTool, start: CGPoint, id: String?, startTarget: BindPick?)
     }
 
     @ObservationIgnored private var gesture: Gesture?
@@ -183,6 +201,29 @@ final class BoardEditor {
         }?.id
     }
 
+    /// 箭頭端點在 `p` 時要綁上去的形狀：最近的連接點在吸附距離內就吸附，否則是 `p` 下方最上層的形狀
+    func bindPick(at p: CGPoint, excluding id: String? = nil) -> BindPick? {
+        let radius = Self.snapRadius / zoom
+        var best: (pick: BindPick, distance: Double)?
+        for el in document.scene.liveElements.reversed()
+        where el.id != id && !el.locked && el.type.isBindableShape && el.containerId == nil {
+            guard ElementGeometry.bounds(el).insetBy(dx: -radius, dy: -radius).contains(p) else { continue }
+            for (i, side) in Geometry.sides.enumerated() {
+                let c = Geometry.point(in: el, ratio: side.ratio)
+                let d = hypot(c.x - p.x, c.y - p.y)
+                if d <= radius, d < best?.distance ?? .infinity { best = (BindPick(id: el.id, side: i), d) }
+            }
+        }
+        if let best { return best.pick }
+        return bindableShape(at: p, excluding: id).map { BindPick(id: $0) }
+    }
+
+    /// 拖曳中端點顯示的位置：吸附到連接點時就在連接點外 `gap` 處
+    func snapped(_ p: CGPoint, to pick: BindPick?) -> CGPoint {
+        guard let pick, let side = pick.side, let shape = document.scene.element(pick.id) else { return p }
+        return Geometry.sideEndpoint(shape, side: side, gap: Self.bindingGap)
+    }
+
     // MARK: 點選
 
     /// 點一下：選取被點到的元素（`extend` = Shift，加入或移除），空白處取消選取。
@@ -224,7 +265,7 @@ final class BoardEditor {
 
         if tool.creates {
             selection = []
-            gesture = .create(tool: tool, start: p, id: nil, startTarget: tool == .arrow ? bindableShape(at: p) : nil)
+            gesture = .create(tool: tool, start: p, id: nil, startTarget: tool == .arrow ? bindPick(at: p) : nil)
             return true
         }
         if let handle = handle(at: p), let frame = selectionFrame {
@@ -273,10 +314,11 @@ final class BoardEditor {
             perform { Self.resize(&$0, originals, frame: frame, dx: dx, dy: dy, to: p) }
 
         case let .end(id, end, original):
+            let pick = original.type == .arrow ? bindPick(at: p, excluding: id) : nil
             var pts = original.absolutePoints
-            pts[end == .start ? 0 : pts.count - 1] = p
+            pts[end == .start ? 0 : pts.count - 1] = snapped(p, to: pick)
             perform { $0.mutate(id) { $0.setAbsolutePoints(pts) } }
-            bindTarget = original.type == .arrow ? bindableShape(at: p, excluding: id) : nil
+            bindTarget = pick
 
         case let .marquee(start, base):
             let rect = Self.rect(start, p)
@@ -296,11 +338,13 @@ final class BoardEditor {
             onChange?(BoardChange())
 
         case let .create(tool, start, id, startTarget):
+            let pick = tool == .arrow ? bindPick(at: p, excluding: id) : nil
+            let from = snapped(start, to: startTarget), to = snapped(p, to: pick)
             if let id {
                 perform { scene in
                     scene.mutate(id) { el in
                         if tool == .arrow {
-                            el.setAbsolutePoints([start, p])
+                            el.setAbsolutePoints([from, to])
                         } else {
                             let r = Self.rect(start, p)
                             el.x = r.minX; el.y = r.minY; el.width = r.width; el.height = r.height
@@ -309,12 +353,13 @@ final class BoardEditor {
                 }
             } else {
                 guard hypot(p.x - start.x, p.y - start.y) >= Self.createThreshold / zoom else { return }
-                let el = Self.make(tool, from: start, to: p)
+                var el = tool == .arrow ? Self.make(tool, from: from, to: to) : Self.make(tool, from: start, to: p)
+                applyCurrentStyle(to: &el)
                 perform { $0.insert(el) }
                 self.gesture = .create(tool: tool, start: start, id: el.id, startTarget: startTarget)
                 selection = [el.id]
             }
-            if tool == .arrow { bindTarget = bindableShape(at: p, excluding: id) }
+            if tool == .arrow { bindTarget = pick }
         }
     }
 
@@ -336,7 +381,11 @@ final class BoardEditor {
             name = "移動端點"
             if original.type == .arrow {
                 perform { scene in
-                    if let target { scene.bind(arrow: id, end, to: target) } else { scene.unbind(arrow: id, end) }
+                    if let target {
+                        scene.bind(arrow: id, end, to: target.id, fixedPoint: target.fixedPoint, gap: Self.bindingGap)
+                    } else {
+                        scene.unbind(arrow: id, end)
+                    }
                 }
             }
         case .marquee:
@@ -351,8 +400,12 @@ final class BoardEditor {
             name = tool.title
             if tool == .arrow {
                 perform { scene in
-                    if let startTarget { scene.bind(arrow: id, .start, to: startTarget) }
-                    if let target { scene.bind(arrow: id, .end, to: target) }
+                    if let startTarget {
+                        scene.bind(arrow: id, .start, to: startTarget.id, fixedPoint: startTarget.fixedPoint, gap: Self.bindingGap)
+                    }
+                    if let target {
+                        scene.bind(arrow: id, .end, to: target.id, fixedPoint: target.fixedPoint, gap: Self.bindingGap)
+                    }
                 }
             } else if tool == .frame, let frame = document.scene.element(id) {
                 let inside = document.scene.liveElements.filter { el in
@@ -460,6 +513,7 @@ final class BoardEditor {
     func operation<T>(_ name: String, select: (T) -> Set<String>? = { _ in nil },
                       _ body: (inout ExcalidrawScene) -> T) -> T {
         if gesture != nil { cancel() }
+        if stylePreviewing { endStylePreview() }
         if textEditing != nil { finishTextEditing() }
         gestureBefore = document.scene.elements
         gestureSelection = selection

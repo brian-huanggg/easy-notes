@@ -468,12 +468,14 @@
 - [ ] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
 - [ ] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
 - [ ] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
+- [ ] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 Architecture「4c：箭頭連接點吸附」；不做轉折線與曲線）
 - [ ] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
 - [ ] 圖片：從照片、檔案、貼上插入
 - [ ] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
 - [ ] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
 - [ ] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
 - [ ] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
+- [ ] 樣式面板（見 Architecture「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
 
 驗收測試：
 
@@ -513,6 +515,10 @@
 - LOD：`Canvas/BoardLOD.swift`（兩個平台共用）。縮放 ≤ 0.4 且可見元素 > 1,500、沒有選取或操作時，背景畫一張快照（範圍外擴 25%、最長邊 ≤ 4096 px、iOS 不含手寫）取代個別 layer；快照好之前仍顯示 layer，縮放 / 平移時圖片跟著 transform，停止 150 ms 後重畫；選取、操作或放大回來就改回個別 layer。
 - 測試：`ShortcutTests`、`LODTests`、`MacCanvasTests`（離屏視窗 + 合成滑鼠 / 鍵盤事件：渲染方向、點選 / Shift 多選、拖曳移動與 Undo、拖曳建立、⌘D / Delete、縮放錨點、存檔），`KindWhiteboard` 共 124 個測試通過；macOS 與 iOS Simulator 建置成功。
 - 實機要確認：Mac 上雙指捲動與捏合手感、文字框位置與注音組字（含旋轉的形狀）、Edit 選單的復原 / 重做與剪貼簿、快捷鍵；iPad 外接鍵盤的快捷鍵與 ⌘C / ⌘V；LOD 在 1,000 以上元素縮到最小時的順暢度與切換時的閃爍（10,000 個元素的壓力測試檔）。尚未做：Mac 拖曳到邊緣自動捲動、拖放圖片檔進畫布、游標形狀（建立工具的十字）。
+
+2026-10-02：樣式面板（程式完成，待 App 內驗證後勾選；設計見 Architecture「4c：樣式面板」）。模型 `Model/Style.swift`：`StyleChange`、`ExcalidrawScene.setStyle` / `styleSummary`（只改適用的元素；形狀內的文字跟著形狀；改字級重新排版，獨立文字依對齊固定錨點、形狀內文字讓容器長高）。編輯器 `Editor/BoardEditor+Style.swift`：每次點選一筆 Undo、透明度滑桿整段一筆、`currentStyle` 給新元素（插入、拖曳建立、新文字；形狀面板不套用邊角，便條紙 / frame / 圖片不套用）。UI `Editor/StylePanel.swift`：工具列有選取時的「樣式」popover（iPad / Mac 同一個 view），箭頭示意圖用 `ElementGeometry.arrowhead` 畫。`StyleTests` 8 個，`KindWhiteboard` 共 132 個測試通過；iOS Simulator 與 macOS 建置成功。實機要確認：popover 在 iPhone / iPad 直向的大小、滑桿手感、多選時的「混合」顯示。
+
+2026-10-02：箭頭連接點吸附（程式完成，待 App 內驗證後勾選；設計見 Architecture「4c：箭頭連接點吸附」）。`Geometry.sides` / `sideEndpoint`（`Model/Binding.swift`）：`fixedPoint` 是四邊中點時端點 = 中點沿外法線外移 gap，形狀移動 / 縮放 / 旋轉後照同一規則重算；其他 `fixedPoint` 仍走射線。編輯核心 `BindPick` + `bindPick(at:)`：拖曳建立箭頭與拖曳端點時，14 螢幕點內吸附最近的連接點，拖曳中端點就顯示在吸附位置，放開時寫入 `fixedPoint`。`SelectionOverlay` 在綁定目標上畫 4 個連接點，吸附中的實心放大。轉折線與曲線不做。`ArrowSnapTests` 5 個，`KindWhiteboard` 共 137 個測試通過；iOS Simulator 與 macOS 建置成功。實機要確認：吸附距離的手感（Pencil / 滑鼠）、存檔後在 excalidraw.com 開啟箭頭仍接在同一邊。
 
 ### 4d 選做：筆記卡片
 

@@ -16,6 +16,27 @@ enum Geometry {
                around: shape.center, by: shape.angle)
     }
 
+    /// 連接點：上、右、下、左邊的中點（形狀上的比例）與各自的外法線（未旋轉）
+    static let sides: [(ratio: CGPoint, normal: CGPoint)] = [
+        (CGPoint(x: 0.5, y: 0), CGPoint(x: 0, y: -1)),
+        (CGPoint(x: 1, y: 0.5), CGPoint(x: 1, y: 0)),
+        (CGPoint(x: 0.5, y: 1), CGPoint(x: 0, y: 1)),
+        (CGPoint(x: 0, y: 0.5), CGPoint(x: -1, y: 0)),
+    ]
+
+    /// `ratio` 是哪一個連接點（不是就回傳 nil）
+    static func side(_ ratio: CGPoint) -> Int? {
+        sides.firstIndex { abs($0.ratio.x - ratio.x) < 1e-3 && abs($0.ratio.y - ratio.y) < 1e-3 }
+    }
+
+    /// 綁在連接點上的端點：該邊中點沿外法線外移 `gap`
+    static func sideEndpoint(_ shape: Element, side: Int, gap: Double) -> CGPoint {
+        let (ratio, n) = sides[side]
+        let local = CGPoint(x: shape.x + ratio.x * shape.width + n.x * gap,
+                            y: shape.y + ratio.y * shape.height + n.y * gap)
+        return rotate(local, around: shape.center, by: shape.angle)
+    }
+
     /// 絕對座標 `p` 在形狀上的位置比例，夾在 0...1（形狀外的點投影到邊上）
     static func ratio(of p: CGPoint, in shape: Element) -> CGPoint {
         let local = rotate(p, around: shape.center, by: -shape.angle)
@@ -146,12 +167,12 @@ extension SceneEditor {
             }
             if startMoved, let b = start, let shape = self[b.elementId], let anchor = anchors[0] {
                 let origin = pts.count > 2 ? pts[1] : (anchors[1] ?? pts[1])
-                pts[0] = endpoint(shape: shape, anchor: anchor, origin: origin, gap: b.gap)
+                pts[0] = endpoint(shape: shape, binding: b, anchor: anchor, origin: origin)
             }
             if endMoved, let b = end, let shape = self[b.elementId], let anchor = anchors[1] {
                 let n = pts.count
                 let origin = n > 2 ? pts[n - 2] : (anchors[0] ?? pts[0])
-                pts[n - 1] = endpoint(shape: shape, anchor: anchor, origin: origin, gap: b.gap)
+                pts[n - 1] = endpoint(shape: shape, binding: b, anchor: anchor, origin: origin)
             }
             let old = arrow.absolutePoints
             let changed = zip(old, pts).contains { abs($0.x - $1.x) > 1e-6 || abs($0.y - $1.y) > 1e-6 }
@@ -159,9 +180,13 @@ extension SceneEditor {
         }
     }
 
-    /// 端點：從 `origin` 朝 `anchor` 的射線，進入輪廓外 `gap` 處；射線沒碰到輪廓時直接用錨點
-    private func endpoint(shape: Element, anchor: CGPoint, origin: CGPoint, gap: Double) -> CGPoint {
-        Geometry.entry(from: origin, toward: anchor, shape: shape, gap: gap) ?? anchor
+    /// 端點：綁在連接點上 → 該邊中點外移 `gap`（箭頭從背後過來也停在這一邊）；
+    /// 其他 → 從 `origin` 朝 `anchor` 的射線，進入輪廓外 `gap` 處，射線沒碰到輪廓時直接用錨點
+    private func endpoint(shape: Element, binding b: Binding, anchor: CGPoint, origin: CGPoint) -> CGPoint {
+        if let ratio = b.fixedPoint, let side = Geometry.side(ratio) {
+            return Geometry.sideEndpoint(shape, side: side, gap: b.gap)
+        }
+        return Geometry.entry(from: origin, toward: anchor, shape: shape, gap: b.gap) ?? anchor
     }
 
     /// 這一端旁邊的點：多點箭頭取相鄰的點，兩點箭頭取另一端

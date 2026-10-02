@@ -54,10 +54,11 @@ extension BoardEditor {
     /// 開始一段新文字，插入點在 `p` 垂直置中（不看那裡有沒有元素）
     func newText(at p: CGPoint) {
         guard textEditing == nil else { return }
-        let lineBox = Self.defaultFontSize * 1.25
+        let fontSize = currentFontSize
+        let lineBox = fontSize * 1.25
         start(TextEditing(text: "", origin: CGPoint(x: p.x, y: p.y - lineBox / 2),
-                          fontSize: Self.defaultFontSize, lineHeight: 1.25, align: "left",
-                          color: Self.defaultTextColor, angle: 0))
+                          fontSize: fontSize, lineHeight: 1.25, align: currentTextAlign(default: "left"),
+                          color: currentTextColor, angle: 0))
     }
 
     /// 編輯文字元素，或形狀內的文字（沒有就新增）。其他元素回傳 false
@@ -75,8 +76,9 @@ extension BoardEditor {
             if let bound = document.scene.liveElements.first(where: { $0.containerId == id && $0.type == .text }) {
                 start(Self.editing(bound, in: el))
             } else {
-                var editing = TextEditing(text: "", origin: el.center, fontSize: Self.defaultFontSize, lineHeight: 1.25,
-                                          align: "center", color: Self.defaultTextColor, angle: el.angle)
+                var editing = TextEditing(text: "", origin: el.center, fontSize: currentFontSize, lineHeight: 1.25,
+                                          align: currentTextAlign(default: "center"), color: currentTextColor,
+                                          angle: el.angle)
                 editing.containerId = id
                 editing.center = el.center
                 editing.maxWidth = TextLayout.maxWidth(in: el)
@@ -104,11 +106,19 @@ extension BoardEditor {
                     selected = el.containerId ?? id
                 }
             } else if let container = editing.containerId, scene.element(container)?.isDeleted == false {
-                if !empty, scene.addBoundText(text, to: container) != nil { selected = container }
+                if !empty, let id = scene.addBoundText(text, to: container) {
+                    // 新增的文字沿用文字框的樣式（上次的樣式）；改字級會重新排版
+                    for change in [StyleChange.textColor(editing.color), .textAlign(editing.align), .fontSize(editing.fontSize)] {
+                        scene.setStyle([id], change)
+                    }
+                    selected = container
+                }
             } else if !empty {
                 // 新文字，或編輯中被外部刪除的文字：放在原本的位置
                 var el = Element.text(text, x: editing.origin.x, y: editing.origin.y, fontSize: editing.fontSize)
                 el.raw["strokeColor"] = editing.color
+                el.raw["textAlign"] = editing.align
+                if editing.id == nil, case let .opacity(value)? = currentStyle[.opacity] { el.raw["opacity"] = value }
                 scene.insert(el)
                 selected = el.id
             }
