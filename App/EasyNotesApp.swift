@@ -2,6 +2,7 @@ import EasyNotesCore
 import EasyNotesUI
 import Flashcards
 import KindMarkdown
+import KindPDF
 import KindWhiteboard
 import SwiftUI
 
@@ -9,6 +10,7 @@ import SwiftUI
 private let plugins: [any EasyNotesPlugin.Type] = [
     MarkdownPlugin.self,
     WhiteboardPlugin.self,
+    PDFPlugin.self,
     FlashcardsPlugin.self,
 ]
 
