@@ -70,6 +70,7 @@ session.vault                       // VaultFS：讀寫外掛自己的 `.easynot
 session.index                       // VaultIndex?：records、檔案標籤
 session.open(path, line: 84)        // 開啟檔案並捲到該行（複習時的「編輯筆記」）
 session.metaChanged()               // 外掛寫了同步的 meta 檔案 → 排程上傳
+session.fileMoved(from:, to:)       // 外掛自己搬移了 Vault 內的檔案（PDF 認領孤兒旁檔）→ 同步層保留 file id、更新索引
 controller.vaultChanged(paths)      // 索引更新後（App 內編輯、外部修改、同步，含 `.easynotes/srs/` 的同步下載）
 controller.moved(from:, to:)        // App 內改名或搬移（檔案或資料夾）
 controller.reveal(path:, line:)     // Markdown：捲到該行並把游標放在行首

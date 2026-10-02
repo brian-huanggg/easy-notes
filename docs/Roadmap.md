@@ -407,6 +407,8 @@
 ### 5b 檢視、縮圖與 Mac
 
 - [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
+  - iPad Simulator 已驗證：標註與頁面對齊（直式、橫式、`rotation` 90）、螢光筆透明度、便利貼文字；列表縮圖、頁數、PDF 篩選 chip、`.pdf.ink` 不出現在列表。
+  - 尚未驗證：macOS 檢視（只確認建置）、放大後標註清晰度（`CATiledLayer`，Simulator 無法縮放）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
 - [ ] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
 - [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
 

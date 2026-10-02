@@ -474,6 +474,14 @@ final class VaultStore: DocumentSession {
         onLocalChange?()
     }
 
+    func fileMoved(from: String, to: String) {
+        onMove?(from, to)
+        Task {
+            await syncIndex(paths: [from, to])
+            onLocalChange?()
+        }
+    }
+
     func modified(_ path: String) -> Date? {
         file(at: path)?.mtime
             ?? (try? fs.url(for: path).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate

@@ -25,11 +25,13 @@
 - **筆畫**：原子筆 = `com.apple.ink.pen`、螢光筆 = `com.apple.ink.marker`（freedraw 的 `opacity` 保留透明度），都經 `ExcalidrawKit` 的 `InkStroke` 轉換；橡皮擦、套索是 `PKToolPicker` 的系統工具。
 - **便利貼**：與白板的便條紙相同的標準組合（無外框 rectangle `#ffec99` + `containerId` 文字），直接顯示在頁面上、可移動與縮放，預設 160×160 頁面點、字級 14。編輯時疊原生文字框（iOS `UITextView`、Mac `NSTextView`），注音組字中不寫回。疊放順序：頁面 < 便利貼 < 手寫（與白板「手寫在結構元素之上」一致，可以在便利貼上寫字）。
 - **頁面疊層**：overlay view = 便利貼 layer（`ElementPainter`）+ `PKCanvasView`。手寫模式開關與白板相同（畫筆 = 開關，開啟時顯示 `PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）；手寫模式中手指捲動縮放、長按便利貼才拖曳；關閉時 Pencil 與手指都能點選、拖曳便利貼。iPad `.pencilOnly`，iPhone 只在手寫模式用手指書寫。所有頁面共用一個 `PKToolPicker`。
+- **標註層（兩個平台共用）**：每頁 overlay 的底層是一個 `CATiledLayer`，以 `SceneRenderer`（內部用 `ElementPainter`）在背景執行緒分塊畫出該頁的便利貼與筆畫：放大時依倍率重畫區塊，所以清晰，而且只畫看得到的部分；整頁點陣在 5× 縮放會到數百 MB，不可行。唯讀檢視（Mac、iPad 非手寫模式）只有這一層；iPad 5c 在上面疊 `PKCanvasView`，此時標註層不畫 freedraw（`drawsFreedraw: false`）。標註改變時只重畫有 overlay 的頁。
+- **開啟流程**：`PDFDocument(url:)` 延遲讀取頁面；`pdfHash` 在背景計算（大檔不擋主執行緒），沒有旁檔時同一個背景工作執行 `claimOrphan`，認領後以 `DocumentSession.fileMoved` 通知同步層。旁檔在第一次寫入標註時才建立，並寫入當時的 `pdfHash`。
 - **記憶體**：記憶體中的標註是「頁碼 → elements 字典」（便宜）；`PKDrawing` 只為有 overlay 的頁面建立；每次 `canvasViewDrawingDidChange` 就把該頁筆畫換回 elements（Undo 也需要前後狀態），所以 overlay 回收時不必另外存檔，直接丟掉畫布。
 - **Undo 記在模型，不靠 `PKCanvasView`**：overlay 會被回收，PencilKit 註冊在畫布上的 undo 會指向已釋放的 view。`PKCanvasView` 子類別回傳私有的 `undoManager`（吞掉 PencilKit 自己的註冊），`canvasViewDrawingDidChange` 時比對前後筆畫，以「頁碼 + 前後 elements」註冊到視窗的 undoManager；復原時改模型，頁面在畫面上才同步給畫布。跨頁依時間順序復原；`version` 一律遞增（同白板）。S4 實機確認可行。
 - **Spike S4（iPad Air M1 實機，2026-10-03）確認可行**，實作規則：
   - `pageOverlayViewProvider` 必須在指定 `document` 之前設定；`isInMarkupMode = true`。overlay 內的 `PKCanvasView` 關閉自己的捲動（`isScrollEnabled = false`），手指拖曳才會交給 PDFView。
-  - 頁面座標 ⇄ overlay 座標：overlay 是已旋轉、已縮放的頁面，換算 = 依 `rotation` 旋轉未旋轉的 cropBox 座標，再縮放到 overlay 大小；overlay 尺寸改變時重新換算。旋轉 90 / 180 / 270 的頁面對齊正確。
+  - 頁面座標 ⇄ overlay 座標：不假設 overlay 的版面，一律以 PDFKit 換算（頁面上原點、右上、左下三點經 `PDFView.convert(_:from: page)` 再轉到 overlay，求出仿射變換），overlay 尺寸改變時重新換算。原因：iOS 非手寫模式下，旋轉頁的 overlay 是**未旋轉**的 bounds 加上旋轉 `transform`（S4 原型在手寫模式中自己套 `rotation` 卻對齊，推測版面依 `isInMarkupMode` 而不同），自己套 `rotation` 會轉兩次。旋轉 90 / 180 / 270 的頁面對齊正確。
   - `PKToolPicker` 綁在常駐 first responder 的容器 view（`setVisible(_:forFirstResponder:)`），各頁畫布只 `addObserver`：工具選擇器不會因畫布回收而消失，各頁工具一致。容器的 `undoManager` 就是模型 Undo，系統 ⌘Z / 三指撥動直接找到它。
   - PencilKit 會在 delegate 之後才註冊 undo：在下一輪 run loop 清掉畫布私有 `undoManager` 的紀錄。
   - **清晰度**：overlay 在 PDFView 的縮放 transform 裡，PencilKit 預設以螢幕倍率點陣化，放大會糊。縮放停止 0.25 秒後把畫布（含內部子 view）的 `contentScaleFactor` 設為「螢幕倍率 × overlay 在視窗上的實際倍率」，**不設上限**（上限螢幕 × 4 時，4–5× 縮放就變糊，因為倍率包含 PDFView 開啟時的 fit 縮放）。
@@ -43,7 +45,7 @@
   - 開啟中檔案的伴隨檔被外部修改或同步改寫時，`externalChange` 帶伴隨檔的路徑送給編輯器（PDF 編輯器合併旁檔）。
   - 外部工具改名 PDF：同步層的掃描推斷出主檔改名（hash 相同）時，把留在原地的旁檔搬到新名字旁並保留 file id。推斷不到（例如未登入同步）時，開啟沒有旁檔的 PDF 以 `PDFInk.claimOrphan` 找主檔不存在、`pdfHash` 相同的孤兒旁檔認領（同資料夾優先），搬移後由呼叫端通知同步層。
 - **程式結構**：`KindPDF/Model/`：`PDFInk`（旁檔讀寫、依頁合併；`scene(page:)` 把一頁當成 `ExcalidrawScene`，筆畫轉換、渲染、便利貼都沿用 `ExcalidrawKit`）、`PDFPageGeometry`（未旋轉頁面座標 ⇄ 顯示座標、`displayTransform`、PDF 使用者空間）。`pdfHash` 與同步層的內容 hash 同格式（SHA-256 小寫 hex）。
-- **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）。
+- **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）：背景以 CoreGraphics 的 `CGPDFPage` 畫成白底 PNG（最長邊 800 px，套用頁面 `rotation`），深色模式不反相（紙張保持白色）；卡片上是灰底中的一張紙，左上類型標記、右上頁數，與設計稿 `C/Thumb PDF` 相同。
 - **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `附件/`）因為註冊了 `.pdf` 也會出現在列表。
 - **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
 
