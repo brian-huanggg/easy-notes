@@ -12,6 +12,9 @@
   - release: 1.0.0 launch on TestFlight
 - phase 4
   - test: spike test on iPad for gesture and performance
+  - feat: create excalidraw whiteboard
+  - feat: create toolbar for macOS and iPadOS respectively
+  - fix: fix blank canva rendering
 
 **2026-10-02**
 
