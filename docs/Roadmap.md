@@ -419,6 +419,7 @@
 ### 5c iPad 編輯器
 
 - [ ] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
+  - 實作完成（含模型 Undo、`contentScaleFactor`、共用 `PKToolPicker`），單元測試涵蓋筆畫換算與 Undo 快照；尚未驗證（要等工具列的畫筆開關才能在 App 內書寫）。
 - [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`

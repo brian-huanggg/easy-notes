@@ -8,8 +8,11 @@ final class PageInkLayer: CATiledLayer, @unchecked Sendable {
     private var renderer: SceneRenderer?
     /// 頁面座標（未旋轉、y 向下）→ layer 座標；由 overlay 依 PDFKit 的換算提供
     private var pageToLayer: CGAffineTransform?
+    /// iPad 的筆畫由上層的 `PKCanvasView` 顯示，這一層只畫便利貼
+    private let drawsFreedraw: Bool
 
-    override init() {
+    init(drawsFreedraw: Bool) {
+        self.drawsFreedraw = drawsFreedraw
         super.init()
         tileSize = CGSize(width: 512, height: 512)
         // 縮小時用較低的解析度，放大最多 2^6 倍仍依倍率重畫
@@ -20,6 +23,7 @@ final class PageInkLayer: CATiledLayer, @unchecked Sendable {
     }
 
     override init(layer: Any) {
+        drawsFreedraw = (layer as? PageInkLayer)?.drawsFreedraw ?? true
         super.init(layer: layer)
     }
 
@@ -32,7 +36,7 @@ final class PageInkLayer: CATiledLayer, @unchecked Sendable {
     /// nil = 整層，`.null` = 不重畫（內容沒變）
     func show(_ scene: ExcalidrawScene, dirty: CGRect? = nil) {
         let renderer = SceneRenderer(scene: scene)
-        let empty = renderer.elements.isEmpty
+        let empty = !renderer.elements.contains { drawsFreedraw || $0.type != .freedraw }
         lock.withLock { self.renderer = empty ? nil : renderer }
         guard let dirty else { setNeedsDisplay(); return }
         guard !dirty.isNull, !dirty.isEmpty else { return }
@@ -60,7 +64,7 @@ final class PageInkLayer: CATiledLayer, @unchecked Sendable {
         }
         ctx.concatenate(transform)
         let pixelScale = hypot(ctx.ctm.a, ctx.ctm.b)
-        renderer.draw(in: ctx, visible: ctx.boundingBoxOfClipPath, pixelScale: pixelScale)
+        renderer.draw(in: ctx, visible: ctx.boundingBoxOfClipPath, pixelScale: pixelScale, drawsFreedraw: drawsFreedraw)
     }
 }
 

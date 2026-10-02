@@ -2,6 +2,7 @@ import ExcalidrawKit
 import PDFKit
 import QuartzCore
 #if os(iOS)
+import PencilKit
 import UIKit
 typealias PlatformView = UIView
 #else
@@ -19,6 +20,18 @@ final class PDFReaderCanvas: PlatformView {
     private var loadedRevision = -1
     #if os(macOS)
     var editing: StickyEditing?
+    #else
+    /// 所有頁面共用的工具盤，綁在這個常駐 first responder 的 view（畫布會隨捲動回收）
+    let toolPicker = PKToolPicker(toolItems: [
+        PKToolPickerInkingItem(type: .pen), PKToolPickerInkingItem(type: .marker),
+        PKToolPickerEraserItem(type: .vector), PKToolPickerLassoItem(),
+    ])
+    /// 模型 Undo（頁碼 + 前後 elements）；系統 ⌘Z、三指撥動經 responder chain 找到它
+    let modelUndo = UndoManager()
+    var inking = false
+    var rasterTask: Task<Void, Never>?
+    /// 正在把這一頁畫布的筆畫寫回模型：不必再把筆畫載回畫布
+    var syncingPage: Int?
     #endif
 
     init(document: PDFInkDocument) {
@@ -41,6 +54,8 @@ final class PDFReaderCanvas: PlatformView {
         #if os(macOS)
         // 切換檔案、改名、同步合併前：先把編輯中的便利貼文字寫回
         document.flushHandler = { [weak self] in self?.endEditing() }
+        #else
+        setUpInking()
         #endif
         reloadIfNeeded()
     }
@@ -58,7 +73,11 @@ final class PDFReaderCanvas: PlatformView {
     /// 標註改變：只重畫有 overlay 的頁
     private func refresh(_ pages: Set<Int>?) {
         for (index, overlay) in overlays where pages?.contains(index) ?? true {
+            #if os(iOS)
+            overlay.show(document.scene(page: index), updatesCanvas: index != syncingPage)
+            #else
             overlay.show(document.scene(page: index))
+            #endif
         }
     }
 
@@ -66,6 +85,17 @@ final class PDFReaderCanvas: PlatformView {
         guard let page = pdfView.currentPage else { return nil }
         return pdfView.document?.index(for: page)
     }
+
+    #if os(iOS)
+    // 工具盤綁在這個 view：它是常駐的 first responder（見 PDFInking.swift）
+    override var canBecomeFirstResponder: Bool { true }
+    override var undoManager: UndoManager? { modelUndo }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        inkingDidMoveToWindow()
+    }
+    #endif
 }
 
 // PDFKit 的協定沒有標 @MainActor，但一律在主執行緒呼叫
@@ -77,6 +107,9 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
         overlay.host = self
         overlay.show(document.scene(page: index))
         overlays[index] = overlay
+        #if os(iOS)
+        attachCanvas(of: overlay)
+        #endif
         return overlay
     }
 
@@ -84,19 +117,30 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
         guard let overlay = overlayView as? PageOverlayView else { return }
         #if os(macOS)
         if editing?.overlay === overlay { endEditing() }
+        #else
+        toolPicker.removeObserver(overlay.canvas)
         #endif
         // 標註只存在文件模型，overlay 直接丟掉
         if overlays[overlay.pageIndex] === overlay { overlays[overlay.pageIndex] = nil }
     }
 }
 
-/// 單頁 overlay：底層是標註層（`PageInkLayer`）。PDFKit 決定它的大小與 transform（iOS 的旋轉頁是未旋轉的 bounds
+/// 單頁 overlay：底層是標註層（`PageInkLayer`），iOS 在上面疊 `PKCanvasView` 顯示與書寫筆畫。PDFKit 決定它的大小與 transform（iOS 的旋轉頁是未旋轉的 bounds
 /// 加上旋轉 transform），所以「頁面座標 → overlay 座標」一律以 PDFKit 的換算求出，不自己假設版面。
 @MainActor
 final class PageOverlayView: PlatformView {
     let pageIndex: Int
     let geometry: PDFPageGeometry
-    let inkLayer = PageInkLayer()
+    #if os(iOS)
+    let inkLayer = PageInkLayer(drawsFreedraw: false)
+    let canvas = PageCanvas()
+    /// 程式設定 `canvas.drawing` 也會觸發 `canvasViewDrawingDidChange`，這段期間不寫回模型
+    private(set) var loadingDrawing = false
+    #else
+    let inkLayer = PageInkLayer(drawsFreedraw: true)
+    #endif
+    /// 已由 PDFKit 換算出 `pageToView`（之前畫布不載入筆畫）
+    private var laidOut = false
     private weak var page: PDFPage?
     weak var host: PDFReaderCanvas?
     private(set) var scene = ExcalidrawScene()
@@ -126,9 +170,17 @@ final class PageOverlayView: PlatformView {
         super.init(frame: .zero)
         #if os(iOS)
         backgroundColor = .clear
-        // 唯讀：觸控交給 PDFView 捲動縮放
+        // 筆畫顏色是固定的 sRGB，PencilKit 在深色模式會反轉，頁面是白紙所以固定淺色
+        overrideUserInterfaceStyle = .light
+        // 非手寫模式：觸控交給 PDFView 捲動縮放
         isUserInteractionEnabled = false
         layer.addSublayer(inkLayer)
+        canvas.backgroundColor = .clear
+        canvas.isOpaque = false
+        // 畫布本身是 scroll view；關掉它的捲動，手指的拖曳才會交給 PDFView
+        canvas.isScrollEnabled = false
+        canvas.delegate = self
+        addSubview(canvas)
         #else
         wantsLayer = true
         layer?.addSublayer(inkLayer)
@@ -137,12 +189,25 @@ final class PageOverlayView: PlatformView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show(_ scene: ExcalidrawScene) {
+    /// `updatesCanvas`：iOS 是否把筆畫載入畫布（筆畫就是從畫布寫回來的時候不必）
+    func show(_ scene: ExcalidrawScene, updatesCanvas: Bool = true) {
         let old = self.scene
         self.scene = scene
         let area = Self.changedArea(from: old, to: scene)
         inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
+        #if os(iOS)
+        if updatesCanvas, laidOut { loadDrawing() }
+        #endif
     }
+
+    #if os(iOS)
+    /// 模型的筆畫（頁面座標）換算到畫布
+    private func loadDrawing() {
+        loadingDrawing = true
+        canvas.drawing = PageInk.drawing(scene, pageToView: pageToView)
+        loadingDrawing = false
+    }
+    #endif
 
     /// 改變的元素（新增、刪除、`version` 不同）前後範圍的聯集（頁面座標）；沒有改變為 `.null`
     static func changedArea(from old: ExcalidrawScene, to new: ExcalidrawScene) -> CGRect {
@@ -180,6 +245,9 @@ final class PageOverlayView: PlatformView {
         CATransaction.setDisableActions(true)
         inkLayer.frame = bounds
         CATransaction.commit()
+        #if os(iOS)
+        canvas.frame = bounds
+        #endif
         guard let page, let pdfView, bounds.width > 0, geometry.size.width > 0, geometry.size.height > 0 else { return }
         let crop = page.bounds(for: .cropBox)
         func map(_ p: CGPoint) -> CGPoint {
@@ -187,9 +255,17 @@ final class PageOverlayView: PlatformView {
         }
         let w = geometry.size.width, h = geometry.size.height
         let o = map(.zero), x = map(CGPoint(x: w, y: 0)), y = map(CGPoint(x: 0, y: h))
-        pageToView = CGAffineTransform(a: (x.x - o.x) / w, b: (x.y - o.y) / w, c: (y.x - o.x) / h, d: (y.y - o.y) / h,
-                                       tx: o.x, ty: o.y)
+        let next = CGAffineTransform(a: (x.x - o.x) / w, b: (x.y - o.y) / w, c: (y.x - o.x) / h, d: (y.y - o.y) / h,
+                                     tx: o.x, ty: o.y)
+        let changed = !laidOut || !next.isNearlyEqual(pageToView)
+        pageToView = next
+        laidOut = true
         inkLayer.setPageTransform(pageToView)
+        #if os(iOS)
+        // overlay 的版面改變（例如切換手寫模式）：筆畫重新換算到畫布
+        if changed { loadDrawing() }
+        host?.applyRaster(to: self)
+        #endif
     }
 
     #if os(iOS)
@@ -202,6 +278,11 @@ final class PageOverlayView: PlatformView {
         super.didMoveToWindow()
         inkLayer.contentsScale = window?.screen.scale ?? 2
         setNeedsLayout()
+    }
+
+    func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        guard !loadingDrawing, laidOut else { return }
+        host?.canvasDrawingDidChange(self)
     }
     #else
     override var isFlipped: Bool { true }
@@ -242,3 +323,7 @@ final class PageOverlayView: PlatformView {
     override func menu(for event: NSEvent) -> NSMenu? { stickyMenu(event) }
     #endif
 }
+
+#if os(iOS)
+extension PageOverlayView: PKCanvasViewDelegate {}
+#endif
