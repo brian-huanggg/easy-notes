@@ -98,8 +98,10 @@ Packages/
     EasyNotesUI      PluginRegistry、EasyNotesPlugin、DocumentSession、EditorController、
                      WebEditorHost（預熱、Bridge、本地資源）、DesignSystem（tokens、共用元件）
   KindMarkdown/      .md：CodeMirror 6 編輯器（WebView）、Live Preview、Writing 模式
+  ExcalidrawKit/     共用函式庫（不是外掛、不註冊任何東西）：Excalidraw 元素模型、合併、
+                     PencilKit ⇄ freedraw 轉換、幾何與 CoreGraphics 渲染器（Phase 5 從 KindWhiteboard 抽出）
   KindWhiteboard/    .excalidraw：PencilKit 手寫層 + 原生結構元素層
-  KindPDF/           .pdf + .pdf.ink 標註旁檔
+  KindPDF/           .pdf + .pdf.ink 標註旁檔：PDFKit + 每頁 PencilKit 疊層
   KindSheet/         .csv：RevoGrid 編輯器（WebView）
   Flashcards/        卡片解析、FSRS 排程、複習介面（不是檔案類型）
 App/                 SwiftUI 外殼；啟動時把各外掛註冊進 PluginRegistry
@@ -108,7 +110,8 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 
 ### 依賴規則
 
-- **外掛只依賴 EasyNotesCore 與 EasyNotesUI**，外掛之間不互相 import。需要別的外掛的能力時，透過 Registry 查詢。例如白板要顯示 md 筆記卡片，就向 Registry 要 `.md` 的 DocumentPreviewProvider，而不是 import KindMarkdown。
+- **外掛只依賴 EasyNotesCore、EasyNotesUI 與共用函式庫**，外掛之間不互相 import。需要別的外掛的能力時，透過 Registry 查詢。例如白板要顯示 md 筆記卡片，就向 Registry 要 `.md` 的 DocumentPreviewProvider，而不是 import KindMarkdown。
+- **共用函式庫**（目前只有 `ExcalidrawKit`）：兩個以上外掛需要同一份格式程式時才抽出。它不是外掛：不依賴 EasyNotesUI 的 Registry、不註冊 Kind / 編輯器 / 選單，只提供模型、轉換與渲染；也不依賴任何外掛。2026-10-02 決定（Phase 5）：PDF 標註需要白板的元素模型、合併、筆畫轉換與渲染器，複製會讓兩份程式漂移，併進 KindWhiteboard 會讓 PDF 無法獨立移除，所以抽成 `ExcalidrawKit`。
 - **Core 永遠不 import 外掛**；App target 負責組裝。
 - **外掛是編譯期的 SPM 模組**，不在執行時期載入程式碼。
 - **WebView 或原生是外掛內部的實作選擇**。WebView 外掛共用 EasyNotesUI 的 WebEditorHost，仍遵守「打字熱路徑不跨 Bridge」。
@@ -127,6 +130,7 @@ protocol DocumentKind {
     static func merge(base: Data?, local: Data, remote: Data) -> Data?  // nil = 衝突副本
     static func renameLinks(in data: Data, from: String, to: String) -> Data?  // 預設 nil = 沒有要改的連結
     static func setPinned(_ pinned: Bool, in data: Data) -> Data?  // 預設 nil = 不支援釘選
+    static func companionOf(_ path: String) -> String?  // 預設 nil；伴隨檔回傳主檔路徑（Phase 5：x.pdf.ink → x.pdf）
 }
 
 // index() 的結果；icon、pinned、summary 由外掛決定，Core 只存不解讀
@@ -254,8 +258,8 @@ vaultFS.deviceID() -> String
 | 外掛 | 格式 | 編輯器 | 同步合併 |
 | --- | --- | --- | --- |
 | Markdown | `.md` + YAML frontmatter | CodeMirror 6（WebView） | diff3 三方合併（以行為單位） |
-| Whiteboard | `.excalidraw`（官方 JSON） | PencilKit + SwiftUI Canvas（原生） | 依元素 `id` + `version` |
-| PDF | `.pdf`（不改動）+ `.pdf.ink`（JSON） | PDFKit + PencilKit（原生） | PDF 不合併；旁檔依頁 + 元素 `id` |
+| Whiteboard | `.excalidraw`（官方 JSON） | PencilKit + CALayer 結構層（原生） | 依元素 `id` + `version` |
+| PDF | `.pdf`（不改動）+ `.pdf.ink`（JSON，伴隨檔） | PDFKit + 每頁 PencilKit 疊層（原生） | PDF 不合併；旁檔依頁 + 元素 `id` |
 | Sheets | `.csv`；欄寬等放 `.csv.meta.json` | RevoGrid（WebView） | diff3（以列為單位） |
 | Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl`；設定 `.easynotes/srs/<deviceId>.config.json` | 原生複習介面 | 卡片跟著 md；紀錄與設定都是各裝置各寫，永不衝突；設定以欄位 LWW 合成 |
 
@@ -332,8 +336,9 @@ vaultFS.deviceID() -> String
 - **輸入**：雙指捲動 = 平移；⌘ / ⌥ + 捲動、觸控板捏合 = 以游標為中心縮放；滑鼠按下 / 拖曳 / 放開直接交給 `BoardEditor`（`begin` / `drag` / `end`）。沒有移動（< 3 點）的按下視為點選：取消這次操作、還原選取、改呼叫 `tap`（Shift 加減選才正確）；雙擊 = 編輯文字。文字框是 `NSTextView`（注音組字是系統的），用 `bounds` ≠ `frame` 縮放內容，編輯中縮放不改字型、不打斷組字；`cancelOperation` 結束編輯（組字中的 Esc 由輸入法處理）。Undo 用視圖自己的 `UndoManager`（結構操作的堆疊，Mac 沒有筆畫），經 Edit 選單與 ⌘Z 使用。
 - **工具列**：沿用 iPad 那一排（`BoardToolbar`，兩個平台同一個 view），Mac 隱藏畫筆；用快捷鍵選了建立工具時，對應的按鈕反白。不放進視窗工具列，避免與 2.5b 的麵包屑、New Document 擠在一起。
 - **鍵盤快捷鍵**（平台無關，`BoardShortcut`，Mac 與 iPad 外接鍵盤共用）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame（不帶修飾鍵）、Delete / ⌫ 刪除、⌘D 再製、⌘A 全選、⌘C / ⌘X / ⌘V 剪貼簿、Esc（結束文字編輯 → 回到選取工具 → 取消選取）。文字框、手寫模式中不攔截（letters 要打進文字框）。
+- **拖曳到邊緣自動捲動**（Mac）：拖曳中（移動、縮放、框選 / 套索、拖曳建立、箭頭端點）游標進入畫面邊緣 32 點內或跑出畫面時，畫面往那個方向捲動，越靠近邊緣越快、最快 900 點 / 秒（`EdgeAutoscroll`，平台無關）。每一幀平移畫面後，把同一個游標位置換成新的畫布座標交給 `BoardEditor.drag`，所以框選範圍、移動中的元素都跟著延伸；放開、Esc 取消或游標回到中間就停。只在有捲動時開 display link。iPad 不做（手指拖曳時另一隻手可以捲動）。
+- **拖放圖片**（Mac）：畫布接受 Finder 的圖片檔、檔案承諾（照片 App 等，先收到暫存資料夾再讀）、瀏覽器拖出的圖片資料（PNG / TIFF / JPEG / HEIC）。圖片中心放在放開的位置，多張依序往右下錯開 20 點，每張一筆 Undo；解碼、縮圖與插入走與工具列相同的 `BoardEditor.insertImage(_:center:)`。不接受 `.excalidraw` 等其他檔案（貼上 Excalidraw 元素仍用 ⌘V）。
 - **LOD**（`BoardLOD`，兩個平台共用）：縮放倍率 ≤ 0.4 且可見範圍內的元素 > 1,500 個時，以 `SceneRenderer` 在背景把可見範圍（外加一半畫面的緩衝）畫成一張點陣圖，放在結構層位置，結構層改為不建立 layer（已建立的移除）；快照準備好之前仍顯示個別 layer，所以不會空白。縮放或平移時圖片跟著 transform（暫時模糊），停止操作 150 ms 後依新範圍與倍率重畫。倍率回到門檻以上就關閉 LOD、分批重建 layer。iOS 的快照不含手寫（`PKCanvasView` 自己畫）。
-
 2026-10-02 決定（4c：樣式面板）：
 
 - **入口**：有選取時工具列多一個「樣式」按鈕（再製、刪除旁），彈出 `StylePanel`（SwiftUI，iPad 與 Mac 同一個 view）。面板只顯示選取元素適用的區塊，多選時值不一致就不標記任何選項（滑桿顯示「混合」）。
@@ -368,10 +373,39 @@ vaultFS.deviceID() -> String
 ### PDF 手寫與標註
 
 - **做**：開啟 PDF；原子筆、螢光筆、橡皮擦、套索選取、便利貼；匯出合併標註後的 PDF。
-- **不做**：插入空白頁、頁面縮圖與重排、PDF 文字搜尋、手寫辨識。
+- **不做**：插入空白頁、頁面縮圖與重排、PDF 文字搜尋、手寫辨識、建立新 PDF（只能匯入）。
 - **實作**：`PDFView` + `PDFPageOverlayViewProvider`，每個可見頁面疊一個 `PKCanvasView`，離開畫面就回收，避免大檔案吃光記憶體。`drawingPolicy = .pencilOnly`，手指捲動與縮放、Pencil 書寫。
-- **格式**：原始 PDF 不改動。標註存在 `<檔名>.pdf.ink`（JSON）：`pdfHash` + 依頁碼分組的 Excalidraw elements。螢光筆 = 半透明 freedraw，便利貼 = 有背景色的 text 元素，沿用 Whiteboard 的筆畫轉換。檔案樹中隱藏 `.pdf.ink`。
-- **平台**：macOS 只能顯示標註。
+- **格式**：原始 PDF 不改動。標註存在 `<檔名>.pdf.ink`（JSON）：`pdfHash` + 依頁碼分組的 Excalidraw elements。檔案樹中隱藏 `.pdf.ink`。
+- **平台**：macOS 顯示 PDF 與所有標註，便利貼可新增、移動、編輯；手寫只能看。
+
+2026-10-02 決定（Phase 5 開工前）：
+
+- **共用 `ExcalidrawKit`**：元素模型、`merge`、`InkStroke` / PencilKit 轉換、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer` 從 KindWhiteboard 搬進共用函式庫（見「依賴規則」），兩個外掛都依賴它。layer 樹、編輯核心、文字框等畫布元件留在 KindWhiteboard；PDF 真的需要時再個別搬。
+- **旁檔格式**：
+
+  ```json
+  {
+    "type": "easynotes-pdf-ink",
+    "version": 1,
+    "pdfHash": "<PDF 的 SHA-256>",
+    "pages": { "0": { "elements": [ /* Excalidraw elements */ ] } },
+    "files": {}
+  }
+  ```
+
+  頁碼從 0 開始，沒有標註的頁不寫。座標是該頁 cropBox 的**未旋轉**頁面座標：單位 PDF point、原點左上、y 向下（與 Excalidraw 相同）；顯示與匯出時才套用頁面的 `rotation`。元素沿用 Excalidraw 規則（`version`、`versionNonce`、`updated`），未知欄位原樣保留。
+- **筆畫**：原子筆 = `com.apple.ink.pen`、螢光筆 = `com.apple.ink.marker`（freedraw 的 `opacity` 保留透明度），都經 `ExcalidrawKit` 的 `InkStroke` 轉換；橡皮擦、套索是 `PKToolPicker` 的系統工具。
+- **便利貼**：與白板的便條紙相同的標準組合（無外框 rectangle `#ffec99` + `containerId` 文字），直接顯示在頁面上、可移動與縮放，預設 160×160 頁面點、字級 14。編輯時疊原生文字框（iOS `UITextView`、Mac `NSTextView`），注音組字中不寫回。疊放順序：頁面 < 便利貼 < 手寫（與白板「手寫在結構元素之上」一致，可以在便利貼上寫字）。
+- **頁面疊層**：overlay view = 便利貼 layer（`ElementPainter`）+ `PKCanvasView`。手寫模式開關與白板相同（畫筆 = 開關，開啟時顯示 `PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）；手寫模式中手指捲動縮放、長按便利貼才拖曳；關閉時 Pencil 與手指都能點選、拖曳便利貼。iPad `.pencilOnly`，iPhone 只在手寫模式用手指書寫。所有頁面共用一個 `PKToolPicker`。
+- **記憶體**：記憶體中的標註是「頁碼 → elements 字典」（便宜）；`PKDrawing` 只為有 overlay 的頁面建立，overlay 回收時把筆畫換回 elements。
+- **Undo 記在模型，不靠 `PKCanvasView`**：overlay 會被回收，PencilKit 註冊在畫布上的 undo 會指向已釋放的 view。`PKCanvasView` 子類別回傳私有的 `undoManager`（吞掉 PencilKit 自己的註冊），`canvasViewDrawingDidChange` 時比對前後筆畫，以「頁碼 + 前後 elements」註冊到視窗的 undoManager；復原時改模型，頁面在畫面上才同步給畫布。跨頁依時間順序復原；`version` 一律遞增（同白板）。S4 驗證可行性。
+- **存檔與外部變動**：停止操作 500 ms 後寫入旁檔；註冊 `EditorController`，`externalChange`（同步拉下來的旁檔）以元素合併併進記憶體並更新可見頁面，`flush` 立即存檔。
+- **合併**：`.pdf` 是不透明檔案（內容不同 → 衝突副本）。`.pdf.ink` 依頁合併，每頁用白板的元素合併（`id` + `version`）；`pdfHash` 不同時保留本機的。
+- **PDF 被換掉**（`pdfHash` 不符）：仍依頁碼顯示標註，頂端提示「PDF 已變更，標註可能錯位」，按「保留標註」才更新 `pdfHash`。
+- **伴隨檔案（Core 擴充點，不認識類型）**：`DocumentKind.companionOf`（預設 nil），`.pdf.ink` 回傳「去掉 `.ink` 的路徑」。Core 據此：檔案樹、文件列表、搜尋不顯示伴隨檔；App 內改名、搬移、刪除、還原主檔時伴隨檔一起處理；仍照常索引 hash、同步與合併。外部工具改名 PDF 時，VaultWatcher 推斷出主檔改名就一併搬移旁檔；推斷不到時，開啟沒有旁檔的 PDF 會以 `pdfHash` 找主檔不存在的孤兒旁檔認領。
+- **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）。
+- **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `附件/`）因為註冊了 `.pdf` 也會出現在列表。
+- **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
 
 ### Sheets（`.csv`）
 
@@ -590,7 +624,8 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 | 類型 | 策略 |
 | --- | --- |
 | `.md` | diff3，以行為單位；重疊修改 → 衝突副本 |
-| `.excalidraw`、`.pdf.ink` | 依元素 `id` + `version` 合併（與 Excalidraw 官方協作相同） |
+| `.excalidraw` | 依元素 `id` + `version` 合併（與 Excalidraw 官方協作相同） |
+| `.pdf.ink` | 依頁分組，每頁依元素 `id` + `version` 合併；`pdfHash` 保留本機 |
 | `.csv` | diff3，以列為單位 |
 | `.easynotes/srs/*.jsonl` | 每台裝置只寫自己的檔案，天然無衝突 |
 | `.easynotes/srs/*.config.json` | 每台裝置只寫自己的檔案；讀取時以欄位為單位 LWW 合成 |

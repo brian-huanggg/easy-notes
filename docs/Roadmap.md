@@ -534,17 +534,55 @@
 
 目標：在上課 PDF 上用基本工具手寫，原始 PDF 不被修改。
 
-- [ ] `PDFView` + `PDFPageOverlayViewProvider`，可見頁面才建立 `PKCanvasView`
-- [ ] 工具：原子筆、螢光筆、橡皮擦、套索選取、便利貼
-- [ ] `.pdf.ink` 旁檔讀寫、檔案樹中隱藏、依頁 + 元素合併
-- [ ] 匯出合併標註的 PDF
+2026-10-02 決定（設計見 Architecture「PDF 手寫與標註」與「依賴規則」）：抽出共用函式庫 `ExcalidrawKit`（不是外掛）；旁檔 = 依頁分組的 Excalidraw elements（未旋轉的頁面座標）；便利貼 = 白板便條紙組合，直接顯示方塊；Undo 記在模型而不是 `PKCanvasView`；Core 新增伴隨檔案擴充點（`companionOf`）；Mac 顯示 + 便利貼可編輯，手寫只能看；匯出全部壓平。
+
+分 Spike 與四個子階段，依序進行：S4 先驗證疊層架構；5a 不需要介面，全部可用單元測試驗證；5b 完成後 PDF 可在列表與兩個平台檢視；5c 完成後 iPad 可日常標註；5d 匯出。
+
+### S4 Spike：PDF 疊層（iPad 實機）
+
+目標：確認「`PDFView` + 每頁 overlay `PKCanvasView`」可行，不通過就先改 Architecture 再進 5c。
+
+- [ ] `PDFView` + `PDFPageOverlayViewProvider` + `PKCanvasView`（`isInMarkupMode`）
+- [ ] 縮放後筆畫清晰、與頁面對齊；Pencil 書寫、手指捲動縮放
+- [ ] 所有頁面共用一個 `PKToolPicker`
+- [ ] 私有 `undoManager` 吞掉 PencilKit 的 undo，改在模型註冊，overlay 回收後仍可跨頁復原
+- [ ] 200 頁快速捲動，記憶體穩定
+
+### 5a 模型與格式（無 UI，單元測試）
+
+- [ ] 抽出 `ExcalidrawKit`（元素模型、merge、`InkStroke`、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer`），KindWhiteboard 測試全部通過
+- [ ] `.pdf.ink` 讀寫、頁面座標換算（含 `rotation`、cropBox）
+- [ ] `PDFKind`（不透明）+ `PDFInkKind`（依頁 + 元素合併）
+- [ ] Core 伴隨檔案：檔案樹 / 列表 / 搜尋隱藏；App 內改名、搬移、刪除、還原一起處理；孤兒旁檔以 `pdfHash` 認領
+
+### 5b 檢視、縮圖與 Mac
+
+- [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
+- [ ] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
+- [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
+
+### 5c iPad 編輯器
+
+- [ ] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
+- [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
+- [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
+- [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
+
+### 5d 匯出
+
+- [ ] `CGPDFContext` 逐頁畫原頁面 + 向量標註，分享或存成 `<檔名>（標註）.pdf`
 
 驗收測試：
 
 - [ ] 縮放、捲動後筆畫位置正確；關閉重開後完整還原
+- [ ] 旋轉頁面上的筆畫位置正確（App 內與匯出）
 - [ ] 200 頁 PDF 快速捲動，記憶體穩定（Instruments 觀察）
+- [ ] 跨頁交錯書寫後連按 ⌘Z，依時間順序復原（含已捲出畫面的頁）
 - [ ] 標註前後原始 PDF 的 hash 不變
-- [ ] 手動：匯出的 PDF 在「預覽程式」中正確顯示筆畫與便利貼
+- [ ] App 內改名、搬移、刪除再還原 PDF，旁檔跟著走
+- [ ] 多裝置：兩台在不同頁同時標註 → 同步後兩邊都保留
+- [ ] 便利貼內注音輸入正常（iPad、Mac）
+- [ ] 手動：匯出的 PDF 在「預覽程式」中正確顯示筆畫、螢光筆與便利貼
 
 ## Phase 6 — Sheets
 
