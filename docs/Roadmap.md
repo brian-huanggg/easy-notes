@@ -15,7 +15,7 @@
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
-| 5 PDF 手寫與標註 | S4、5a 完成（App 內伴隨檔流程待 5b 實機驗證）；5b 起未開始 | [pdf.md](./architecture/pdf.md) |
+| 5 PDF 手寫與標註 | S4、5a 完成；5b 實作完成（匯入、iPad 實機放大清晰度、伴隨檔流程尚未驗證）；5c 起未開始 | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -408,13 +408,12 @@
 
 - [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
   - iPad Simulator 已驗證：標註與頁面對齊（直式、橫式、`rotation` 90）、螢光筆透明度、便利貼文字；列表縮圖、頁數、PDF 篩選 chip、`.pdf.ink` 不出現在列表。
-  - Mac App 已驗證：列表縮圖正常、關閉重開後標註仍保存。
-  - 尚未驗證：放大後標註清晰度（`CATiledLayer`，Simulator 無法縮放；iPad 實機與 Mac）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
+  - Mac App 已驗證：列表縮圖正常、關閉重開後標註仍保存、放大後便利貼與筆畫清晰。
+  - 尚未驗證：iPad 實機放大後的清晰度（Simulator 無法縮放）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
 - [x] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
   - iPad Simulator 顯示提示列；「保留標註」只由單元測試驗證（`PDFInkDocumentTests`），尚未在 App 內按過。
-- [ ] Mac：便利貼新增、移動、縮放、編輯（`NSTextView`）
-  - Mac App 已驗證：右鍵編輯、刪除。
-  - 第一輪回報：拖曳中露出底下的文字（預覽是非同步分塊）→ 改成同步繪製的預覽 view、只重畫改變的範圍；不能縮放 → 加入滑過時的外框與右下角縮放點。尚未在 Mac App 內驗證（拖曳、縮放、注音輸入）。
+- [x] Mac：便利貼新增、移動、縮放、編輯（`NSTextView`）
+  - Mac App 已驗證：新增並以注音輸入（組字中 Esc 只取消選字）、拖曳（預覽完整、放開不閃回原位）、滑過顯示外框與縮放點、縮放（文字重新換行、最小 40 pt）、右鍵編輯與刪除。
 
 ### 5c iPad 編輯器
 
@@ -437,6 +436,7 @@
 - [ ] App 內改名、搬移、刪除再還原 PDF，旁檔跟著走
 - [ ] 多裝置：兩台在不同頁同時標註 → 同步後兩邊都保留
 - [ ] 便利貼內注音輸入正常（iPad、Mac）
+  - Mac 已驗證（5b）；iPad 待 5c。
 - [ ] 手動：匯出的 PDF 在「預覽程式」中正確顯示筆畫、螢光筆與便利貼
 
 ## Phase 6 — Sheets
