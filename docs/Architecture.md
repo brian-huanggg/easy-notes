@@ -177,9 +177,25 @@ registry.addContentFixer(CardIDFixer())                         // Flashcards：
 registry.addVaultGuide(guide)                                   // Vault 根目錄 CLAUDE.md 的一節（Markdown：筆記慣例；Flashcards：卡片語法）
 registry.addSyncedMetaFolder("srs")                             // Flashcards：`.easynotes/srs/` 參與同步（其餘 `.easynotes/` 不同步）
 
+// EasyNotesUI：不是編輯器的外掛（Flashcards）也透過 DocumentSession / EditorController 存取 Vault（3c）
+session.vault                       // VaultFS：讀寫外掛自己的 `.easynotes/<name>/`
+session.index                       // VaultIndex?：records、檔案標籤
+session.open(path, line: 84)        // 開啟檔案並捲到該行（複習時的「編輯筆記」）
+session.metaChanged()               // 外掛寫了同步的 meta 檔案 → 排程上傳
+controller.vaultChanged(paths)      // 索引更新後（App 內編輯、外部修改、同步，含 `.easynotes/srs/` 的同步下載）
+controller.moved(from:, to:)        // App 內改名或搬移（檔案或資料夾）
+controller.reveal(path:, line:)     // Markdown：捲到該行並把游標放在行首
+
 // EasyNotesCore：這台裝置的身分，存在 `.easynotes/device-id`（不同步）；SyncEngine 與 Flashcards 共用
 vaultFS.deviceID() -> String
 ```
+
+2026-10-02 決定（3c）：
+
+- 不新增「服務」型的擴充點：Flashcards 註冊一個 `EditorController`（`ReviewStore`），在 `attach` 取得 session，靠 `vaultChanged` / `moved` 得知變動。`EditorController` 的意義從「編輯器」放寬為「App → 外掛的通知」。
+- `vaultChanged(paths)` 只帶路徑，外掛自己決定要不要重讀（Flashcards：md 變動 → 重讀卡片 records；`.easynotes/srs/` 變動 → 重讀紀錄，只重播有新紀錄的卡片）。
+- `open(path, line:)` 由 App 導覽到檔案後呼叫各 controller 的 `reveal`；不是打字熱路徑，可以跨 Bridge。
+- `VaultIndex.fileTags()`：路徑 → 標籤（卡片的標籤 = 所在筆記的標籤）。
 
 2026-10-02 決定（3b）：
 
@@ -235,7 +251,7 @@ vaultFS.deviceID() -> String
 | Whiteboard | `.excalidraw`（官方 JSON） | PencilKit + SwiftUI Canvas（原生） | 依元素 `id` + `version` |
 | PDF | `.pdf`（不改動）+ `.pdf.ink`（JSON） | PDFKit + PencilKit（原生） | PDF 不合併；旁檔依頁 + 元素 `id` |
 | Sheets | `.csv`；欄寬等放 `.csv.meta.json` | RevoGrid（WebView） | diff3（以列為單位） |
-| Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl`；設定 `.easynotes/srs/config.json` | 原生複習介面 | 卡片跟著 md；紀錄各裝置各寫，永不衝突；設定以欄位 LWW |
+| Flashcards | 卡片寫在 `.md`；紀錄 `.easynotes/srs/<deviceId>.jsonl`；設定 `.easynotes/srs/<deviceId>.config.json` | 原生複習介面 | 卡片跟著 md；紀錄與設定都是各裝置各寫，永不衝突；設定以欄位 LWW 合成 |
 
 ### Markdown
 
@@ -300,7 +316,7 @@ vaultFS.deviceID() -> String
 
 - **資料夾 = 牌組**：每篇筆記只在一個資料夾，所以每張卡片只屬於一個牌組。牌組有階層（同 Anki 的 `A::B`），母牌組的上限涵蓋所有子牌組；Vault 根目錄的筆記屬於根牌組。
 - **標籤 = 篩選學習**（同 Anki 的 filtered deck）：可以臨時只複習「#考試」，但標籤沒有自己的上限與設定，也不改變卡片所屬的牌組。
-- **Preset**：多個牌組共用一組設定，存在 `.easynotes/srs/config.json`（presets + 「資料夾路徑 → preset」），跟著同步，以欄位為單位 LWW 合併。沒有指定的資料夾繼承上層，根目錄用預設 preset。資料夾改名時與連結改名一樣一併更新路徑。
+- **Preset**：多個牌組共用一組設定（presets + 「資料夾路徑 → preset」），跟著同步，以欄位為單位 LWW 合併（檔案格式見「設定」）。沒有指定的資料夾繼承上層，根目錄用預設 preset。資料夾改名時與連結改名一樣一併更新路徑。
 
 #### 排程
 
@@ -364,6 +380,50 @@ Preset（每個牌組，預設值與 Anki 相同）：
 全域：新的一天開始時間（預設凌晨 4 點）、按鈕上顯示下次間隔、參數優化提醒。
 
 刻意不開放：起始 ease、Hard / Easy 倍率、interval modifier（SM-2 專用，FSRS 不使用）。fuzz 固定開啟（Anki 也不能關）。
+
+2026-10-02 決定（3c）：
+
+- **設定檔每台裝置各寫一個**：`.easynotes/srs/<deviceId>.config.json`，內容是這台裝置改過的欄位與修改時間。單一 `config.json` 沒有註冊的 `DocumentKind`，兩台裝置都改時會變成衝突副本；改成和複習紀錄一樣各寫各的，就不需要在 Core 加合併的擴充點。讀取時合併所有裝置的檔案，每個欄位取修改時間最新的值（相同時間比 deviceId），等同欄位 LWW。
+
+  ```json
+  {"version":1,"fields":[
+    {"k":["presets","p-k3x9a2","name"],"v":"語言","t":1759400000123},
+    {"k":["presets","p-k3x9a2","newPerDay"],"v":30,"t":1759400000123},
+    {"k":["decks","日文"],"v":"p-k3x9a2","t":1759400000123},
+    {"k":["global","rolloverHour"],"v":4,"t":1759400000123}
+  ]}
+  ```
+
+  | 欄位 key | 值 |
+  | --- | --- |
+  | `presets/<id>/<欄位>` | preset 的欄位（`name`、`newPerDay`、`reviewsPerDay`、`learningSteps`…）；`deleted: true` = 已刪除 |
+  | `decks/<資料夾路徑>` | preset id；`null` = 繼承上層 |
+  | `global/<欄位>` | `rolloverHour`、`showIntervals`、`optimizeReminder` |
+
+  key 用陣列，因為資料夾路徑含 `/`。內建的「預設」preset id 為 `default`，不能刪除；新增的 preset id 為 `p-` + 6 碼亂數。沒有出現的欄位用 Anki 的預設值。
+- **資料夾改名**：App 內改名或搬移時（`moved`），把舊路徑與其下所有子路徑的 `decks/…` 寫成 `null`、新路徑寫入原本的 preset。Finder、Claude Code 的改名偵測不到，該資料夾回到繼承上層（不會遺失其他設定）。
+- 刪除 preset：使用它的牌組改回繼承上層。
+
+#### 每日上限與佇列（3c）
+
+2026-10-02 決定，規則照 Anki 的 v3 排程器：
+
+- **每日上限**：今天剩下的新卡數 = 上限 − 今天已學的新卡數（卡片的第一筆評分紀錄在今天）；複習數同理（今天 `type` 為 Review 的評分紀錄）。紀錄依卡片**目前**所在的牌組計算。從某個牌組開始複習時，套用這個牌組與其下各層子牌組的上限（上層牌組的上限不套用，與 Anki 相同）：卡片要同時通過從所選牌組到卡片所在牌組路徑上每一層的剩餘數。牌組列表的數字就是「從這個牌組開始」會拿到的張數，所以母牌組的數字會小於子牌組的總和。
+- **新卡也受複習上限限制**（Anki 23.10 起的預設）：新卡數 ≤ 複習上限扣掉今天已複習與待複習的張數。
+- Learning / Relearning 的卡片不受上限限制。
+- **埋藏 sibling 不另存**：同一行今天已經複習過任何一張的卡片，當天不出現（新卡與複習卡各依設定）；佇列中同一行只放一張。由今天的紀錄推得，換日後自動解除，所以不需要 bury 事件。
+- **新卡順序**：依檔案內順序 = 依路徑、行號、卡片 id 後綴；隨機 = 以「卡片 id + 日期」的 hash 排序（同一天內穩定）。**複習排序**：依到期日（早的在前）/ 依可回想率（低的在前）。
+- **出卡順序**：已到期的 learning 卡最優先；其次把新卡平均穿插在複習卡之間；都沒有時，20 分鐘內到期的 learning 卡提前出現（Anki 的 learn ahead limit）。
+- **Leech**：複習卡按 Again 使 lapses 達到門檻時（之後每多門檻的一半次再觸發一次）。動作「只加標籤」不改 md：`leech` 是由 lapses 算出的虛擬標籤，可以在標籤篩選中選它；動作「暫停」另外寫入 `suspend` 事件。
+- **標籤篩選**（Anki 的 filtered deck）：選一個標籤，只複習所在筆記帶有該標籤的卡片，跨所有牌組、不受每日上限限制；先出已到期的，再出新卡，一次最多 100 張。
+- **復原（U）**：從本機紀錄檔刪掉最後一行，再重播那張卡片。只能復原這次複習中、這台裝置寫入的紀錄，而且最後一行必須是它（中途被其他程式追加就不能復原）。紀錄檔只有本機會寫，所以刪掉最後一行同步出去也不會衝突。
+- **到期數 badge**：側邊欄「複習」的數字 = 根牌組（含所有子牌組）的待複習 + learning 張數，已套用上限。
+
+#### 複習介面（3c）
+
+- 牌組列表（設計稿 `rHTaT`）：資料夾樹，只列出含有卡片的資料夾與其上層；Vault 根目錄的卡片顯示為「未分類」（放在最後）。可展開 / 收合，狀態存在本機。統計區塊（連續天數、retention、到期預測、熱力圖）不在 3c 範圍。
+- 複習畫面（`b2AjRQ`）：顯示正面 → 顯示答案（Space）→ 四鍵（1–4，Space = Good）。卡片顯示來源檔案與行號、所在筆記的標籤、lapses。「編輯筆記」（E）以 `session.open(path, line:)` 開啟筆記；Esc 離開。克漏字：正面把目前這個 `{{}}` 換成 `[…]`、其他 `{{}}` 顯示內容；背面標示答案。
+- 牌組選項（`AYlad`）：Sheet；preset 選單、preset 欄位、全域設定。「最佳化…」在 3d 前停用。
 
 #### 互通
 
@@ -443,12 +503,12 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 | `.excalidraw`、`.pdf.ink` | 依元素 `id` + `version` 合併（與 Excalidraw 官方協作相同） |
 | `.csv` | diff3，以列為單位 |
 | `.easynotes/srs/*.jsonl` | 每台裝置只寫自己的檔案，天然無衝突 |
-| `.easynotes/srs/config.json` | 以欄位為單位 LWW（preset、資料夾對應） |
+| `.easynotes/srs/*.config.json` | 每台裝置只寫自己的檔案；讀取時以欄位為單位 LWW 合成 |
 | 其他（`.pdf`、圖片） | 內容不同 → 衝突副本 |
 
 ## Claude Code 整合
 
-- **Vault 根目錄的 `CLAUDE.md`**：說明 frontmatter 規範、卡片語法、資料夾慣例，以及不要手動修改的檔案（`.easynotes/srs/*.jsonl`、`.easynotes/srs/config.json`、`.easynotes/cache/`、`sync.sqlite`）。
+- **Vault 根目錄的 `CLAUDE.md`**：說明 frontmatter 規範、卡片語法、資料夾慣例，以及不要手動修改的檔案（`.easynotes/srs/*.jsonl`、`.easynotes/srs/*.config.json`、`.easynotes/cache/`、`sync.sqlite`）。
 - **外部修改是一等公民**：Claude Code 寫檔與 App 內編輯走同一條路徑（監看 → 索引 → 上傳）。
 - **產生卡片只需要寫 md**：Claude 寫入 `::` 語法即可，`^id` 由 App 補上。
 - **手寫不為 Claude 做辨識**：手寫是 brainstorming，不是知識庫的主體。

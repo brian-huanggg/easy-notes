@@ -213,7 +213,7 @@
 
 目標：在 md 內寫卡片，用與 Anki 相同的 FSRS 排程複習；多裝置紀錄自動合併。
 
-2026-10-02 決定（設計見 Architecture「Flashcards」）：排程用 swift-fsrs 的 FSRS-6（以 `revision:` 固定 commit，明確傳入 21 個參數），優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選學習；設定以 preset 管理（`.easynotes/srs/config.json`），預設值與 Anki 相同；重播時到期日採用紀錄的 `ivl`，只重算記憶狀態。
+2026-10-02 決定（設計見 Architecture「Flashcards」）：排程用 swift-fsrs 的 FSRS-6（以 `revision:` 固定 commit，明確傳入 21 個參數），優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選學習；設定以 preset 管理（`.easynotes/srs/<deviceId>.config.json`，3c 改為各裝置各寫），預設值與 Anki 相同；重播時到期日採用紀錄的 `ivl`，只重算記憶狀態。
 
 分四個子階段，依序進行；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
 
@@ -268,16 +268,19 @@
 目標：可以日常使用的複習流程。
 
 - [ ] 牌組樹（資料夾階層）與各牌組的到期數 / 新卡數；標籤篩選學習
-- [ ] Preset 設定與 `config.json`（資料夾繼承上層、改名時更新路徑、欄位 LWW 合併）
+- [ ] Preset 設定與 `<deviceId>.config.json`（資料夾繼承上層、改名時更新路徑、欄位 LWW 合併）
 - [ ] 每日上限（母牌組涵蓋子牌組）、新卡順序、複習排序、埋藏 sibling、Leech、新的一天開始時間
 - [ ] 原生複習介面：`addPanel` 的「複習」（badge 為到期數）、牌組列表、卡片正反面、四鍵與下次間隔、鍵盤快捷鍵（Mac / iPad）
 - [ ] 設定畫面：preset 編輯、牌組指定 preset、全域設定
+- [ ] 復原上一次作答（刪掉本機紀錄檔的最後一行）、標籤篩選學習、Leech 虛擬標籤
+- [ ] 擴充點：`DocumentSession` 的 `vault` / `index` / `open(path, line:)` / `metaChanged()`；`EditorController` 的 `vaultChanged` / `moved` / `reveal`；`VaultIndex.fileTags()`
 - [x] 設計稿：Phase 3 畫面（`rHTaT`、`b2AjRQ`）補上牌組樹與設定畫面
 
 驗收測試：
 
 - [ ] 每日上限：母牌組上限涵蓋子牌組；同一行的 sibling 依設定埋藏
-- [ ] `config.json` 合併：兩台裝置改不同欄位 → 都保留；資料夾改名後 preset 仍套用
+- [ ] 復原：作答後按 U，紀錄檔回到作答前、卡片狀態回到作答前
+- [ ] 設定合併：兩台裝置改不同欄位 → 都保留；資料夾改名後 preset 仍套用
 - [ ] 多裝置：Mac 與 iPad 各自複習後同步，到期日正確
 - [ ] 手動：Mac、iPad、iPhone 完成一輪複習，畫面與設計稿比對（淺色 / 深色）
 
@@ -288,6 +291,8 @@
 | 牌組列表 | `rHTaT` | 牌組樹（`C/Deck Row` `MKsOj` 加上縮排、展開箭頭、選項按鈕）；母牌組數字已套用上限（日文 new 30 < 子牌組 24 + 12）；Vault 根目錄的筆記顯示為「未分類」；篩選 chip「Filter by tag」= 標籤篩選學習；工具列右側為設定 |
 | 複習 | `b2AjRQ` | 卡片只顯示正反面、來源檔案與行號、標籤、lapses |
 | 牌組選項 | `AYlad` | Sheet：preset 選單（繼承上層 / 切換 / 新增 / 複製 / 重新命名 / 刪除）、preset 的所有欄位（兩欄）、全域設定（換日時間、按鈕顯示間隔、最佳化提醒）；「最佳化…」在 3d 前為停用狀態 |
+
+2026-10-02 開工前決定（設計見 Architecture「設定」「每日上限與佇列」「複習介面」）：統計區塊移出 3c；設定改為每台裝置各寫 `<deviceId>.config.json`，讀取時欄位 LWW 合成（避免單一檔案在同步時變成衝突副本）；復原 = 刪掉本機紀錄檔的最後一行；Leech 的「加標籤」是由 lapses 算出的虛擬標籤，不改 md；標籤篩選不受每日上限限制；Flashcards 以 `EditorController` 接收 Vault 變動通知。
 
 刪除：Share、Add Cards、columns 切換、排序按鈕（牌組依資料夾順序）、Suspended / Leeches chips（3c 沒有卡片瀏覽器；Leech 以標籤處理，可用標籤篩選）、「Open statistics」與所有統計區塊（連續天數、retention、到期預測圖、複習熱力圖、牌組列的 7 天預測；統計不在範圍內，今日橫幅只留進度環與剩餘張數）、複習卡片的例句框與提示行（一行語法沒有這些欄位）。新增文字以繁體中文撰寫，原有的英文介面文字尚未翻譯。
 
