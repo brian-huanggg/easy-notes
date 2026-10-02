@@ -17,6 +17,9 @@ final class PDFReaderCanvas: PlatformView {
     let document: PDFInkDocument
     private(set) var overlays: [Int: PageOverlayView] = [:]
     private var loadedRevision = -1
+    #if os(macOS)
+    var editing: StickyEditing?
+    #endif
 
     init(document: PDFInkDocument) {
         self.document = document
@@ -35,6 +38,10 @@ final class PDFReaderCanvas: PlatformView {
         pdfView.pageOverlayViewProvider = self
         addSubview(pdfView)
         document.onInkChange = { [weak self] pages in self?.refresh(pages) }
+        #if os(macOS)
+        // 切換檔案、改名、同步合併前：先把編輯中的便利貼文字寫回
+        document.flushHandler = { [weak self] in self?.endEditing() }
+        #endif
         reloadIfNeeded()
     }
 
@@ -67,6 +74,7 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
         guard let index = view.document?.index(for: page) else { return nil }
         if let existing = overlays[index] { return existing }
         let overlay = PageOverlayView(page: page, pageIndex: index)
+        overlay.host = self
         overlay.show(document.scene(page: index))
         overlays[index] = overlay
         return overlay
@@ -74,6 +82,9 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
 
     func pdfView(_ pdfView: PDFView, willEndDisplayingOverlayView overlayView: PlatformView, for page: PDFPage) {
         guard let overlay = overlayView as? PageOverlayView else { return }
+        #if os(macOS)
+        if editing?.overlay === overlay { endEditing() }
+        #endif
         // 標註只存在文件模型，overlay 直接丟掉
         if overlays[overlay.pageIndex] === overlay { overlays[overlay.pageIndex] = nil }
     }
@@ -87,7 +98,15 @@ final class PageOverlayView: PlatformView {
     let geometry: PDFPageGeometry
     let inkLayer = PageInkLayer()
     private weak var page: PDFPage?
+    weak var host: PDFReaderCanvas?
     private(set) var scene = ExcalidrawScene()
+    /// 暫時不畫在標註層的元素（拖曳中的便利貼、編輯中的文字）
+    var hiddenElements: Set<String> = [] {
+        didSet { if hiddenElements != oldValue { inkLayer.show(scene.without(hiddenElements)) } }
+    }
+    #if os(macOS)
+    var drag: StickyDrag?
+    #endif
     /// 頁面座標（未旋轉、y 向下）→ overlay 座標
     private(set) var pageToView = CGAffineTransform.identity
 
@@ -111,7 +130,12 @@ final class PageOverlayView: PlatformView {
 
     func show(_ scene: ExcalidrawScene) {
         self.scene = scene
-        inkLayer.show(scene)
+        inkLayer.show(scene.without(hiddenElements))
+    }
+
+    /// overlay 座標 → 頁面座標
+    func pagePoint(_ viewPoint: CGPoint) -> CGPoint {
+        viewPoint.applying(pageToView.inverted())
     }
 
     private var pdfView: PDFView? {
@@ -167,7 +191,15 @@ final class PageOverlayView: PlatformView {
         inkLayer.contentsScale = window?.backingScaleFactor ?? 2
     }
 
-    /// 只讀：滑鼠交給 PDFView（選取文字、捲動）
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    /// 只在便利貼上（或編輯中的文字框）接收滑鼠，其餘交給 PDFView（選取文字、捲動）
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        if let hit = super.hitTest(point), hit !== self { return hit }
+        return sticky(at: convert(point, from: superview)) != nil ? self : nil
+    }
+
+    override func mouseDown(with event: NSEvent) { stickyMouseDown(event) }
+    override func mouseDragged(with event: NSEvent) { stickyMouseDragged(event) }
+    override func mouseUp(with event: NSEvent) { stickyMouseUp(event) }
+    override func menu(for event: NSEvent) -> NSMenu? { stickyMenu(event) }
     #endif
 }

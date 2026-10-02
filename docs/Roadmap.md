@@ -412,6 +412,7 @@
 - [x] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
   - iPad Simulator 顯示提示列；「保留標註」只由單元測試驗證（`PDFInkDocumentTests`），尚未在 App 內按過。
 - [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
+  - 已實作（右下「便利貼」按鈕、拖曳移動、雙擊或右鍵編輯、右鍵刪除）；文字與移動的模型由單元測試驗證（`StickyTests`），尚未在 Mac App 內驗證（含注音輸入、拖曳是否閃爍）。
 
 ### 5c iPad 編輯器
 

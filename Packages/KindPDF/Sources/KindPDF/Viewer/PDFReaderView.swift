@@ -6,14 +6,24 @@ struct PDFReaderView: View {
     let path: String
     @Environment(\.documentSession) private var session
     @State private var document: PDFInkDocument?
+    @State private var handle = PDFCanvasHandle()
 
     var body: some View {
         // 不能用 Group：document 還是 nil 時沒有子 view，onAppear 永遠不會被呼叫
         ZStack {
             if let document {
-                PDFCanvas(document: document)
+                PDFCanvas(document: document, handle: handle)
                     #if os(iOS)
                     .ignoresSafeArea(edges: .bottom)
+                    #else
+                    .overlay(alignment: .bottomTrailing) {
+                        Button { handle.canvas?.addSticky() } label: {
+                            Label("便利貼", systemImage: "note.text")
+                        }
+                        .controlSize(.large)
+                        .help("在目前頁新增便利貼")
+                        .padding(16)
+                    }
                     #endif
                     .safeAreaInset(edge: .top, spacing: 0) {
                         if document.hashMismatch { HashMismatchBanner(document: document) }
@@ -55,12 +65,21 @@ private struct HashMismatchBanner: View {
     }
 }
 
+/// SwiftUI 的按鈕找到畫布
+@MainActor
+final class PDFCanvasHandle {
+    weak var canvas: PDFReaderCanvas?
+}
+
 #if os(iOS)
 private struct PDFCanvas: UIViewRepresentable {
     let document: PDFInkDocument
+    let handle: PDFCanvasHandle
 
     func makeUIView(context: Context) -> PDFReaderCanvas {
-        PDFReaderCanvas(document: document)
+        let canvas = PDFReaderCanvas(document: document)
+        handle.canvas = canvas
+        return canvas
     }
 
     func updateUIView(_ view: PDFReaderCanvas, context: Context) {
@@ -71,9 +90,12 @@ private struct PDFCanvas: UIViewRepresentable {
 #else
 private struct PDFCanvas: NSViewRepresentable {
     let document: PDFInkDocument
+    let handle: PDFCanvasHandle
 
     func makeNSView(context: Context) -> PDFReaderCanvas {
-        PDFReaderCanvas(document: document)
+        let canvas = PDFReaderCanvas(document: document)
+        handle.canvas = canvas
+        return canvas
     }
 
     func updateNSView(_ view: PDFReaderCanvas, context: Context) {
