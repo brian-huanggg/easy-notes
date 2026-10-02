@@ -36,6 +36,13 @@ public enum ElementGeometry {
 
     /// 畫面上佔的範圍（含旋轉、線寬、箭頭頭部與 frame 標題），用來裁切畫面外的元素與計算縮圖範圍
     public static func bounds(_ el: Element) -> CGRect {
+        var r = paddedBox(el)
+        if el.angle != 0 { r = r.applying(rotation(el)) }
+        return r
+    }
+
+    /// 未旋轉時畫到的範圍（含線寬、箭頭頭部與 frame 標題）。layer 樹以它當每個元素 layer 的 bounds
+    public static func paddedBox(_ el: Element) -> CGRect {
         let stroke = (el.raw["strokeWidth"] as? NSNumber)?.doubleValue ?? 2
         var outset = stroke / 2 + 1
         switch el.type {
@@ -46,7 +53,6 @@ public enum ElementGeometry {
         default: break
         }
         var r = box(el).insetBy(dx: -outset, dy: -outset)
-        if el.angle != 0 { r = r.applying(rotation(el)) }
         if el.type == .frame { r = r.union(frameTitleRect(el)) }
         return r
     }

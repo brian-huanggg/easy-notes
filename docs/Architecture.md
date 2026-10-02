@@ -295,6 +295,13 @@ vaultFS.deviceID() -> String
 - **連結**：元素的 `link` 若是 `[[筆記]]`，`index()` 收進 `links`（白板出現在反向連結）；`renameLinks` 更新 `link` 與 `customData.easynotes.file`。
 - **渲染器共用**：`SceneRenderer`（CoreGraphics，可在背景執行緒）同時用於列表縮圖、`![[x.excalidraw]]` 嵌入與 Mac 檢視；編輯器的 layer 樹沿用同一套幾何（路徑、文字排版）。2026-10-02（4b）：幾何集中在 `ElementGeometry`（輪廓、線與曲線、箭頭頭部、旋轉、畫面範圍），`SceneRenderer` 與 layer 樹都從它取 `CGPath`；`SceneRenderer.draw(in:visible:)` 只畫與可見範圍相交的元素，Mac 檢視直接用它。
 
+2026-10-02 決定（4c 開工前）：
+
+- **工具列**：獨立的 SwiftUI 工具列，與 `PKToolPicker` 分開：工具列放筆、橡皮擦、套索、選取、矩形、橢圓、箭頭、文字、圖片、frame；只有選到筆類工具時才顯示 `PKToolPicker`，用來選顏色與粗細。兩者在畫面上明確區隔；Mac 共用同一個 SwiftUI 工具列（沒有筆類工具）。
+- **編輯核心不依賴平台**：工具狀態、選取、hit test、拖曳 / 縮放 / 建立的手勢狀態機都在畫布座標下運作，只呼叫 `ExcalidrawScene` 的編輯 API，可以用單元測試驗證；iOS（`PKCanvasView`）與 macOS（`NSView`）只負責把觸控 / 滑鼠事件換成畫布座標交給它。layer 樹（`CALayer`）兩個平台共用。
+- **無限畫布**：Excalidraw 的座標可以是負數，`PKCanvasView` 的內容座標從 0 開始，所以 `內容座標 = 場景座標 − origin`。開啟時 origin 與 `contentSize` 取「內容範圍外擴一圈留白」；捲到接近邊緣時擴大，origin 變動時筆畫平移、`contentOffset` 跟著補償，畫面不跳動。存檔時把筆畫換回場景座標，檔案裡永遠是場景座標。
+- **Undo**：每個結構操作記下受影響元素修改前後的字典，註冊在 `PKCanvasView` 的 `undoManager`（與筆畫共用一個堆疊）。復原時寫回修改前的內容，但 `version` 一律繼續遞增（不回到舊版號），否則其他裝置會以為沒有變動、合併時丟掉復原。
+
 #### 筆記卡片放進白板（Heptabase / Obsidian Canvas 式，選做）
 
 難度中等，前提是白板結構層已完成。
