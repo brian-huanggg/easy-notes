@@ -15,8 +15,7 @@ public enum TextLayout {
 
     /// 換行與量測。`maxWidth` 為 nil 時只依 `\n` 斷行；CJK 可在任何字之間斷行。
     public static func layout(_ text: String, fontSize: Double, lineHeight: Double, maxWidth: Double?) -> Result {
-        let font = CTFontCreateUIFontForLanguage(.system, CGFloat(fontSize), nil)
-            ?? CTFontCreateWithName("Helvetica" as CFString, CGFloat(fontSize), nil)
+        let font = Self.font(size: fontSize)
         var lines: [String] = []
         var width: Double = 0
 
@@ -40,6 +39,12 @@ public enum TextLayout {
         }
         if lines.isEmpty { lines = [""] }
         return Result(lines: lines, size: CGSize(width: width.rounded(.up), height: Double(lines.count) * fontSize * lineHeight))
+    }
+
+    /// 系統字型；中文由 CoreText 的字型遞補換成蘋方
+    public static func font(size: Double) -> CTFont {
+        CTFontCreateUIFontForLanguage(.system, CGFloat(size), nil)
+            ?? CTFontCreateWithName("Helvetica" as CFString, CGFloat(size), nil)
     }
 
     /// 依 `originalText` 重新排版並設定 `text`、`width`、`height`。`maxWidth` 為 nil = 不自動換行（獨立文字）。

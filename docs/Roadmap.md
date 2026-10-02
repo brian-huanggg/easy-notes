@@ -424,7 +424,7 @@
 
 目標：白板在列表縮圖、md 嵌入與 Mac 上看起來正確；還不能編輯結構元素。
 
-- [ ] `SceneRenderer`（CoreGraphics，背景執行緒）：所有標準元素、`angle`、曲線與 elbow 箭頭與箭頭頭部、文字（系統字型）、圖片（依尺寸縮圖）、frame 裁切與標題；未知類型畫佔位框
+- [x] `SceneRenderer`（CoreGraphics，背景執行緒）：所有標準元素、`angle`、曲線與 elbow 箭頭與箭頭頭部、文字（系統字型）、圖片（依尺寸縮圖）、frame 裁切與標題；未知類型畫佔位框
 - [ ] Core：`DocumentPreview.image: Data?`；`BoardPreview` 產生 PNG 縮圖、摘要
 - [ ] EasyNotesUI：WebEditorHost 的 `embed://<路徑>?h=<hash>` scheme，回傳預覽快取中的 `image`
 - [ ] Markdown：`![[x.excalidraw]]` 顯示為圖片 widget（游標所在行顯示原始語法），點擊開啟白板
@@ -437,6 +437,16 @@
 - [ ] 縮圖不在主執行緒產生；1,000 個元素的白板縮圖 < 200 ms（M 系列 Mac）
 - [ ] 打字時不因嵌入圖片而經過 Bridge（`embed://` 由 WebView 自行載入）
 - [ ] 手動：Mac 打開 excalidraw.com 畫的檔案，與網頁上的版面一致（除手繪風格與字型）
+
+2026-10-02：`SceneRenderer` 完成（`KindWhiteboard/Render/`）。幾何（輪廓、Catmull-Rom 曲線、箭頭頭部、範圍）放在 `ElementGeometry`，4c 的 layer 樹共用同一份路徑；渲染器只負責上色、文字、圖片與 frame 裁切。快照測試（`RendererTests`）：基準圖在 `Tests/KindWhiteboardTests/Snapshots/`，`EASYNOTES_SNAPSHOT_RECORD=1` 重新錄製、`EASYNOTES_SNAPSHOT_DIR` 輸出這次的結果；容許 0.5% 像素差（字型抗鋸齒）。1,000 個元素的 PNG（1600px）在 M 系列 Mac 約 80 ms（Release）。快照驗收項目等 excalidraw.com 實際匯出的 fixture 補上再勾。
+
+實作中的補充決定：
+
+- 數值照 Excalidraw：圓角（`roundness.type` 3 固定 32、小形狀 25%；其他 25%）、箭頭頭部大小與角度、虛線 `[8, 8+w]`、點線 `[1.5, 6+w]`、首尾距離 ≤ 8 的 line 可填色。
+- `fillStyle` 一律畫實心；frame 外框與標題用固定樣式（`#bbb` / `#999`），不看 `strokeColor`；`magicframe` 等未知類型畫佔位框。
+- 手寫寬度：EasyNotes（PencilKit）筆畫用 `customData` 的點大小；excalidraw.com 的筆畫照 perfect-freehand（strokeWidth × 4.25、thinning 0.6）。半透明元素整個合成後才套用透明度。
+- 文字直接用檔案中已換行的 `text`（Excalidraw 存檔時就換好行），不重新排版，避免字型寬度不同時跟網頁的換行不一樣。
+- 圖片依顯示像素解碼（2 的冪次分級快取），支援 `crop`、`scale` 翻轉與圓角。
 
 ### 4c 編輯器
 
