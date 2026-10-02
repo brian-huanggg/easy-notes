@@ -590,21 +590,62 @@
 
 ## Phase 6 — Sheets
 
-目標：用 RevoGrid 編輯 CSV，不影響其他工具讀取。
+目標：用 RevoGrid 編輯 CSV / TSV，不影響其他工具讀取。
 
-- [ ] Swift 端 RFC 4180 解析與序列化
-- [ ] RevoGrid 編輯器（WebView，共用 WebEditorHost）
-- [ ] RevoGrid WebView 開檔時才建立、關閉後釋放
-- [ ] `.csv.meta.json`（欄寬、凍結欄）
-- [ ] 以列為單位的 diff3 合併
-- [ ] md 內 `![[x.csv]]` 嵌入預覽
+2026-10-02 決定（設計見 Architecture「Sheets」）：新增 `Packages/KindSheet`；支援 `.csv` 與 `.tsv`；最大風險是注音，以 S5 Spike 最先驗證；記錄保留原始位元組，未修改的逐位元組寫回；以記錄為單位的 diff3 + 儲存格層級補救；排序與篩選只影響畫面；`.csv.meta.json` 用 Phase 5 的 `companionOf`。依 Phase 順序，Phase 5 完成後才開工。
+
+分 Spike 與四個子階段，依序進行：S5 先驗證注音與效能；6a 不需要介面，全部可用單元測試驗證；6b 完成後可日常編輯；6c 顯示設定；6d 預覽、嵌入與新增匯入。
+
+### S5 Spike：RevoGrid 注音與效能（iPad 實機 + Mac）
+
+目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 Architecture（自寫 TS 虛擬表格或原生表格）再進 6b。
+
+- [ ] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
+- [ ] 組字中按 Enter 不結束編輯（`isComposing`）
+- [ ] 1 萬列捲動流暢（iPad、Mac）
+- [ ] bundle 大小在預算內（約 0.5–1 MB）
+- [ ] 關閉表格後 WebContent process 釋放
+
+### 6a 模型與格式（無 UI，單元測試）
+
+- [ ] 新增 `Packages/KindSheet`（只依賴 EasyNotesCore / EasyNotesUI）
+- [ ] RFC 4180 解析與序列化，`.csv` / `.tsv` 共用；記錄保留原始位元組
+- [ ] 風格偵測：換行符、引號風格、BOM、檔尾換行；欄數不一的列原樣保留
+- [ ] 編碼：UTF-8 可編輯；Big5 唯讀 + 「轉成 UTF-8」
+- [ ] `index()`：儲存格文字（設上限）、摘要「N 列 · M 欄」、`[[連結]]` 與 `renameLinks`
+- [ ] 以記錄為單位的 diff3 + 同一記錄的儲存格三方合併
+
+### 6b 編輯器（WebView）
+
+- [ ] `web/src/sheet` entry，打包進 KindSheet 的 Resources
+- [ ] 每次開檔建立自己的 `WebEditorHost`、關閉後釋放
+- [ ] Bridge：`load({rows, meta})`（穩定 row id）、`edit({ops})` 只在儲存格編輯結束時送、延遲 300 ms 寫檔
+- [ ] `EditorController`：`externalChange` → `applyRemote`（保留選取）、`flush`
+- [ ] 增刪列欄、JS 端 Undo、TSV 剪貼簿、`addMenu("表格")`
+- [ ] 排序與篩選只影響畫面；「依此欄排序並寫入」
+
+### 6c 顯示設定
+
+- [ ] `.csv.meta.json` / `.tsv.meta.json`（欄寬、凍結欄、標題列）；只在改了顯示設定時建立
+- [ ] 以 `companionOf` 註冊為伴隨檔；增刪欄時一起調整；以欄位 LWW 合併
+
+### 6d 預覽、嵌入、新增與匯入
+
+- [ ] 列表縮圖（CoreGraphics PNG，Thumb CSV `otUrV`）
+- [ ] md 內 `![[x.csv]]` 嵌入預覽（`embed://`，深色模式反相）
+- [ ] `addKind`、`addNewFile("新表格")`、`addImport("匯入 CSV…")`
+- [ ] `addVaultGuide`：CSV 慣例
 
 驗收測試：
 
-- [ ] 未修改的 CSV 寫回後逐位元組相同
-- [ ] 含引號、逗號、換行、中文的欄位來回不變
-- [ ] 儲存格內注音輸入正常
-- [ ] 1 萬列捲動流暢n
+- [ ] 未修改的 CSV / TSV 寫回後逐位元組相同（含 CRLF、BOM、全部加引號的檔案）
+- [ ] 含引號、逗號、換行、中文、emoji 的欄位來回不變
+- [ ] 儲存格內注音輸入正常（iPad、Mac），含選取後直接打字
+- [ ] 1 萬列捲動流暢
+- [ ] 開著表格時 Claude Code 修改檔案，畫面即時更新且不被舊內容覆蓋
+- [ ] 多裝置：兩台離線修改不同列 → 同步後自動合併；同一列不同儲存格 → 也自動合併
+- [ ] Big5 檔案開啟不損壞
+- [ ] 關閉表格後 WebContent process 結束（記憶體預算）
 
 ## Bug Reports
 
@@ -649,6 +690,7 @@
 | 外掛介面設計過早 | 後續外掛被錯誤的抽象綁住 | Markdown 先走外掛介面；擴充點等第二個外掛需要時才抽出 |
 | WebView 記憶體 | iPhone 後台被殺 | 單一共用 WebView，多分頁共用一個 process pool |
 | PDF 大檔記憶體 | 閃退 | 只為可見頁面建立 `PKCanvasView`，離開畫面就回收 |
+| RevoGrid 在 WKWebView 的注音輸入 | 表格無法輸入中文 | S5 Spike 最先驗證；不通過改用自寫 TS 虛擬表格或原生表格 |
 | `PKCanvasView` 只支援 iOS | macOS 無法手寫 | 接受：macOS 只顯示手寫，結構元素仍可編輯 |
 | swift-fsrs 版本落後 | 排程與 Anki 不一致 | 以 fsrs-rs 參考向量做回歸測試；必要時改用 fsrs-rs 的 UniFFI 綁定做排程 |
 | 套件授權 | 個人使用影響很小 | 仍優先選 MIT / BSD：RevoGrid（MIT）、fsrs-rs（BSD-3） |
@@ -658,5 +700,6 @@
 - [x] macOS 上 vault 要放使用者可見的資料夾（可用 Finder / 其他編輯器開），還是 App 沙盒內？
 - [x] Sheets 是否需要公式？→ 不需要。CSV 只存資料，需要公式時用外部 App 開啟。
 - [x] 是否需要 Android / Web 版？→ 不需要。個人使用，只支援 Apple 平台。
+- [ ] Sheets 的排序與篩選狀態要不要記住？（建議：只存在這台裝置，不同步；Phase 6 開工時決定）
 
 Vault 位置已決定：macOS 用可見資料夾 `~/Documents/EasyNotes`，不開沙盒。
