@@ -65,6 +65,23 @@ struct PDFInkDocumentTests {
         #expect(saved.pageIndexes == [1])
     }
 
+    /// 停止操作 500 ms 後才寫入；連續修改只寫一次
+    @Test func editsSaveAfterIdle() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let session = try DiskSession(root: root)
+        try session.vault.write(Sample.pdf(), to: "d.pdf")
+        let doc = try await opened("d.pdf", session)
+
+        doc.edit(page: 0) { $0.replaceInk(with: [Sample.stroke(x: 10)]) }
+        try await Task.sleep(for: .milliseconds(300))
+        doc.edit(page: 0) { $0.replaceInk(with: $0.inkStrokes + [Sample.stroke(x: 80)]) }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(!session.vault.exists("d.pdf.ink")) // 第二次修改重新計時
+        for _ in 0..<100 where !session.vault.exists("d.pdf.ink") { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(try PDFInk(data: session.readData("d.pdf.ink")).scene(page: 0).inkStrokes.count == 2)
+        #expect(!doc.hasUnsavedEdits)
+    }
+
     @Test func externalInkChangeMergesAndNotifies() async throws {
         defer { try? FileManager.default.removeItem(at: root) }
         let session = try DiskSession(root: root)

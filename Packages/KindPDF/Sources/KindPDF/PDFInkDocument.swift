@@ -24,6 +24,7 @@ final class PDFInkDocument {
     @ObservationIgnored private var lastData: Data?
     @ObservationIgnored private(set) var hasUnsavedEdits = false
     @ObservationIgnored private var hashTask: Task<Void, Never>?
+    @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     init(path: String, session: any DocumentSession) {
         self.path = path
@@ -47,18 +48,30 @@ final class PDFInkDocument {
 
     // MARK: 編輯
 
-    /// 只改記憶體中的某頁、標記待存（拖曳中逐幀修改）；停止操作後 `commit` 一次寫入
+    /// 改記憶體中的某頁、標記待存（拖曳中逐幀修改）；停止操作 500 ms 後才寫入（或由 `commit` 立即寫入）
     func edit<T>(page: Int, _ body: (inout ExcalidrawScene) -> T) -> T {
         var scene = ink.scene(page: page)
         let result = body(&scene)
         ink.setScene(scene, page: page)
         hasUnsavedEdits = true
         onInkChange?([page])
+        scheduleCommit()
         return result
     }
 
-    /// 寫入待存的修改。第一次建立旁檔時記下目前的 `pdfHash`
+    private func scheduleCommit() {
+        saveTask?.cancel()
+        saveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            self?.commit()
+        }
+    }
+
+    /// 立即寫入待存的修改。第一次建立旁檔時記下目前的 `pdfHash`
     func commit() {
+        saveTask?.cancel()
+        saveTask = nil
         guard hasUnsavedEdits else { return }
         hasUnsavedEdits = false
         if ink.pdfHash.isEmpty, let pdfHash { ink.pdfHash = pdfHash }

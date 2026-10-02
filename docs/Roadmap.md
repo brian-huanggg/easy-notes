@@ -423,6 +423,7 @@
 - [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
+  - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
 
 ### 5d 匯出
 
