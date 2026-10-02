@@ -84,14 +84,18 @@ public struct LinkTarget: Hashable, Sendable {
     /// 外掛提供的一行摘要（「320 個字」「24 列」）
     public let summary: String?
     public let modified: Date
+    /// 內容 hash：`![[x]]` 嵌入的 `embed:///…?h=<hash>`，內容改變時 URL 跟著變、WebView 重新載入
+    public let hash: String?
 
-    public init(name: String, path: String, symbol: String, tint: KindTint, summary: String?, modified: Date) {
+    public init(name: String, path: String, symbol: String, tint: KindTint, summary: String?, modified: Date,
+                hash: String? = nil) {
         self.name = name
         self.path = path
         self.symbol = symbol
         self.tint = tint
         self.summary = summary
         self.modified = modified
+        self.hash = hash
     }
 }
 

@@ -551,7 +551,8 @@ final class VaultStore: DocumentSession {
         files.map { file in
             let kindID = kindID(file.path)
             return LinkTarget(name: fs.kinds.displayName(file.path), path: file.path, symbol: plugins.symbol(for: kindID),
-                              tint: plugins.tint(for: kindID), summary: file.summary, modified: file.mtime)
+                              tint: plugins.tint(for: kindID), summary: file.summary, modified: file.mtime,
+                              hash: file.hash)
         }
         .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }

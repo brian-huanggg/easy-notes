@@ -112,6 +112,13 @@
   .cm-lp-embed.is-missing { color: var(--text-tertiary); font-size: 13px; }
   .cm-lp-embed.is-missing img { display: none; }
   .cm-lp-embed.is-missing::after { content: "找不到圖片"; }
+  /* ![[白板.excalidraw]]：外掛畫好的預覽圖（背景透明），點一下開啟。深色模式與 Excalidraw 深色主題相同：反相後轉回色相 */
+  .cm-lp-embed.is-preview { display: flex; justify-content: center; margin: 4px 0; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .cm-lp-embed.is-preview:hover { border-color: var(--border-strong); }
+  .cm-lp-embed.is-preview img { max-height: 480px; padding: 12px; box-sizing: border-box; border-radius: 0; }
+  @media (prefers-color-scheme: dark) { .cm-lp-embed.is-preview img { filter: invert(93%) hue-rotate(180deg); } }
+  .cm-lp-embed.is-preview.is-missing { padding: 18px; }
+  .cm-lp-embed.is-preview.is-missing::after { content: "無法顯示 " attr(title) " 的預覽"; }
 
   /* [[ 自動完成 */
   .cm-tooltip.cm-tooltip-autocomplete { border: none; border-radius: var(--radius-md); overflow: hidden; background: var(--surface-raised); box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 0 0 0.5px var(--border-strong); }

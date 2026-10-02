@@ -193,6 +193,7 @@ public final class MarkdownEditor: EditorController {
             ]
             if let icon = SymbolImage.pngDataURI(target.symbol) { item["icon"] = icon }
             if let summary = target.summary { item["summary"] = summary }
+            if let hash = target.hash { item["hash"] = hash }
             return item
         }
         host.call("editor.setLinkTargets(targets)", ["targets": linkTargets])
