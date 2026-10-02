@@ -2,9 +2,16 @@
 
 **2026-10-03**
 
-- feat: refactor document editor
-- feat: create flashcards
-- feat: import fsrs-swift and fsrs-rs for scheduled algorithm
+- phase 2.5
+  - feat: refactor document editor
+- phase 3
+  - feat: create flashcards
+  - feat: import fsrs-swift and fsrs-rs for scheduled algorithm
+  - feat: create review pages with deck settings
+  - feat: create app icon
+  - release: 1.0.0 launch on TestFlight
+- phase 4
+  - test: spike test on iPad for gesture and performance
 
 **2026-10-02**
 

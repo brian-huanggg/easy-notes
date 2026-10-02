@@ -9,6 +9,14 @@ public enum WhiteboardPlugin: EasyNotesPlugin {
         registry.addEditor(for: InkKind.id) { InkEditorView(path: $0).id($0) }
         registry.addNewFile("新手寫", kind: InkKind.self, symbol: "pencil.tip",
                             shortcut: KeyboardShortcut("n", modifiers: [.command, .shift]), defaultName: "手寫")
+        #if os(iOS)
+        // Spike S3：DEBUG 或啟動參數 `-WhiteboardSpike YES`（Release 實機量測用）
+        if _isDebugAssertConfiguration() || UserDefaults.standard.bool(forKey: "WhiteboardSpike") {
+            registry.addPanel(id: "whiteboard-spike", title: "畫布 Spike", symbol: "scribble.variable") {
+                CanvasSpikeView()
+            }
+        }
+        #endif
     }
 }
 
