@@ -88,7 +88,8 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate {
             tree.setContentsScale(screenScale * rasterScale)
             scheduleWork()
             toolPicker.setVisible(true, forFirstResponder: canvas)
-            canvas.becomeFirstResponder()
+            // 放進視窗的同一輪 SwiftUI 還在調整階層，延到下一輪才成為 first responder（工具盤才會出現）
+            DispatchQueue.main.async { [weak self] in self?.canvas.becomeFirstResponder() }
         } else {
             displayLink?.invalidate()
             displayLink = nil

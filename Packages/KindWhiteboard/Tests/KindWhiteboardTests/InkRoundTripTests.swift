@@ -20,6 +20,16 @@ struct InkRoundTripTests {
         return InkStroke(ink: "com.apple.ink.pen", color: "#1e1e1e", points: points)
     }
 
+    /// excalidraw.com 的筆畫沒有點大小：粗細與渲染器相同（perfect-freehand，strokeWidth × 4.25），不是 strokeWidth
+    @Test func foreignFreedrawUsesRendererWidths() throws {
+        let scene = try ExcalidrawScene(data: Fixture.data())
+        let raw = try #require(scene.elements.first { $0["type"] as? String == "freedraw" })
+        let stroke = try #require(ExcalidrawScene.decode(raw))
+        let widths = ElementGeometry.freedrawWidths(Element(raw: raw))
+        #expect(stroke.points.map(\.size) == widths)
+        #expect((widths.min() ?? 0) > 2)
+    }
+
     @Test func freedrawRoundTripPreservesPointsAndPressure() throws {
         var scene = ExcalidrawScene()
         scene.replaceInk(with: [Self.sampleStroke()])

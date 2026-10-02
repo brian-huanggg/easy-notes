@@ -10,7 +10,8 @@ struct BoardEditorView: View {
     @State private var document: BoardDocument?
 
     var body: some View {
-        Group {
+        // 不能用 Group：Group 的修飾器套在每個子 view 上，document 還是 nil 時沒有子 view，onAppear 永遠不會被呼叫
+        ZStack {
             if let document {
                 #if os(iOS)
                 BoardCanvas(document: document)
