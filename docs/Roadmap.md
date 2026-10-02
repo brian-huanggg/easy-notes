@@ -152,12 +152,12 @@
 
 ### 2.5c 文件列表
 
-- [ ] All Documents / 資料夾頁：標題 + 統計（文件數、資料夾數）、類型篩選、Pinned 區（Pin Card）、Recent 區（Desktop 網格、Mobile 列表）
-- [ ] 空狀態：空 Vault（`xGsaX`）、空資料夾（`m4Bb4`，顯示 Vault 內路徑，可拖入檔案）
-- [ ] 實作 `addPreview`（原生渲染，不開 WebView）：Markdown = 標題 + 前幾行；CSV / 白板 / PDF 先用 Thumb 元件的佔位樣式，各外掛完成後再換成真實縮圖
-- [ ] 卡片副標：外掛提供一行摘要（字數、列數、頁數）＋相對時間
-- [ ] 預覽快取：依 hash 存在 `.easynotes/cache/preview/`，檔案未變就不重算
-- [ ] 索引補欄位：frontmatter 的 `icon`、`pinned`、字數（`IndexEntry` 新增欄位，Core 只存不解讀）
+- [x] All Documents / 資料夾頁：標題 + 統計（文件數、資料夾數）、類型篩選、Pinned 區（Pin Card）、Recent 區（Desktop 網格、Mobile 列表）
+- [x] 空狀態：空 Vault（`xGsaX`）、空資料夾（`m4Bb4`，顯示 Vault 內路徑，可拖入檔案）
+- [x] 實作 `addPreview`（原生渲染，不開 WebView）：Markdown = 標題 + 前幾行；CSV / 白板 / PDF 先用 Thumb 元件的佔位樣式，各外掛完成後再換成真實縮圖
+- [x] 卡片副標：外掛提供一行摘要（字數、列數、頁數）＋相對時間
+- [x] 預覽快取：依 hash 存在 `.easynotes/cache/preview/`，檔案未變就不重算
+- [x] 索引補欄位：frontmatter 的 `icon`、`pinned`、字數（`IndexEntry` 新增欄位，Core 只存不解讀）
 
 2026-10-02 實作決定：
 
@@ -166,6 +166,9 @@
 - `addKind(..., name:)` 提供篩選 chip 的名稱（筆記、白板），App 不寫死。
 - Mobile 的篩選與 Desktop 相同（全部 + 已註冊的類型）；Pen 的 Mobile 首頁 chips 與 `C/M Doc Row` 的「blocks」一併改掉。
 - 封面（frontmatter `cover`）的卡片縮圖留到 2.5d。
+- 預覽協定命名為 `DocumentPreviewProvider`（避開 SwiftUI 的 `PreviewProvider`）。
+- 列表的文件與資料夾有 hover 狀態（卡片加深邊框並浮起、列加 `bg-hover`、游標變手指；iPad 指標用系統 highlight）。
+- 釘選會替原本沒有 frontmatter 的 md 加上 frontmatter，所以 CM6 先做最小的處理：游標不在區塊內時收合成一行屬性（📌 已釘選、icon、標籤），點一下才顯示 YAML；2.5d 換成完整的文件頭。
 
 ### 2.5d 編輯器
 
@@ -187,9 +190,9 @@
 驗收測試：
 
 - [ ] App target 沒有寫死任何檔案類型或外掛名稱（側邊欄項目、篩選、類型顏色、預覽、新增選單都來自 Registry）
-- [ ] 只註冊 Markdown 與白板時，篩選只出現 Notes / Boards，新增選單沒有匯入 PDF / CSV
-- [ ] 刪掉 `.easynotes/cache/preview/` 後重新產生，畫面相同
-- [ ] Claude Code 修改 frontmatter 的 `icon`、`pinned` → 數秒內反映在列表與側邊欄
+- [x] 只註冊 Markdown 與白板時，篩選只出現 Notes / Boards，新增選單沒有匯入 PDF / CSV
+- [x] 刪掉 `.easynotes/cache/preview/` 後重新產生，畫面相同
+- [x] Claude Code 修改 frontmatter 的 `icon`、`pinned` → 數秒內反映在列表與側邊欄
 - [ ] 更換封面 / icon 後，md 只多出 frontmatter 欄位，其餘內容逐位元組相同
 - [ ] 注音輸入：在文件頭附近、callout、核取清單內組字正常
 - [ ] 切換筆記仍 < 50 ms；文件列表 1,000 篇捲動流暢（預覽不在主執行緒產生）
