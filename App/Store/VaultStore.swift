@@ -482,6 +482,14 @@ final class VaultStore: DocumentSession {
         return { path in try? fs.read(path) }
     }
 
+    /// `embed://`：檔案預覽的圖（依 hash 快取，沒有就在背景產生）
+    var embedImageReader: @Sendable (String) async -> Data? {
+        { [weak self] path in
+            guard let self, let file = await file(at: path) else { return nil }
+            return await preview(for: file)?.image
+        }
+    }
+
     func isFolder(_ path: String) -> Bool {
         var isDir: ObjCBool = false
         return FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false), isDirectory: &isDir)

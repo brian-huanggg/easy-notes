@@ -47,6 +47,49 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
+/// `embed:///<Vault 內相對路徑（每段 percent-encode）>?h=<內容 hash>`：`![[x.excalidraw]]` 等嵌入預覽的 PNG（`DocumentPreview.image`）。
+/// 圖由外掛在背景畫好、依 hash 快取；WebView 自己載入，不經 Bridge。`h` 只用來讓內容改變時 URL 跟著變、
+/// WebView 重新載入，這裡不讀它。檔案沒有註冊預覽或沒有圖時回 404（`<img>` 觸發 error）。
+@MainActor
+final class EmbedSchemeHandler: NSObject, WKURLSchemeHandler {
+    nonisolated static let scheme = "embed"
+
+    var read: (@Sendable (String) async -> Data?)?
+    private var stopped = Set<ObjectIdentifier>()
+
+    func webView(_ webView: WKWebView, start task: any WKURLSchemeTask) {
+        guard let url = task.request.url else {
+            task.didFailWithError(URLError(.badURL))
+            return
+        }
+        let path = Self.path(of: url)
+        let read = read
+        let id = ObjectIdentifier(task)
+        Task {
+            let data: Data? = if let path, let read { await read(path) } else { nil }
+            guard !stopped.contains(id) else { return }
+            stopped.remove(id)
+            let headers = ["Content-Type": data == nil ? "text/plain" : "image/png",
+                           "Content-Length": String(data?.count ?? 0)]
+            task.didReceive(HTTPURLResponse(url: url, statusCode: data == nil ? 404 : 200, httpVersion: "HTTP/1.1",
+                                            headerFields: headers)!)
+            if let data { task.didReceive(data) }
+            task.didFinish()
+        }
+    }
+
+    func webView(_ webView: WKWebView, stop task: any WKURLSchemeTask) {
+        stopped.insert(ObjectIdentifier(task))
+    }
+
+    /// 與 `vault://` 相同的規則：拒絕 `..` 與絕對路徑，去掉 query
+    nonisolated static func path(of url: URL) -> String? {
+        guard url.scheme == scheme else { return nil }
+        let rewritten = VaultSchemeHandler.scheme + url.absoluteString.dropFirst(scheme.count)
+        return URL(string: rewritten).flatMap(VaultSchemeHandler.path(of:))
+    }
+}
+
 /// `symbol:///<SF Symbol 名稱>`：讓 WebView 顯示 SF Symbol（例如文件 icon `sf:map`）。
 /// 回傳黑色單色 PNG，網頁端當 CSS mask 用，顏色由 CSS 決定；名稱不存在時回傳 `doc.text`。
 @MainActor

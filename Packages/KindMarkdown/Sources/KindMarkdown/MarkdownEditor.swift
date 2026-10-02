@@ -154,6 +154,7 @@ public final class MarkdownEditor: EditorController {
     public func attach(_ session: any DocumentSession) {
         self.session = session
         host.readResource = session.resourceReader
+        host.readEmbed = session.embedImageReader
     }
 
     public func flush() async {
