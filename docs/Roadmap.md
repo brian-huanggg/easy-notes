@@ -449,11 +449,11 @@
 
 目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 [sheets.md](./architecture/sheets.md)（自寫 TS 虛擬表格或原生表格）再進 6b。
 
-- [ ] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
-- [ ] 組字中按 Enter 不結束編輯（`isComposing`）
-- [ ] 1 萬列捲動流暢（iPad、Mac）
-- [ ] bundle 大小在預算內（約 0.5–1 MB）
-- [ ] 關閉表格後 WebContent process 釋放
+- [x] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
+- [x] 組字中按 Enter 不結束編輯（`isComposing`）
+- [x] 1 萬列捲動流暢（iPad、Mac）
+- [x] bundle 大小在預算內（約 0.5–1 MB）
+- [x] 關閉表格後 WebContent process 釋放
 
 ### 6a 模型與格式（無 UI，單元測試）
 
