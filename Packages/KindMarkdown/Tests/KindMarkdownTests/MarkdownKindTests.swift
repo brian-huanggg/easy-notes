@@ -102,3 +102,30 @@ struct MarkdownFrontmatterTests {
         #expect(entry.summary == "1,240 字")
     }
 }
+
+struct MarkdownPreviewTests {
+    @Test func titleAndCleanedLines() {
+        let md = """
+        ---
+        pinned: true
+        ---
+        # 光合作用
+
+        > [!tip] 重點
+        - [ ] 讀 [[葉綠體|葉綠體筆記]] **第三章**
+        ```swift
+        let x = 1
+        ```
+        1. 第二步 ^c-a1b2
+        """
+        let preview = MarkdownPreview().makePreview(Data(md.utf8))
+        #expect(preview.title == "光合作用")
+        #expect(preview.lines == ["重點", "讀 葉綠體筆記 第三章", "第二步"])
+    }
+
+    @Test func withoutHeadingUsesLinesOnly() {
+        let preview = MarkdownPreview().makePreview(Data((1...20).map { "第 \($0) 行" }.joined(separator: "\n").utf8))
+        #expect(preview.title == nil)
+        #expect(preview.lines.count == MarkdownPreview.maxLines)
+    }
+}

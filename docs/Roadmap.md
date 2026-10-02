@@ -99,7 +99,7 @@
 | Tags | 現有標籤索引 |
 | 篩選 All / Notes / Boards / PDFs / Sheets | 依 Registry 中已註冊的 Kind 產生；尚未實作的外掛不顯示 |
 | 類型顏色 `type-doc` / `type-board` / `type-pdf` / `type-csv` | 外掛註冊 Kind 時一併提供顏色，App 不寫死 |
-| 卡片縮圖與副標（「CSV · 86 rows」「PDF · 18 pages」） | 各外掛的 PreviewProvider 產生縮圖與一行摘要 |
+| 卡片縮圖與副標（「CSV · 86 rows」「PDF · 18 pages」） | 各外掛的 DocumentPreviewProvider 產生縮圖與一行摘要 |
 | New Document 選單（⌘N、⇧⌘N、匯入 PDF / CSV、新資料夾） | `addNewFile` 加上 `addImport`（把外部檔案複製進 Vault） |
 | 文件 icon、封面、標籤 | frontmatter `icon`、`cover`（Vault 內圖片路徑）、`tags` |
 | Review | Flashcards 外掛以 `addPanel` 註冊；Phase 3 前不顯示 |

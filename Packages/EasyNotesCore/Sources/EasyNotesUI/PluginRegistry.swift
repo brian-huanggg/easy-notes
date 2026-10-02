@@ -10,6 +10,16 @@ public protocol EasyNotesPlugin {
 /// 擴充點等真的有外掛需要時才加，不預先設計。
 @MainActor
 public final class PluginRegistry {
+    /// 已註冊的檔案類型與其外觀；篩選 chip、圖示、類型顏色都從這裡來
+    public struct KindInfo: Identifiable {
+        public var id: String { kind.id }
+        public let kind: any DocumentKind.Type
+        /// 篩選 chip 的名稱（「筆記」「白板」）
+        public let name: String
+        public let symbol: String
+        public let tint: KindTint
+    }
+
     public struct NewFileCommand: Identifiable {
         public var id: String { title }
         public let title: String
@@ -60,9 +70,9 @@ public final class PluginRegistry {
         public let sections: [[MenuItem]]
     }
 
-    private var kinds: [any DocumentKind.Type] = []
-    private var symbols: [String: String] = [:]
-    private var tints: [String: KindTint] = [:]
+    /// 依註冊順序
+    public private(set) var kindInfos: [KindInfo] = []
+    private var previews: [String: any DocumentPreviewProvider] = [:]
     private var editors: [String: (String) -> AnyView] = [:]
     public private(set) var newFileCommands: [NewFileCommand] = []
     public private(set) var importCommands: [ImportCommand] = []
@@ -75,11 +85,14 @@ public final class PluginRegistry {
     // MARK: 註冊
 
     /// 第一個註冊的 Kind 是預設類型：`[[連結]]` 找不到目標時建立這種檔案。
-    /// `tint`：圖示、篩選 chip、縮圖底色用的類型顏色，App 不寫死
-    public func addKind(_ kind: any DocumentKind.Type, symbol: String, tint: KindTint = .neutral) {
-        kinds.append(kind)
-        symbols[kind.id] = symbol
-        tints[kind.id] = tint
+    /// `name`：篩選 chip 的名稱；`tint`：圖示、篩選 chip、縮圖底色用的類型顏色，App 不寫死
+    public func addKind(_ kind: any DocumentKind.Type, name: String, symbol: String, tint: KindTint = .neutral) {
+        kindInfos.append(KindInfo(kind: kind, name: name, symbol: symbol, tint: tint))
+    }
+
+    /// 列表卡片的縮圖；沒有註冊的類型顯示骨架佔位
+    public func addPreview(for kindID: String, _ provider: some DocumentPreviewProvider) {
+        previews[kindID] = provider
     }
 
     /// 編輯器以 Vault 內的相對路徑建立；每次切換檔案都會重新呼叫
@@ -124,19 +137,27 @@ public final class PluginRegistry {
 
     /// 重複註冊同一副檔名會拋出錯誤
     public func makeKinds() throws -> KindRegistry {
-        try KindRegistry(kinds)
+        try KindRegistry(kindInfos.map(\.kind))
     }
 
     public var defaultKind: (any DocumentKind.Type)? {
-        kinds.first
+        kindInfos.first?.kind
+    }
+
+    public func kindInfo(for kindID: String?) -> KindInfo? {
+        kindInfos.first { $0.id == kindID }
     }
 
     public func symbol(for kindID: String?) -> String {
-        kindID.flatMap { symbols[$0] } ?? "doc"
+        kindInfo(for: kindID)?.symbol ?? "doc"
     }
 
     public func tint(for kindID: String?) -> KindTint {
-        kindID.flatMap { tints[$0] } ?? .neutral
+        kindInfo(for: kindID)?.tint ?? .neutral
+    }
+
+    public func preview(for kindID: String?) -> (any DocumentPreviewProvider)? {
+        kindID.flatMap { previews[$0] }
     }
 
     public func editor(for kindID: String?, path: String) -> AnyView? {

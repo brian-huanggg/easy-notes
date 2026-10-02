@@ -62,7 +62,7 @@ public enum Palette {
 }
 
 /// 檔案類型的顏色：圖示、篩選 chip 用 `base`，縮圖底色與 Doc Row 圖塊用 `soft`。
-/// 由外掛在 `addKind(_:symbol:tint:)` 時選定，App 不寫死哪個類型用哪個顏色。
+/// 由外掛在 `addKind(_:name:symbol:tint:)` 時選定，App 不寫死哪個類型用哪個顏色。
 /// 預設值以色相命名（不是以類型命名），對應設計稿的 `type-doc` / `type-board` / `type-pdf` / `type-csv`。
 public struct KindTint: Hashable, Sendable {
     public let base: ColorToken
