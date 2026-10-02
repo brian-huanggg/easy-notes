@@ -165,7 +165,7 @@ protocol EasyNotesPlugin {
 
 // PluginRegistry（@MainActor）的擴充點；等第二個外掛真的需要時才抽出，不預先設計
 registry.addKind(MarkdownKind.self, name: "筆記", symbol: "doc.text", tint: .neutral)  // 第一個註冊的 Kind = [[連結]] 找不到時建立的類型；name = 篩選 chip；tint = 類型顏色
-registry.addPreview(for: MarkdownKind.id, MarkdownPreview())   // 列表卡片縮圖（原生渲染）；之後也用於 ![[x]] 嵌入、白板筆記卡片
+registry.addPreview(for: MarkdownKind.id, MarkdownPreview())   // 列表卡片縮圖（原生渲染）；`DocumentPreview.image`（PNG）也用於 ![[x]] 嵌入（`embed://`）、白板筆記卡片
 registry.addEditor(for: MarkdownKind.id) { path in MarkdownEditorView(path: path) }
 registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil", shortcut: "n", defaultName: "未命名")
 registry.addController(MarkdownEditor.shared)
@@ -211,6 +211,11 @@ vaultFS.deviceID() -> String
 
 2026-10-01 決定：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。
 
+2026-10-02 決定（Phase 4）：
+
+- `DocumentPreview` 新增 `image: Data?`（PNG）：圖形類外掛（白板、之後的 PDF）在 `makePreview` 中於背景畫出縮圖，跟著預覽 JSON 依 hash 快取；Core 不認識圖的內容。
+- `embed://<Vault 相對路徑>`：WebEditorHost 新增的 `WKURLSchemeHandler`，回傳該檔案預覽的 `image`（依內容 hash 快取，檔案沒有註冊預覽或沒有圖時回 404）。Markdown 的 `![[x.excalidraw]]` 只放 `<img src="embed://…?h=<hash>">`，不經 Bridge；hash 變了 URL 就變，WebView 自動重新載入。Phase 6 的 `![[x.csv]]` 沿用同一個 scheme。
+
 2026-10-02 決定（2.5c）：`DocumentPreviewProvider` 分兩段。`makePreview(Data) -> DocumentPreview` 在背景執行，結果可序列化，依內容 hash 快取在 `.easynotes/cache/preview/<kind>-v<version>/<hash>.json`；`view(_:)` 在主執行緒用原生 SwiftUI 渲染。沒有註冊預覽的類型顯示骨架佔位。
 
 現況（2026-10-01）：Phase 1.5 的結構重構已完成，Core 不再包含任何檔案類型；`VaultIndex.clean()` 的片段清理仍是 Markdown 語法，第二個有文字的外掛需要時再抽成擴充點。
@@ -228,7 +233,7 @@ vaultFS.deviceID() -> String
 | JS → Swift | `openLink({target})`、`openTag({tag})` | 點擊 `[[連結]]`、`#標籤` |
 | JS → Swift | `pickCover`、`pickIcon` | 文件頭的更換封面 / 圖示（原生 UI 處理，寫回 frontmatter） |
 
-主題不經 Bridge：`ThemeCSS.stylesheet()` 由 WebEditorHost 以 user script 在頁面載入前注入，深淺色由 `prefers-color-scheme` 切換。圖片由 `vault://<Vault 相對路徑>`（`WKURLSchemeHandler`）讀取，只允許 Vault 內路徑。文件 icon 為 SF Symbol（frontmatter `icon: sf:map`）時，經 `symbol:///<名稱>` 由 Swift 畫成 PNG，CSS 當 mask 上色。
+主題不經 Bridge：`ThemeCSS.stylesheet()` 由 WebEditorHost 以 user script 在頁面載入前注入，深淺色由 `prefers-color-scheme` 切換。圖片由 `vault://<Vault 相對路徑>`（`WKURLSchemeHandler`）讀取，只允許 Vault 內路徑；`![[x.excalidraw]]` 等嵌入預覽由 `embed://<Vault 相對路徑>` 提供（Phase 4，見「擴充點」）。文件 icon 為 SF Symbol（frontmatter `icon: sf:map`）時，經 `symbol:///<名稱>` 由 Swift 畫成 PNG，CSS 當 mask 上色。
 
 ## 流暢編輯的工程手法
 
@@ -264,8 +269,31 @@ vaultFS.deviceID() -> String
 
 - **做**：無限畫布；手寫層（筆、橡皮擦、套索）；結構層 6 種元素：rectangle、ellipse、arrow（可綁定到形狀）、text、image、frame；選取、移動、縮放。
 - **不做**：Excalidraw Web runtime；手寫辨識與搜尋索引（手寫多為 brainstorming，不是主要筆記）；即時協作。
-- **實作**：下層 `PKCanvasView` 處理手寫，存成 freedraw 元素（已有 `ExcalidrawInk` 轉換）。上層 SwiftUI Canvas 繪製結構元素並處理手勢，序列化成標準 Excalidraw elements。未知元素與欄位原樣寫回，檔案可在 excalidraw.com 開啟。
+- **實作**：`PKCanvasView` 處理手寫，存成 freedraw 元素（已有 `ExcalidrawInk` 轉換）。結構元素由 UIKit / AppKit view 繪製（見下方 2026-10-02 決定），序列化成標準 Excalidraw elements。未知元素與欄位原樣寫回，檔案可在 excalidraw.com 開啟。
 - **平台**：`PKCanvasView` 只有 iOS/iPadOS，macOS 上手寫只能顯示，結構元素可編輯。
+
+2026-10-02 決定（Phase 4 開工前）：
+
+- **維持原生，不用 Excalidraw Web runtime**：Excalidraw 每一筆都送出整個場景，放在 WebView 會讓 Pencil 輸入跨 Bridge；Pencil 延遲、bundle 大小與多一個 WebContent process 也都不划算。需要 Excalidraw 的進階功能時用「用其他 App 開啟」或 excalidraw.com。
+- **結構層用 layer，不用 SwiftUI Canvas**：每個元素一個 `CAShapeLayer` / `CATextLayer`（只建立畫面內的元素），平移與縮放交給 Core Animation；SwiftUI Canvas 在縮放時每一幀整個重畫，1,000 個元素做不到流暢。結構層放在 `PKCanvasView` 底下，跟著它的 `contentOffset` / `zoomScale` 移動；縮放結束時重設 `contentsScale` 讓線條清晰。Spike S3（iPad Air M1 實機）確認可行，實作規則：
+  - 結構層的 transform 在 `scrollViewDidScroll` / `DidZoom` 中同步設定（螢幕座標 = 畫布座標 × zoom − contentOffset），與 PencilKit 在同一個 CATransaction 提交，不會落後一幀。
+  - **關閉縮放回彈**（`bouncesZoom = false`）：回彈是 Core Animation 動畫，期間 scroll view 不會每幀回呼，結構層直接跳到終點、筆畫還在動畫中，兩者會對不上。
+  - **點陣倍率跟著縮放**（0.25…4）：縮放中不重新點陣化既有的 layer，新建的 layer 用目前倍率；縮放結束後分批重新點陣化。建立 layer 與重新點陣化每幀最多約 120 個，剩下的交給之後的幀。
+  - **文字 layer 關閉 `contents` 動作**：文字是點陣 `contents`，預設換內容時淡入淡出 0.25 秒，舊點陣以新倍率顯示會成為放大 / 縮小的殘影。改 `contentsScale` 後在同一個 transaction 內 `displayIfNeeded()`。`CAShapeLayer` 是向量，沒有這個問題。
+  - 1,000 個元素在 60Hz 機型維持 60 FPS；10,000 個元素降到約 30 FPS（縮小時全部在畫面內），需要 LOD（縮放倍率低時改畫點陣快照）。
+- **疊放順序**：編輯器中手寫一律在結構元素之上（`PKCanvasView` 是獨立的一層，無法插在圖形之間）。存檔時保留檔案中的元素順序；縮圖、嵌入與 Mac 檢視依檔案順序繪製。
+- **元素範圍**：可**顯示**所有標準類型（rectangle、diamond、ellipse、line、arrow、text、freedraw、image、frame，含 `angle` 旋轉、曲線與 elbow 箭頭）；可**建立**的是 rectangle、ellipse、arrow（直線，可綁定）、text、image、frame。`embeddable`、`iframe` 等顯示為帶標題的佔位框，原樣保留。不模擬 rough.js 的手繪風格：`roughness`、`fillStyle`、`fontFamily` 原樣保留，顯示時用乾淨線條與系統字型；新元素 `roughness: 0`。
+- **元素順序與 fractional index**：新版 Excalidraw 的元素有 `index`（fractional index）。有 `index` 時依它排序，新元素產生合法的 index（插在兩者之間）；合併後依 `index` 排序，沒有 `index` 的舊檔案沿用陣列順序。
+- **箭頭綁定**：箭頭的 `startBinding` / `endBinding`（`elementId`、`focus`、`gap`，新版另有 `fixedPoint`）與形狀的 `boundElements` 兩邊一起維護。形狀移動或縮放後重算綁定箭頭的端點；只修改需要變的欄位並遞增 `version`。以 excalidraw.com 匯出的檔案當 fixture。
+- **文字**：`containerId` 綁在形狀內的文字隨形狀移動、在形狀內置中換行。編輯時在元素上疊原生 `UITextView` / `NSTextView`（注音組字是原生的），結束編輯才寫回元素。
+- **圖片**：標準格式 `files[fileId].dataURL`（base64 內嵌，excalidraw.com 才打得開）。插入時用 ImageIO 縮到最長邊 2048px 並轉 JPEG，避免 JSON 暴增；顯示依尺寸產生縮圖，不解碼原圖。
+- **frame**：子元素以 `frameId` 指向 frame；移動 frame 時子元素一起移動，frame 內容依 frame 範圍裁切。
+- **修改即遞增 version**：任何元素改動都遞增 `version`、重抽 `versionNonce`、更新 `updated`，元素層級合併（`ExcalidrawScene.merge`）依賴它們。
+- **手勢分工**：筆模式下 Pencil 書寫、手指捲動與縮放；手指點一下選取（空白處取消），長按約 0.35 秒才拖曳圖形，避免捲動時誤抓。選取模式停用 PencilKit 的手勢，手指與 Pencil 碰到圖形就拖曳。
+- **Undo**：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫依時間順序共用一個堆疊（⌘Z、三指手勢都適用）。
+- **開啟中的白板接收外部變動**：Whiteboard 註冊 `EditorController`：`externalChange` 把磁碟內容以 `ExcalidrawScene.merge` 併進記憶體中的場景並更新畫面；`flush` 立即存檔。否則開著白板時同步或 Claude Code 寫入的元素會被舊場景覆蓋。
+- **連結**：元素的 `link` 若是 `[[筆記]]`，`index()` 收進 `links`（白板出現在反向連結）；`renameLinks` 更新 `link` 與 `customData.easynotes.file`。
+- **渲染器共用**：`SceneRenderer`（CoreGraphics，可在背景執行緒）同時用於列表縮圖、`![[x.excalidraw]]` 嵌入與 Mac 檢視；編輯器的 layer 樹沿用同一套幾何（路徑、文字排版）。
 
 #### 筆記卡片放進白板（Heptabase / Obsidian Canvas 式，選做）
 
@@ -544,7 +572,8 @@ Vault 內容存在 Documents，不算在 App 本體大小內。
 - **CSV**：RevoGrid 的 WebView 開檔時才建立、關閉後釋放，不常駐。
 - **PDF**：只為可見頁面建立 `PKCanvasView`，翻走就回收；每頁筆畫需要時才載入。
 - **圖片**：用 ImageIO 依顯示尺寸產生縮圖，不解碼原圖。
-- **嵌入預覽與筆記卡片**：原生渲染，結果快取成 SVG / PNG 存在磁碟。
+- **嵌入預覽與筆記卡片**：原生渲染（白板用 CoreGraphics 的 `SceneRenderer`），結果以 PNG 存在預覽快取（依內容 hash），WebView 經 `embed://` 讀取。
+- **白板**：只為畫面內的元素建立 layer；圖片依顯示尺寸產生縮圖。
 
 ### 耗電做法
 

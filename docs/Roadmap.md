@@ -183,7 +183,7 @@
 2026-10-02 實作決定（開工前）：
 
 - 設計稿重新對齊 2.5-0：刪除 Presence、分享、✨；連結卡片副標改用外掛摘要（「320 個字」「CSV · 24 列」）；meta 列只有標籤 + 「N 分鐘前編輯」（不顯示閱讀時間）；工具列右側為釘選 + 更多；Mobile 編輯器 `sk74A` 改為中文內容。
-- 文件頭是 CM6 decorations：封面 + icon 為檔案開頭的 block widget；標題就是第一行 `# `（一般文字，組字不受影響，索引規則不變）；meta 列為標題行之後的 block widget。游標進入 frontmatter 才顯示原始 YAML。
+- 文件頭是 CM6 decorations：封面 + icon 為檔案開頭的 block widget；標題就是第一行 `#`（一般文字，組字不受影響，索引規則不變）；meta 列為標題行之後的 block widget。游標進入 frontmatter 才顯示原始 YAML。
 - 封面存 frontmatter `cover: 附件/xxx.jpg`（Vault 內路徑）；從 Vault 外選的圖片複製到 Vault 根目錄的 `附件/`，重名加序號。更換封面 / icon 走一般寫檔路徑（會更新 mtime、進同步），與釘選不同。
 - 圖片經 `vault://<相對路徑>`（`WKURLSchemeHandler`，在 EasyNotesUI 的 WebEditorHost）讀取，只允許 Vault 內路徑。
 - 主題：`ThemeCSS.stylesheet()` 以 user script 在頁面載入前注入，WebView 自己跟隨系統深淺色，不經 Bridge。類型顏色不進全域 CSS，由連結目標資料帶入。
@@ -317,18 +317,149 @@
 
 目標：用原生白板取代 Excalidraw，檔案仍是標準 `.excalidraw`。
 
-- [ ] 結構層：rectangle、ellipse、arrow（綁定）、text、image、frame
-- [ ] 選取、移動、縮放、刪除、undo
-- [ ] 手寫層與結構層的手勢分工（Pencil 畫、手指移動）
-- [ ] md 內 `![[x.excalidraw]]` 嵌入預覽（SVG 快取）
-- [ ] 選做：筆記卡片元素（見外掛功能設計）
+2026-10-02 決定（設計見 Architecture「Whiteboard」與「擴充點」）：維持原生、不用 Excalidraw Web runtime；結構層用 `CAShapeLayer` / `CATextLayer`（不用 SwiftUI Canvas），放在 `PKCanvasView` 底下；編輯器中手寫疊在圖形之上，存檔保留檔案順序；可顯示所有標準元素、可建立 6 種；依 fractional `index` 排序；箭頭綁定含 `fixedPoint`；圖片縮到 2048px 後內嵌 `dataURL`；Core 的 `DocumentPreview` 新增 `image`；WebEditorHost 新增 `embed://`。
+
+分 Spike 與四個子階段，依序進行：S3 先驗證最有風險的畫布架構；4a 不需要介面，全部可用單元測試驗證；4b 完成後白板可在縮圖、嵌入與 Mac 檢視；4c 完成後可日常使用；4d 選做。
+
+### S3 Spike：畫布架構（iPad 實機）
+
+目標：在寫正式程式前，確認「layer 結構層 + `PKCanvasView` 手寫層」的組合可行。不通過就先改 Architecture 的設計再進 4c。
+
+- [x] 原型（外掛內的 `Spike/CanvasSpike.swift`，側邊欄「畫布 Spike」面板）：`PKCanvasView` 底下一個 layer 結構層，畫 1,000 個隨機矩形 / 橢圓 / 箭頭 / 文字
+- [x] 結構層跟著 `PKCanvasView` 的 `contentOffset` / `zoomScale` 移動；縮放結束時重設 `contentsScale`
+- [x] 手勢分工：Pencil 畫圖、手指捲動縮放、手指點選圖形（hit test）並拖曳
+- [ ] 選取工具時 Pencil 也能選取與拖曳（切換 `drawingPolicy` 或停用 `drawingGestureRecognizer`）
+- [x] 視窗裁切：只為畫面內（加一圈緩衝）的元素建立 layer
+
+驗收測試（iPad 實機，Release build）：
+
+- [x] 1,000 個元素時平移、縮放維持 ProMotion 下 ≥ 60 fps（Instruments Animation Hitches 無明顯卡頓）
+- [x] 縮放到 4× 後線條與文字清晰（不是點陣放大）
+- [x] 手寫筆畫與結構層在平移、縮放中始終對齊（無位移、無延遲一幀）
+- [x] 手指捲動時不會畫出筆畫；Pencil 書寫延遲與現有手寫畫面相同
+- [x] 記錄結論與數據到本節，必要時修改 Architecture「Whiteboard」
+
+2026-10-02：原型完成，macOS 與 iOS Simulator 建置成功，尚未在 iPad 實機量測。用法：
+
+- 面板只在 DEBUG 或啟動參數 `-WhiteboardSpike YES` 時出現（Xcode：Edit Scheme → Run → Arguments；Build Configuration 改 Release 量測幀率）。不讀寫 Vault。
+- 左上 HUD：FPS、一秒內最長的一幀、目前的 layer 數 / 元素數、縮放倍率、點陣倍率、選取的元素。
+- 工具列：筆（Pencil 書寫、手指捲動縮放、手指拖曳元素）/ 選取（Pencil 與手指都拖曳元素）；選項選單可切換元素數（100 / 1,000 / 3,000 / 10,000）、視窗裁切、縮放後重設 `contentsScale`，用來 A/B 比較。
+- 元素分布固定（固定種子），每次結果可比較。
+
+2026-10-02 第一輪實機結果：
+
+| 項目 | 結果 |
+| --- | --- |
+| 100–3,000 個元素 | 61 FPS，最長一幀 22.5 ms（待確認機型是否 ProMotion、是否開低耗電模式；ProMotion 應接近 120） |
+| 10,000 個元素 | 30 FPS（超出目標 1,000；縮小時全部 layer 都在畫面內） |
+| 4× 清晰度 | 清晰（縮放後重設 `contentsScale` 有效） |
+| 快速縮放 | 每個元素的殘影閃現又消失 |
+| 手指捲動 | 不會誤畫筆畫，但會誤抓到圖形 |
+
+第一輪後的修改（待第二輪驗證）：
+
+- 殘影：推測是點陣倍率只在縮放結束才更新，從 4× 快速縮小時舊 layer 與途中新建的 layer 都以 8 倍像素點陣化，上千個同時在畫面內撐爆記憶體。改為縮小途中倍率降到一半以下就立即降低點陣倍率，放大仍等結束；點陣倍率 = 縮放倍率（0.25…4）。
+- 誤抓圖形：筆模式下手指以捲動為主，點一下 = 選取（空白處取消選取），長按 0.35 秒才拖曳圖形；選取模式維持碰到就拖曳。
+- HUD 改為每秒更新一次（原本每一幀觸發 SwiftUI 重繪，會干擾量測）。
+- 10,000 個元素：不在 S3 目標內。正式版的做法（4c）：縮放倍率低且畫面內 layer 超過門檻時，改畫一張點陣快照（LOD），停止縮放後再換回個別 layer。
+
+2026-10-02 第二輪實機結果（iPad Air M1，60Hz、無低耗電模式）：
+
+- FPS 約 60 = 該機型上限，符合目標；ProMotion 機型之後有機會再量。
+- 筆模式手勢符合預期：手指捲動不會抓到圖形，長按才拖曳。
+- 殘影只剩文字，圖形沒有；關閉「縮放後重設 contentsScale」就消失（但 4× 變模糊）。原因：`CAShapeLayer` 是向量、在渲染程序繪製；`CATextLayer` 是點陣 `contents`，改 `contentsScale` 後的重畫發生在下一個 display 週期，不在關閉動畫的 transaction 內，預設 0.25 秒淡入淡出，舊點陣以新倍率顯示 → 放大時出現縮小的殘影、縮小時出現放大的殘影。修正：文字 layer 關閉 `contents` 動作，並在同一個 transaction 內 `displayIfNeeded()`（第三輪確認殘影消失）。
+
+2026-10-02 第三輪實機結果：文字殘影消失；筆畫與圖形在平移、縮放中對齊；Pencil 延遲與現有手寫畫面相同。新問題：手指**縮小**畫布時，所有筆刷的筆畫都會先出現一個更小的狀態，再回彈到正確尺寸；放大沒有。筆畫完全由 `PKCanvasView` 繪製，結構層沒有改它的縮放，所以先 A/B 判斷來源：選項新增「隱藏結構層（只剩 PencilKit）」（移除結構層、停止同步與手勢），並與現有手寫畫面（`InkEditorView`，純 `PKCanvasView`）比較。
+
+2026-10-02 A/B 結果：開著結構層才有回彈，隱藏結構層（只剩 PencilKit）沒有 → 是結構層造成的。推測原因是縮放 callback 中的主執行緒工作讓那一幀延遲，PencilKit 的點陣與 scroll view 的 transform 短暫對不上：(1) 縮小途中降低點陣倍率時，同步重畫所有文字（第一輪為了殘影加入；後來證實殘影來自 `contents` 淡入淡出，不需要這一步）；(2) 縮小時可見範圍變大，同一個 callback 一次建立大量 layer。修改（待第四輪驗證）：
+
+- 縮放中不再重新點陣化既有的 layer；新建的 layer 用 min(目前倍率, 縮放倍率)。縮放結束後才排入佇列重新點陣化。
+- 建立 layer 與重新點陣化都分批：每幀最多 120 個，剩下的由 display link 在之後的幀處理（關閉裁切時仍一次建完，供比較）。
+- HUD 新增「callback 最長」（一秒內 scroll / zoom callback 與分批工作的最長主執行緒時間）與「待處理」數量。
+
+2026-10-02 修正判斷：回彈的真正原因是**縮放回彈**（rubber band），不是主執行緒。手指縮到最小值 0.25 以下時，scroll view 讓內容跟著縮得更小，放手後以 Core Animation 動畫彈回 0.25；動畫期間不會每幀呼叫 `scrollViewDidZoom`，所以結構層直接跳到 0.25，筆畫還在動畫中 → 看起來筆畫縮小又回彈。隱藏結構層時筆畫同樣回彈，只是沒有對照物，看起來是正常手感，與 A/B 結果一致；最大值 4× 以上同理。處理：`bouncesZoom = false`（選項「縮放回彈」，預設關閉），不去追 PencilKit 私有的縮放 view。上一段的分批與不在縮放中重新點陣化仍保留，作為避免主執行緒卡頓的做法（待第五輪驗證）。
+
+2026-10-02 第五輪：關閉縮放回彈後筆畫不再回彈，確認原因。已驗證的結論寫入 Architecture「Whiteboard」。
+
+### 4a 模型與序列化
+
+目標：元素模型、綁定與連結都能以單元測試驗證；還沒有介面。
+
+- [ ] 修正：Whiteboard 註冊 `EditorController`，`externalChange` 以 `ExcalidrawScene.merge` 併進開啟中的場景、`flush` 立即存檔（避免外部寫入被舊場景覆蓋）
+- [ ] 型別化的 `Element` 包裝（底層仍是原始字典，未知欄位原樣保留）：共用欄位、各類型的欄位、`angle`、`groupIds`、`frameId`、`containerId`
+- [ ] 修改元素的共用路徑：遞增 `version`、重抽 `versionNonce`、更新 `updated`
+- [ ] fractional `index`：讀取排序、插入時產生、合併後排序；沒有 `index` 的舊檔案沿用陣列順序
+- [ ] 箭頭綁定：`startBinding` / `endBinding`（含 `fixedPoint`）與 `boundElements` 雙向維護；`rebindArrows(movedIDs:)` 重算端點
+- [ ] 文字：`containerId` 綁定、在容器內換行與置中的排版（CoreText，與渲染共用）
+- [ ] frame：`frameId` 子元素、移動 frame 帶動子元素
+- [ ] 圖片：插入時 ImageIO 縮到最長邊 2048px、JPEG、寫入 `files`；刪除元素時不刪 `files`（與 Excalidraw 相同）
+- [ ] 連結：`index()` 把 `link` 中的 `[[筆記]]` 收進 `links`；`renameLinks` 更新 `link` 與 `customData.easynotes.file`
+- [ ] 索引摘要改為「N 個元素」（筆畫與圖形合計）
 
 驗收測試：
 
-- [ ] 序列化測試：6 種元素來回不變；未知元素與欄位原樣保留
-- [ ] 手動：輸出檔在 excalidraw.com 開啟、箭頭仍綁在形狀上
-- [ ] 移動形狀後綁定的箭頭跟著走
-- [ ] 1,000 個元素的畫布縮放與平移仍流暢（iPad）
+- [ ] 序列化：excalidraw.com 匯出的 fixture（含 6 種可建立的元素、diamond、line、elbow 箭頭、embeddable）讀入再寫出，元素與欄位不變；未知元素與欄位原樣保留
+- [ ] 修改一個元素只改變它的 `version` / `versionNonce` / `updated` 與被修改的欄位
+- [ ] fractional index：在兩元素之間插入 100 次，順序正確且 index 合法；兩邊各插入後合併，順序確定（兩台裝置結果相同）
+- [ ] 綁定：移動 / 縮放形狀後，綁定箭頭的端點落在形狀邊上（`gap` 正確）；刪除形狀後箭頭的 binding 清除；`boundElements` 與箭頭兩邊一致
+- [ ] 外部變動：開啟中的場景收到加了元素的 `externalChange` 後再存檔，該元素仍在
+- [ ] 連結改名：白板中 `[[舊名]]` 的 `link` 跟著改名；反向連結出現白板
+
+### 4b 渲染器、縮圖與嵌入
+
+目標：白板在列表縮圖、md 嵌入與 Mac 上看起來正確；還不能編輯結構元素。
+
+- [ ] `SceneRenderer`（CoreGraphics，背景執行緒）：所有標準元素、`angle`、曲線與 elbow 箭頭與箭頭頭部、文字（系統字型）、圖片（依尺寸縮圖）、frame 裁切與標題；未知類型畫佔位框
+- [ ] Core：`DocumentPreview.image: Data?`；`BoardPreview` 產生 PNG 縮圖、摘要
+- [ ] EasyNotesUI：WebEditorHost 的 `embed://<路徑>?h=<hash>` scheme，回傳預覽快取中的 `image`
+- [ ] Markdown：`![[x.excalidraw]]` 顯示為圖片 widget（游標所在行顯示原始語法），點擊開啟白板
+- [ ] Mac 檢視改用 `SceneRenderer`（取代只顯示 `PKDrawing` 的畫面），可平移、縮放
+
+驗收測試：
+
+- [ ] 快照測試：fixture 渲染成 PNG 與基準圖比對（`EASYNOTES_SNAPSHOT_DIR`）
+- [ ] 修改白板後，列表縮圖與 md 內的嵌入在數秒內更新；刪掉 `.easynotes/cache/preview/` 後重新產生，畫面相同
+- [ ] 縮圖不在主執行緒產生；1,000 個元素的白板縮圖 < 200 ms（M 系列 Mac）
+- [ ] 打字時不因嵌入圖片而經過 Bridge（`embed://` 由 WebView 自行載入）
+- [ ] 手動：Mac 打開 excalidraw.com 畫的檔案，與網頁上的版面一致（除手繪風格與字型）
+
+### 4c 編輯器
+
+目標：可以日常使用的白板編輯。
+
+- [ ] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
+- [ ] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
+- [ ] 手勢：筆模式手指點一下選取、長按才拖曳；選取模式碰到就拖曳
+- [ ] 工具列：筆 / 橡皮擦 / 套索（PencilKit）、選取、矩形、橢圓、箭頭、文字、圖片、frame
+- [ ] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
+- [ ] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
+- [ ] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
+- [ ] 圖片：從照片、檔案、貼上插入
+- [ ] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
+- [ ] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
+- [ ] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
+- [ ] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
+
+驗收測試：
+
+- [ ] 手動：輸出檔在 excalidraw.com 開啟，箭頭仍綁在形狀上、文字在形狀內
+- [ ] 移動形狀後綁定的箭頭跟著走（App 內與 excalidraw.com 都正確）
+- [ ] 1,000 個元素的畫布縮放與平移仍流暢（iPad，同 S3 標準）
+- [ ] 注音輸入：白板文字元素內組字正常
+- [ ] Undo：交錯畫筆畫與移動形狀後連按 ⌘Z，依時間順序復原
+- [ ] 多裝置：Mac 移動形狀、iPad 同時加筆畫 → 同步後兩邊都保留
+- [ ] 開著白板時 Claude Code 加入一個 text 元素 → 數秒內出現在畫面，之後存檔不會消失
+- [ ] 基準線符合非功能預算（記憶體：開著 1,000 個元素的白板）
+
+### 4d 選做：筆記卡片
+
+- [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 Architecture「筆記卡片放進白板」）
+- [ ] 卡片內容向 Registry 要 `.md` 的預覽（不 import KindMarkdown）
+- [ ] 點卡片在側邊面板開啟完整編輯器
+
+驗收測試：
+
+- [ ] 筆記改名後卡片仍指向它；在 excalidraw.com 顯示為帶連結的框
 
 ## Phase 5 — PDF 手寫與標註
 
@@ -383,13 +514,14 @@
 - [x] Collapse/Expand icon佔據很大比例，應該縮小移動至下方 -> 原因：TestFlight 安裝到 iPadOS
 - [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
 - [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
-
+- [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
 
 ## 其餘功能清單
 
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
 - [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言
+- [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
 ## 風險與待決事項
 
