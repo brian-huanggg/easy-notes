@@ -1559,1306 +1559,6 @@
     },
     {
       "type": "frame",
-      "id": "wopGv",
-      "x": 1540,
-      "y": 300,
-      "name": "Desktop / Editor（中文）",
-      "clip": true,
-      "width": 1440,
-      "height": 940,
-      "fill": "$bg-canvas",
-      "cornerRadius": 12,
-      "children": [
-        {
-          "id": "k1Jxmp",
-          "type": "ref",
-          "ref": "YXFMc",
-          "name": "Sidebar",
-          "height": "fill_container",
-          "descendants": {
-            "BSGj4": {
-              "content": "我的筆記庫"
-            },
-            "jFI6A": {
-              "content": "搜尋"
-            },
-            "t5Gvo": {
-              "fill": "$bg-sidebar"
-            },
-            "t5Gvo/R8g425": {
-              "fill": "$text-secondary",
-              "icon": "files"
-            },
-            "t5Gvo/ExkyX": {
-              "fill": "$text-primary",
-              "fontWeight": "500",
-              "content": "全部文件"
-            },
-            "t5Gvo/p9QQ1": {
-              "content": "24",
-              "enabled": true
-            },
-            "DhzVK/R8g425": {
-              "icon": "layers",
-              "fill": "$text-secondary"
-            },
-            "DhzVK/ExkyX": {
-              "content": "複習"
-            },
-            "DhzVK/p9QQ1": {
-              "content": "18",
-              "enabled": true
-            },
-            "d7yOE/R8g425": {
-              "icon": "clock",
-              "fill": "$text-secondary"
-            },
-            "d7yOE/ExkyX": {
-              "content": "最近開啟"
-            },
-            "d7yOE/p9QQ1": {
-              "enabled": false
-            },
-            "UQxuv/R8g425": {
-              "icon": "pin",
-              "fill": "$yellow"
-            },
-            "UQxuv/ExkyX": {
-              "content": "已釘選"
-            },
-            "UQxuv/p9QQ1": {
-              "content": "4",
-              "enabled": true
-            },
-            "b4alru": {
-              "content": "空間"
-            },
-            "E7Z82": {
-              "fill": "$bg-hover"
-            },
-            "E7Z82/R8g425": {
-              "icon": "folder-open",
-              "fill": "$accent"
-            },
-            "E7Z82/ExkyX": {
-              "fontWeight": "600",
-              "content": "工作"
-            },
-            "E7Z82/p9QQ1": {
-              "content": "12",
-              "enabled": true
-            },
-            "ACQnD": {
-              "enabled": true,
-              "fill": "$bg-selected"
-            },
-            "ACQnD/R8g425": {
-              "fill": "$type-doc",
-              "icon": "file-text"
-            },
-            "ACQnD/ExkyX": {
-              "fill": "$accent",
-              "fontWeight": "600",
-              "content": "產品路線圖 2026"
-            },
-            "ACQnD/p9QQ1": {
-              "enabled": false
-            },
-            "HO7Fo": {
-              "enabled": true
-            },
-            "HO7Fo/R8g425": {
-              "icon": "file-spreadsheet",
-              "fill": "$type-csv"
-            },
-            "HO7Fo/ExkyX": {
-              "content": "第四季目標與 OKR"
-            },
-            "HO7Fo/p9QQ1": {
-              "enabled": false
-            },
-            "EZKSJ": {
-              "enabled": true
-            },
-            "EZKSJ/R8g425": {
-              "icon": "file-text",
-              "fill": "$type-doc"
-            },
-            "EZKSJ/ExkyX": {
-              "content": "客戶會議 — Acme 產品整…"
-            },
-            "EZKSJ/p9QQ1": {
-              "enabled": false
-            },
-            "xQp4Q/R8g425": {
-              "icon": "folder",
-              "fill": "$type-board"
-            },
-            "xQp4Q/ExkyX": {
-              "content": "研究"
-            },
-            "xQp4Q/p9QQ1": {
-              "content": "7",
-              "enabled": true
-            },
-            "SJAJ4/R8g425": {
-              "icon": "folder",
-              "fill": "$yellow"
-            },
-            "SJAJ4/ExkyX": {
-              "content": "日誌"
-            },
-            "SJAJ4/p9QQ1": {
-              "content": "64",
-              "enabled": true
-            },
-            "VIorL/R8g425": {
-              "icon": "folder",
-              "fill": "$type-pdf"
-            },
-            "VIorL/ExkyX": {
-              "content": "閱讀清單"
-            },
-            "VIorL/p9QQ1": {
-              "content": "9",
-              "enabled": true
-            },
-            "M0j3A": {
-              "content": "標籤"
-            },
-            "VzmHb/R8g425": {
-              "icon": "hash",
-              "fill": "$text-secondary"
-            },
-            "VzmHb/ExkyX": {
-              "content": "閱讀"
-            },
-            "VzmHb/p9QQ1": {
-              "enabled": false
-            },
-            "b6rKh/R8g425": {
-              "icon": "hash",
-              "fill": "$text-secondary"
-            },
-            "b6rKh/ExkyX": {
-              "content": "點子"
-            },
-            "b6rKh/p9QQ1": {
-              "enabled": false
-            },
-            "VwMfc/R8g425": {
-              "icon": "hash",
-              "fill": "$text-secondary"
-            },
-            "VwMfc/ExkyX": {
-              "content": "swift"
-            },
-            "VwMfc/p9QQ1": {
-              "enabled": false
-            },
-            "pwTzN/R8g425": {
-              "icon": "trash-2",
-              "fill": "$text-secondary"
-            },
-            "pwTzN/ExkyX": {
-              "content": "最近刪除"
-            },
-            "pwTzN/p9QQ1": {
-              "enabled": false
-            },
-            "RLEAG": {
-              "content": "刪除後保留 30 天"
-            },
-            "a7nTx": {
-              "content": "已同步"
-            },
-            "W7xzta": {
-              "content": "2 分鐘前"
-            },
-            "tA8Ae/R8g425": {
-              "icon": "settings",
-              "fill": "$text-secondary"
-            },
-            "tA8Ae/ExkyX": {
-              "content": "設定"
-            },
-            "tA8Ae/p9QQ1": {
-              "enabled": false
-            }
-          }
-        },
-        {
-          "type": "frame",
-          "id": "o1FEej",
-          "name": "Editor Main",
-          "clip": true,
-          "width": "fill_container",
-          "height": "fill_container",
-          "fill": "$bg-canvas",
-          "layout": "vertical",
-          "children": [
-            {
-              "type": "frame",
-              "id": "ULfiw",
-              "name": "Editor Toolbar",
-              "width": "fill_container",
-              "height": 46,
-              "padding": [
-                0,
-                18
-              ],
-              "justifyContent": "space_between",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "E0SC6",
-                  "name": "Editor Toolbar Left",
-                  "gap": 4,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "id": "Eby5q",
-                      "type": "ref",
-                      "ref": "QOPWl",
-                      "name": "ETB panel-left-close",
-                      "descendants": {
-                        "SfOww": {
-                          "icon": "panel-left-close"
-                        }
-                      }
-                    },
-                    {
-                      "id": "GZqwb",
-                      "type": "ref",
-                      "ref": "QOPWl",
-                      "name": "ETB chevron-left",
-                      "descendants": {
-                        "SfOww": {
-                          "icon": "chevron-left"
-                        }
-                      }
-                    },
-                    {
-                      "id": "RjfL6",
-                      "type": "ref",
-                      "ref": "QOPWl",
-                      "name": "ETB chevron-right",
-                      "descendants": {
-                        "SfOww": {
-                          "icon": "chevron-right"
-                        }
-                      }
-                    },
-                    {
-                      "type": "frame",
-                      "id": "c1sfR",
-                      "name": "Editor Breadcrumb",
-                      "gap": 7,
-                      "padding": [
-                        0,
-                        8
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "M7GNZ",
-                          "name": "Crumb Folder",
-                          "width": 13,
-                          "height": 13,
-                          "icon": "folder",
-                          "library": "lucide",
-                          "fill": "$text-tertiary"
-                        },
-                        {
-                          "type": "text",
-                          "id": "kiG37",
-                          "name": "Crumb Space",
-                          "fill": "$text-tertiary",
-                          "content": "工作",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 12.5,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "MVOX8",
-                          "name": "Crumb Sep",
-                          "fill": "$text-tertiary",
-                          "content": "/",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 12.5,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "OKX2P",
-                          "name": "Crumb Doc",
-                          "fill": "$text-secondary",
-                          "content": "產品路線圖 2026",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 12.5,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "B5BRaQ",
-                      "name": "Saved Pill",
-                      "fill": "$bg-hover",
-                      "cornerRadius": 20,
-                      "gap": 5,
-                      "padding": [
-                        3,
-                        8
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "td5tp",
-                          "name": "Saved Icon",
-                          "width": 12,
-                          "height": 12,
-                          "icon": "cloud",
-                          "library": "lucide",
-                          "fill": "$text-secondary"
-                        },
-                        {
-                          "type": "text",
-                          "id": "UdKWi",
-                          "name": "Saved Label",
-                          "fill": "$text-secondary",
-                          "content": "已儲存",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 11,
-                          "fontWeight": "500"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "mLAfk",
-                  "name": "Editor Toolbar Right",
-                  "gap": 8,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "YcJmr",
-                      "name": "Presence",
-                      "width": "fit_content(51)",
-                      "height": "fit_content(24)",
-                      "gap": 3,
-                      "alignItems": "center"
-                    },
-                    {
-                      "id": "PBtFy",
-                      "type": "ref",
-                      "ref": "QOPWl",
-                      "name": "ETB star",
-                      "descendants": {
-                        "SfOww": {
-                          "icon": "pin",
-                          "library": "lucide"
-                        }
-                      }
-                    },
-                    {
-                      "type": "frame",
-                      "id": "w94LQ9",
-                      "name": "Share Button",
-                      "fill": "$accent",
-                      "cornerRadius": "$radius-sm",
-                      "gap": 6,
-                      "padding": [
-                        6,
-                        12
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "tekci",
-                          "name": "Share Icon",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "share-2",
-                          "library": "lucide",
-                          "fill": "#FFFFFF"
-                        },
-                        {
-                          "type": "text",
-                          "id": "Y04mJ",
-                          "name": "Share Label",
-                          "fill": "#FFFFFF",
-                          "content": "分享",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 12.5,
-                          "fontWeight": "600"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "wkPfB",
-              "name": "Doc Cover",
-              "metadata": {
-                "type": "unsplash",
-                "username": "codioful",
-                "link": "https://unsplash.com/@codioful",
-                "author": "Codioful (Formerly Gradienta)"
-              },
-              "clip": true,
-              "width": "fill_container",
-              "height": 178,
-              "fill": {
-                "type": "image",
-                "enabled": true,
-                "url": "images/generated-1790847080134.png",
-                "mode": "cover"
-              }
-            },
-            {
-              "type": "frame",
-              "id": "UyoI1",
-              "name": "Doc Body",
-              "width": "fill_container",
-              "height": "fill_container",
-              "layout": "vertical",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "b8rsMH",
-                  "name": "Doc Column",
-                  "width": 716,
-                  "layout": "vertical",
-                  "gap": 14,
-                  "padding": [
-                    40,
-                    0,
-                    0,
-                    0
-                  ],
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "MX90Y",
-                      "name": "Doc Title",
-                      "fill": "$text-primary",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "產品路線圖 2026：把編輯器做回「順手」",
-                      "lineHeight": 1.35,
-                      "fontFamily": "$font-doc",
-                      "fontSize": 34,
-                      "fontWeight": "700"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "jkMP9",
-                      "name": "Doc Meta",
-                      "width": "fill_container",
-                      "gap": 9,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "HXCQu",
-                          "name": "Tag Planning",
-                          "fill": "$bg-hover",
-                          "cornerRadius": 20,
-                          "gap": 5,
-                          "padding": [
-                            3,
-                            9
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "ellipse",
-                              "id": "rAuMq",
-                              "name": "Tag Dot Planning",
-                              "fill": "$accent",
-                              "width": 6,
-                              "height": 6
-                            },
-                            {
-                              "type": "text",
-                              "id": "slwTw",
-                              "name": "Tag Label Planning",
-                              "fill": "$text-secondary",
-                              "content": "規劃中",
-                              "fontFamily": "$font-ui",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "KAKVb",
-                          "name": "Tag Q4",
-                          "fill": "$bg-hover",
-                          "cornerRadius": 20,
-                          "gap": 5,
-                          "padding": [
-                            3,
-                            9
-                          ],
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "ellipse",
-                              "id": "NxTOF",
-                              "name": "Tag Dot Q4",
-                              "fill": "$yellow",
-                              "width": 6,
-                              "height": 6
-                            },
-                            {
-                              "type": "text",
-                              "id": "O0yrXR",
-                              "name": "Tag Label Q4",
-                              "fill": "$text-secondary",
-                              "content": "第四季",
-                              "fontFamily": "$font-ui",
-                              "fontSize": 11,
-                              "fontWeight": "500"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "rectangle",
-                      "id": "I6K7AW",
-                      "name": "Divider",
-                      "fill": "$border",
-                      "width": "fill_container",
-                      "height": 1
-                    },
-                    {
-                      "type": "text",
-                      "id": "Uebs1",
-                      "name": "Intro Paragraph",
-                      "fill": "$text-body",
-                      "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "這份文件描述接下來十二個月的樣貌。每一季只押一個主軸：先把編輯體驗做到順手，再讓同步穩到可以忘記它的存在，最後才談擴充與外掛。如果你是明天才加入的夥伴，從這一段開始讀就夠了——其餘細節都在各自的連結頁面裡。",
-                      "lineHeight": 1.85,
-                      "fontFamily": "$font-doc",
-                      "fontSize": 15.5,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "frame",
-                      "id": "CUt7E",
-                      "name": "Callout Card",
-                      "width": "fill_container",
-                      "fill": "$accent-soft",
-                      "cornerRadius": "$radius-md",
-                      "gap": 11,
-                      "padding": [
-                        13,
-                        15
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "M55uP",
-                          "name": "Callout Emoji",
-                          "fill": "$text-primary",
-                          "content": "💡",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 17,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "zPcvx",
-                          "name": "Callout Text",
-                          "fill": "$accent-deep",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "請在週一的規劃同步會前讀完；有意見直接留在段落旁的評論，不要直接改里程碑。",
-                          "lineHeight": 1.75,
-                          "fontFamily": "$font-doc",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "AX56X",
-                      "name": "Focus Section",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 9,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "yGJzQ",
-                          "name": "H2 Focus",
-                          "fill": "$text-primary",
-                          "content": "第四季重點",
-                          "fontFamily": "$font-doc",
-                          "fontSize": 19,
-                          "fontWeight": "700",
-                          "letterSpacing": -0.3
-                        },
-                        {
-                          "type": "frame",
-                          "id": "Bs6Fm",
-                          "name": "Task / Ship collaborative blocks to beta",
-                          "width": "fill_container",
-                          "gap": 11,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Pn2TB",
-                              "name": "Checkbox",
-                              "width": 19,
-                              "height": 19,
-                              "fill": "$accent",
-                              "cornerRadius": 6,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon",
-                                  "id": "t6bnYT",
-                                  "name": "Check",
-                                  "width": 13,
-                                  "height": 13,
-                                  "icon": "check",
-                                  "library": "lucide",
-                                  "fill": "#FFFFFF"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "i1CefW",
-                              "name": "Task Label",
-                              "fill": "$text-tertiary",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "將協作區塊推上 Beta",
-                              "lineHeight": 1.65,
-                              "fontFamily": "$font-doc",
-                              "fontSize": 15,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "g8VRY",
-                          "name": "Task / Rewrite the sync engine for offline edits",
-                          "width": "fill_container",
-                          "gap": 11,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "bhZVA",
-                              "name": "Checkbox",
-                              "width": 19,
-                              "height": 19,
-                              "fill": "$surface-raised",
-                              "cornerRadius": 6,
-                              "stroke": "$border-strong",
-                              "strokeWidth": 1.5,
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "text",
-                              "id": "HAc7F",
-                              "name": "Task Label",
-                              "fill": "$text-body",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "重寫同步引擎，支援離線編輯與衝突合併",
-                              "lineHeight": 1.65,
-                              "fontFamily": "$font-doc",
-                              "fontSize": 15,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "HODbR",
-                          "name": "Task / Design system audit across Mac & iOS",
-                          "width": "fill_container",
-                          "gap": 11,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "m6LkZ5",
-                              "name": "Checkbox",
-                              "width": 19,
-                              "height": 19,
-                              "fill": "$surface-raised",
-                              "cornerRadius": 6,
-                              "stroke": "$border-strong",
-                              "strokeWidth": 1.5,
-                              "justifyContent": "center",
-                              "alignItems": "center"
-                            },
-                            {
-                              "type": "text",
-                              "id": "TCulH",
-                              "name": "Task Label",
-                              "fill": "$text-body",
-                              "textGrowth": "fixed-width",
-                              "width": "fill_container",
-                              "content": "完成 Mac 與 iOS 的設計系統盤點",
-                              "lineHeight": 1.65,
-                              "fontFamily": "$font-doc",
-                              "fontSize": 15,
-                              "fontWeight": "normal"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "k05ua",
-                      "name": "Milestones Section",
-                      "width": "fill_container",
-                      "layout": "vertical",
-                      "gap": 10,
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "Vmech",
-                          "name": "H2 Milestones",
-                          "fill": "$text-primary",
-                          "content": "關聯頁面",
-                          "fontFamily": "$font-doc",
-                          "fontSize": 19,
-                          "fontWeight": "700",
-                          "letterSpacing": -0.3
-                        },
-                        {
-                          "type": "frame",
-                          "id": "VK1jE",
-                          "name": "Link Row",
-                          "width": "fill_container",
-                          "gap": 12,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "QvMF8",
-                              "name": "LinkCard Beta Launch Plan",
-                              "width": "fill_container",
-                              "height": 56,
-                              "fill": "$bg-panel",
-                              "cornerRadius": 10,
-                              "stroke": "$border",
-                              "strokeWidth": 1,
-                              "gap": 11,
-                              "padding": [
-                                0,
-                                13
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "rS3vw",
-                                  "name": "LinkIcon Beta Launch Plan",
-                                  "width": 32,
-                                  "height": 32,
-                                  "fill": "$type-doc-soft",
-                                  "cornerRadius": 9,
-                                  "stroke": "$border",
-                                  "strokeWidth": 1,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "mY442",
-                                      "name": "LinkIcon Doc",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "file-text",
-                                      "library": "lucide",
-                                      "fill": "$type-doc"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "LepxR",
-                                  "name": "LinkText Beta Launch Plan",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 2,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "QqwIb",
-                                      "name": "LinkTitle Beta Launch Plan",
-                                      "fill": "$text-primary",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "Beta 上線計畫",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 13.5,
-                                      "fontWeight": "600"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "d92K0g",
-                                      "name": "LinkSub Beta Launch Plan",
-                                      "fill": "$text-tertiary",
-                                      "content": "320 個字 · 今天更新",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 11.5,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "eaWRI",
-                                  "name": "LinkChevron Beta Launch Plan",
-                                  "width": 16,
-                                  "height": 16,
-                                  "icon": "chevron-right",
-                                  "library": "lucide",
-                                  "fill": "$text-tertiary"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "onkeg",
-                              "name": "LinkCard Metrics & Targets",
-                              "width": "fill_container",
-                              "height": 56,
-                              "fill": "$bg-panel",
-                              "cornerRadius": 10,
-                              "stroke": "$border",
-                              "strokeWidth": 1,
-                              "gap": 11,
-                              "padding": [
-                                0,
-                                13
-                              ],
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "frame",
-                                  "id": "KcD4K",
-                                  "name": "LinkIcon Metrics & Targets",
-                                  "width": 32,
-                                  "height": 32,
-                                  "fill": "$type-csv-soft",
-                                  "cornerRadius": 9,
-                                  "stroke": "$border",
-                                  "strokeWidth": 1,
-                                  "justifyContent": "center",
-                                  "alignItems": "center",
-                                  "children": [
-                                    {
-                                      "type": "icon",
-                                      "id": "MoNHw",
-                                      "name": "LinkIcon CSV",
-                                      "width": 16,
-                                      "height": 16,
-                                      "icon": "file-spreadsheet",
-                                      "library": "lucide",
-                                      "fill": "$type-csv"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "frame",
-                                  "id": "GAKBe",
-                                  "name": "LinkText Metrics & Targets",
-                                  "width": "fill_container",
-                                  "layout": "vertical",
-                                  "gap": 2,
-                                  "children": [
-                                    {
-                                      "type": "text",
-                                      "id": "M45Bh",
-                                      "name": "LinkTitle Metrics & Targets",
-                                      "fill": "$text-primary",
-                                      "textGrowth": "fixed-width",
-                                      "width": "fill_container",
-                                      "content": "指標與目標",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 13.5,
-                                      "fontWeight": "600"
-                                    },
-                                    {
-                                      "type": "text",
-                                      "id": "pUi5F",
-                                      "name": "LinkSub Metrics & Targets",
-                                      "fill": "$text-tertiary",
-                                      "content": "8 個區塊 · 3 天前更新",
-                                      "fontFamily": "Inter",
-                                      "fontSize": 11.5,
-                                      "fontWeight": "normal"
-                                    }
-                                  ]
-                                },
-                                {
-                                  "type": "icon",
-                                  "id": "QW3Z3",
-                                  "name": "LinkChevron Metrics & Targets",
-                                  "width": 16,
-                                  "height": 16,
-                                  "icon": "chevron-right",
-                                  "library": "lucide",
-                                  "fill": "$text-tertiary"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "P9gDU9",
-                      "name": "Quote Block",
-                      "width": "fill_container",
-                      "height": 48,
-                      "fill": "$surface-quote",
-                      "gap": 14,
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "rectangle",
-                          "cornerRadius": 2,
-                          "id": "iklpS",
-                          "name": "Quote Accent Bar",
-                          "fill": "$accent",
-                          "width": 3,
-                          "height": 36
-                        },
-                        {
-                          "type": "text",
-                          "id": "QiV9j",
-                          "name": "Quote Line",
-                          "fill": "$text-secondary",
-                          "textGrowth": "fixed-width",
-                          "width": "fill_container",
-                          "content": "把路線圖寫成一份「明天才加入的人也看得懂」的文件——如果還需要口頭補充，那就是還沒寫清楚。",
-                          "lineHeight": 1.8,
-                          "fontFamily": "$font-doc",
-                          "fontSize": 15,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "EfaCY",
-              "layoutPosition": "absolute",
-              "x": 946,
-              "y": 862,
-              "name": "Floating Block Toolbar",
-              "width": 220,
-              "height": 44,
-              "fill": "$surface-glass",
-              "cornerRadius": 22,
-              "stroke": "$border",
-              "strokeWidth": 1,
-              "effect": [
-                {
-                  "type": "shadow",
-                  "shadowType": "outer",
-                  "color": "#0000001F",
-                  "offset": {
-                    "x": 0,
-                    "y": 4
-                  },
-                  "blur": 16
-                },
-                {
-                  "type": "background_blur",
-                  "radius": 20
-                }
-              ],
-              "gap": 2,
-              "padding": [
-                0,
-                8
-              ],
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "gUX7p",
-                  "name": "FT type",
-                  "width": 32,
-                  "height": 32,
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "dlwOx",
-                      "name": "FT Icon type",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "type",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "r6MIT8",
-                  "name": "FT list-checks",
-                  "width": 32,
-                  "height": 32,
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "dR3dh",
-                      "name": "FT Icon list-checks",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "list-checks",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "quJef",
-                  "name": "FT image",
-                  "width": 32,
-                  "height": 32,
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "q0v18",
-                      "name": "FT Icon image",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "image",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "wXEDJ",
-                  "name": "FT table",
-                  "width": 32,
-                  "height": 32,
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "rXeT8",
-                      "name": "FT Icon table",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "table",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "VF6nc",
-                  "name": "FT sparkles",
-                  "width": 32,
-                  "height": 32,
-                  "fill": "$accent-soft",
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "JJgmG",
-                      "name": "FT Icon sparkles",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "sparkles",
-                      "library": "lucide",
-                      "fill": "$accent"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "KW2F3",
-              "layoutPosition": "absolute",
-              "x": 238,
-              "y": 190,
-              "name": "Emoji Badge",
-              "width": 58,
-              "height": 58,
-              "fill": "$surface-raised",
-              "cornerRadius": 16,
-              "effect": {
-                "type": "shadow",
-                "shadowType": "outer",
-                "color": "#00000024",
-                "offset": {
-                  "x": 0,
-                  "y": 2
-                },
-                "blur": 10
-              },
-              "justifyContent": "center",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "text",
-                  "id": "OjfI3",
-                  "name": "Emoji Glyph",
-                  "fill": "$text-primary",
-                  "content": "🗺",
-                  "fontFamily": "Inter",
-                  "fontSize": 30,
-                  "fontWeight": "normal"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "eCAKi",
-              "layoutPosition": "absolute",
-              "x": 955,
-              "y": 182,
-              "name": "Cover Tools",
-              "width": 215,
-              "height": 24,
-              "gap": 6,
-              "justifyContent": "end",
-              "alignItems": "center",
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "YXcv8",
-                  "name": "CoverTool Change cover",
-                  "fill": "$surface-glass",
-                  "cornerRadius": 7,
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 5,
-                  "padding": [
-                    4,
-                    8
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "ntEjG",
-                      "name": "CoverTool Icon Change cover",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "image",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    },
-                    {
-                      "type": "text",
-                      "id": "xZfVq",
-                      "name": "CoverTool Label Change cover",
-                      "fill": "$text-secondary",
-                      "content": "更換封面",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "500"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "F1COfX",
-                  "name": "CoverTool Change icon",
-                  "fill": "$surface-glass",
-                  "cornerRadius": 7,
-                  "stroke": "$border",
-                  "strokeWidth": 1,
-                  "gap": 5,
-                  "padding": [
-                    4,
-                    8
-                  ],
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "deFLb",
-                      "name": "CoverTool Icon Change icon",
-                      "width": 12,
-                      "height": 12,
-                      "icon": "smile",
-                      "library": "lucide",
-                      "fill": "$text-secondary"
-                    },
-                    {
-                      "type": "text",
-                      "id": "P7CKKG",
-                      "name": "CoverTool Label Change icon",
-                      "fill": "$text-secondary",
-                      "content": "更換圖示",
-                      "fontFamily": "Inter",
-                      "fontSize": 11,
-                      "fontWeight": "500"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "frame",
       "id": "YXFMc",
       "x": -362,
       "y": 300,
@@ -4825,7 +3525,7 @@
                   "id": "K8JF9X",
                   "name": "Back Label",
                   "fill": "$accent",
-                  "content": "Work",
+                  "content": "工作",
                   "fontFamily": "$font-ui",
                   "fontSize": 15,
                   "fontWeight": "normal"
@@ -4860,7 +3560,7 @@
                   "id": "EsoVK",
                   "name": "Saved Label",
                   "fill": "$text-tertiary",
-                  "content": "Saved",
+                  "content": "已儲存",
                   "fontFamily": "$font-ui",
                   "fontSize": 11.5,
                   "fontWeight": "500"
@@ -5019,7 +3719,7 @@
               "fill": "$text-primary",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "Product Roadmap 2026",
+              "content": "產品路線圖 2026",
               "lineHeight": 1.2,
               "fontFamily": "$font-doc",
               "fontSize": 27,
@@ -5052,7 +3752,7 @@
                       "id": "Jwzs5",
                       "name": "Tag Label Planning",
                       "fill": "$text-secondary",
-                      "content": "Planning",
+                      "content": "規劃中",
                       "fontFamily": "$font-ui",
                       "fontSize": 11,
                       "fontWeight": "500"
@@ -5077,12 +3777,22 @@
                       "id": "UUwyL",
                       "name": "Tag Label Q4",
                       "fill": "$text-secondary",
-                      "content": "Q4",
+                      "content": "第四季",
                       "fontFamily": "$font-ui",
                       "fontSize": 11,
                       "fontWeight": "500"
                     }
                   ]
+                },
+                {
+                  "type": "text",
+                  "id": "RRL0j",
+                  "name": "Meta Edited",
+                  "fill": "$text-tertiary",
+                  "content": "2 分鐘前編輯",
+                  "fontFamily": "$font-ui",
+                  "fontSize": 11.5,
+                  "fontWeight": "normal"
                 }
               ]
             },
@@ -5101,7 +3811,7 @@
               "fill": "$text-primary",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "This document tracks the shape of the next twelve months. Each focus area links to its own page with specs and open questions.",
+              "content": "這份文件描述接下來十二個月的樣貌。每一季只押一個主軸：先把編輯體驗做到順手，再讓同步穩到可以忘記它的存在。",
               "lineHeight": 1.6,
               "fontFamily": "$font-doc",
               "fontSize": 15,
@@ -5138,7 +3848,7 @@
                   "fill": "$accent-deep",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "Review in Monday's planning sync — leave comments inline.",
+                  "content": "請在週一的規劃同步會前讀完；有意見直接寫在對應段落下方。",
                   "lineHeight": 1.55,
                   "fontFamily": "$font-doc",
                   "fontSize": 13.5,
@@ -5159,7 +3869,7 @@
                   "id": "nWvPH",
                   "name": "H2 Focus",
                   "fill": "$text-primary",
-                  "content": "Q4 Focus Areas",
+                  "content": "第四季重點",
                   "fontFamily": "$font-doc",
                   "fontSize": 17,
                   "fontWeight": "600"
@@ -5205,7 +3915,7 @@
                       "fill": "$text-tertiary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Ship collaborative blocks to beta",
+                      "content": "將協作區塊推上 Beta",
                       "fontFamily": "$font-doc",
                       "fontSize": 14.5,
                       "fontWeight": "normal"
@@ -5241,7 +3951,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Rewrite the sync engine for offline edits",
+                      "content": "重寫同步引擎，支援離線編輯與衝突合併",
                       "fontFamily": "$font-doc",
                       "fontSize": 14.5,
                       "fontWeight": "normal"
@@ -5277,7 +3987,7 @@
                       "fill": "$text-primary",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "Design system audit across Mac & iOS",
+                      "content": "完成 Mac 與 iOS 的設計系統盤點",
                       "fontFamily": "$font-doc",
                       "fontSize": 14.5,
                       "fontWeight": "normal"
@@ -5299,7 +4009,7 @@
                   "id": "Y7f3EL",
                   "name": "H2 Linked",
                   "fill": "$text-primary",
-                  "content": "Linked pages",
+                  "content": "關聯頁面",
                   "fontFamily": "$font-doc",
                   "fontSize": 17,
                   "fontWeight": "600"
@@ -5319,10 +4029,10 @@
                       "fill": "$type-doc"
                     },
                     "znMxl": {
-                      "content": "Beta Launch Plan"
+                      "content": "Beta 上線計畫"
                     },
                     "zuZ9O": {
-                      "content": "860 words · updated today"
+                      "content": "320 個字 · 今天更新"
                     }
                   }
                 },
@@ -5341,10 +4051,10 @@
                       "fill": "$type-csv"
                     },
                     "znMxl": {
-                      "content": "Metrics & Targets"
+                      "content": "指標與目標"
                     },
                     "zuZ9O": {
-                      "content": "CSV · 24 rows · 3d ago"
+                      "content": "CSV · 24 列 · 3 天前更新"
                     }
                   }
                 }
@@ -5378,7 +4088,7 @@
                   "fill": "$text-secondary",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "Write the roadmap as if the reader joins the team tomorrow: context first, decisions second.",
+                  "content": "把路線圖寫成一份「明天才加入的人也看得懂」的文件。",
                   "lineHeight": 1.6,
                   "fontFamily": "$font-doc",
                   "fontSize": 14,
@@ -15784,14 +14494,14 @@
                   "type": "frame",
                   "id": "WZpKg",
                   "name": "Editor Toolbar Right",
-                  "gap": 8,
+                  "gap": 4,
                   "alignItems": "center",
                   "children": [
                     {
                       "id": "b6VgXC",
                       "type": "ref",
                       "ref": "QOPWl",
-                      "name": "ETB star",
+                      "name": "ETB pin",
                       "descendants": {
                         "SfOww": {
                           "icon": "pin",
@@ -15800,39 +14510,16 @@
                       }
                     },
                     {
-                      "type": "frame",
-                      "id": "a2zDAP",
-                      "name": "Share Button",
-                      "fill": "$accent",
-                      "cornerRadius": "$radius-sm",
-                      "gap": 6,
-                      "padding": [
-                        6,
-                        12
-                      ],
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "icon",
-                          "id": "cncMU",
-                          "name": "Share Icon",
-                          "width": 14,
-                          "height": 14,
-                          "icon": "share-2",
-                          "library": "lucide",
-                          "fill": "#FFFFFF"
-                        },
-                        {
-                          "type": "text",
-                          "id": "LiHJ7",
-                          "name": "Share Label",
-                          "fill": "#FFFFFF",
-                          "content": "分享",
-                          "fontFamily": "$font-ui",
-                          "fontSize": 12.5,
-                          "fontWeight": "600"
+                      "id": "T4m1Q",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB more",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "ellipsis",
+                          "library": "lucide"
                         }
-                      ]
+                      }
                     }
                   ]
                 }
@@ -15967,6 +14654,16 @@
                               "fontWeight": "500"
                             }
                           ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "S2hYhj",
+                          "name": "Meta Edited",
+                          "fill": "$text-tertiary",
+                          "content": "2 分鐘前編輯",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -16022,7 +14719,7 @@
                           "fill": "$accent-deep",
                           "textGrowth": "fixed-width",
                           "width": "fill_container",
-                          "content": "請在週一的規劃同步會前讀完；有意見直接留在段落旁的評論，不要直接改里程碑。",
+                          "content": "請在週一的規劃同步會前讀完；有意見直接寫在對應段落下方，不要直接改里程碑。",
                           "lineHeight": 1.75,
                           "fontFamily": "$font-doc",
                           "fontSize": 14,
@@ -16262,7 +14959,7 @@
                                       "id": "uDTE7",
                                       "name": "LinkSub Beta Launch Plan",
                                       "fill": "$text-tertiary",
-                                      "content": "360 · 今天更新",
+                                      "content": "320 個字 · 今天更新",
                                       "fontFamily": "Inter",
                                       "fontSize": 11.5,
                                       "fontWeight": "normal"
@@ -16348,7 +15045,7 @@
                                       "id": "rskvx",
                                       "name": "LinkSub Metrics & Targets",
                                       "fill": "$text-tertiary",
-                                      "content": "8 個區塊 · 3 天前更新",
+                                      "content": "CSV · 24 列 · 3 天前更新",
                                       "fontFamily": "Inter",
                                       "fontSize": 11.5,
                                       "fontWeight": "normal"
@@ -16413,10 +15110,9 @@
               "type": "frame",
               "id": "w0Oqj",
               "layoutPosition": "absolute",
-              "x": 946,
+              "x": 1016,
               "y": 862,
               "name": "Floating Block Toolbar",
-              "width": 220,
               "height": 44,
               "fill": "$surface-glass",
               "cornerRadius": 22,
@@ -16531,29 +15227,6 @@
                       "icon": "table",
                       "library": "lucide",
                       "fill": "$text-secondary"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "NfCPI",
-                  "name": "FT sparkles",
-                  "width": 32,
-                  "height": 32,
-                  "fill": "$accent-soft",
-                  "cornerRadius": 16,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon",
-                      "id": "jn0fL",
-                      "name": "FT Icon sparkles",
-                      "width": 17,
-                      "height": 17,
-                      "icon": "sparkles",
-                      "library": "lucide",
-                      "fill": "$accent"
                     }
                   ]
                 }
@@ -17381,6 +16054,1260 @@
                           ]
                         }
                       ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "zUTPY",
+      "x": 1540,
+      "y": 300,
+      "name": "Desktop / Editor（中文）",
+      "clip": true,
+      "width": 1440,
+      "height": 940,
+      "fill": "$bg-canvas",
+      "cornerRadius": 12,
+      "children": [
+        {
+          "id": "Cn59w",
+          "type": "ref",
+          "ref": "YXFMc",
+          "name": "Sidebar",
+          "height": "fill_container",
+          "descendants": {
+            "BSGj4": {
+              "content": "我的筆記庫"
+            },
+            "jFI6A": {
+              "content": "搜尋"
+            },
+            "t5Gvo": {
+              "fill": "$bg-sidebar"
+            },
+            "t5Gvo/R8g425": {
+              "fill": "$text-secondary",
+              "icon": "files"
+            },
+            "t5Gvo/ExkyX": {
+              "fill": "$text-primary",
+              "fontWeight": "500",
+              "content": "全部文件"
+            },
+            "t5Gvo/p9QQ1": {
+              "content": "24",
+              "enabled": true
+            },
+            "DhzVK/R8g425": {
+              "icon": "layers",
+              "fill": "$text-secondary"
+            },
+            "DhzVK/ExkyX": {
+              "content": "複習"
+            },
+            "DhzVK/p9QQ1": {
+              "content": "18",
+              "enabled": true
+            },
+            "d7yOE/R8g425": {
+              "icon": "clock",
+              "fill": "$text-secondary"
+            },
+            "d7yOE/ExkyX": {
+              "content": "最近開啟"
+            },
+            "d7yOE/p9QQ1": {
+              "enabled": false
+            },
+            "UQxuv/R8g425": {
+              "icon": "pin",
+              "fill": "$yellow"
+            },
+            "UQxuv/ExkyX": {
+              "content": "已釘選"
+            },
+            "UQxuv/p9QQ1": {
+              "content": "4",
+              "enabled": true
+            },
+            "b4alru": {
+              "content": "空間"
+            },
+            "E7Z82": {
+              "fill": "$bg-hover"
+            },
+            "E7Z82/R8g425": {
+              "icon": "folder-open",
+              "fill": "$accent"
+            },
+            "E7Z82/ExkyX": {
+              "fontWeight": "600",
+              "content": "工作"
+            },
+            "E7Z82/p9QQ1": {
+              "content": "12",
+              "enabled": true
+            },
+            "ACQnD": {
+              "enabled": true,
+              "fill": "$bg-selected"
+            },
+            "ACQnD/R8g425": {
+              "fill": "$type-doc",
+              "icon": "file-text"
+            },
+            "ACQnD/ExkyX": {
+              "fill": "$accent",
+              "fontWeight": "600",
+              "content": "產品路線圖 2026"
+            },
+            "ACQnD/p9QQ1": {
+              "enabled": false
+            },
+            "HO7Fo": {
+              "enabled": true
+            },
+            "HO7Fo/R8g425": {
+              "icon": "file-spreadsheet",
+              "fill": "$type-csv"
+            },
+            "HO7Fo/ExkyX": {
+              "content": "第四季目標與 OKR"
+            },
+            "HO7Fo/p9QQ1": {
+              "enabled": false
+            },
+            "EZKSJ": {
+              "enabled": true
+            },
+            "EZKSJ/R8g425": {
+              "icon": "file-text",
+              "fill": "$type-doc"
+            },
+            "EZKSJ/ExkyX": {
+              "content": "客戶會議 — Acme 產品整…"
+            },
+            "EZKSJ/p9QQ1": {
+              "enabled": false
+            },
+            "xQp4Q/R8g425": {
+              "icon": "folder",
+              "fill": "$type-board"
+            },
+            "xQp4Q/ExkyX": {
+              "content": "研究"
+            },
+            "xQp4Q/p9QQ1": {
+              "content": "7",
+              "enabled": true
+            },
+            "SJAJ4/R8g425": {
+              "icon": "folder",
+              "fill": "$yellow"
+            },
+            "SJAJ4/ExkyX": {
+              "content": "日誌"
+            },
+            "SJAJ4/p9QQ1": {
+              "content": "64",
+              "enabled": true
+            },
+            "VIorL/R8g425": {
+              "icon": "folder",
+              "fill": "$type-pdf"
+            },
+            "VIorL/ExkyX": {
+              "content": "閱讀清單"
+            },
+            "VIorL/p9QQ1": {
+              "content": "9",
+              "enabled": true
+            },
+            "M0j3A": {
+              "content": "標籤"
+            },
+            "VzmHb/R8g425": {
+              "icon": "hash",
+              "fill": "$text-secondary"
+            },
+            "VzmHb/ExkyX": {
+              "content": "閱讀"
+            },
+            "VzmHb/p9QQ1": {
+              "enabled": false
+            },
+            "b6rKh/R8g425": {
+              "icon": "hash",
+              "fill": "$text-secondary"
+            },
+            "b6rKh/ExkyX": {
+              "content": "點子"
+            },
+            "b6rKh/p9QQ1": {
+              "enabled": false
+            },
+            "VwMfc/R8g425": {
+              "icon": "hash",
+              "fill": "$text-secondary"
+            },
+            "VwMfc/ExkyX": {
+              "content": "swift"
+            },
+            "VwMfc/p9QQ1": {
+              "enabled": false
+            },
+            "pwTzN/R8g425": {
+              "icon": "trash-2",
+              "fill": "$text-secondary"
+            },
+            "pwTzN/ExkyX": {
+              "content": "最近刪除"
+            },
+            "pwTzN/p9QQ1": {
+              "enabled": false
+            },
+            "RLEAG": {
+              "content": "刪除後保留 30 天"
+            },
+            "a7nTx": {
+              "content": "已同步"
+            },
+            "W7xzta": {
+              "content": "2 分鐘前"
+            },
+            "tA8Ae/R8g425": {
+              "icon": "settings",
+              "fill": "$text-secondary"
+            },
+            "tA8Ae/ExkyX": {
+              "content": "設定"
+            },
+            "tA8Ae/p9QQ1": {
+              "enabled": false
+            }
+          }
+        },
+        {
+          "type": "frame",
+          "id": "P0J60",
+          "name": "Editor Main",
+          "clip": true,
+          "width": "fill_container",
+          "height": "fill_container",
+          "fill": "$bg-canvas",
+          "layout": "vertical",
+          "children": [
+            {
+              "type": "frame",
+              "id": "Gq0eJ",
+              "name": "Editor Toolbar",
+              "width": "fill_container",
+              "height": 46,
+              "padding": [
+                0,
+                18
+              ],
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "i2Fgc",
+                  "name": "Editor Toolbar Left",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "oPBQ4",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB panel-left-close",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "panel-left-close"
+                        }
+                      }
+                    },
+                    {
+                      "id": "C7Te1",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB chevron-left",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "chevron-left"
+                        }
+                      }
+                    },
+                    {
+                      "id": "naQaq",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB chevron-right",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "chevron-right"
+                        }
+                      }
+                    },
+                    {
+                      "type": "frame",
+                      "id": "nXkCh",
+                      "name": "Editor Breadcrumb",
+                      "gap": 7,
+                      "padding": [
+                        0,
+                        8
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "P3UQje",
+                          "name": "Crumb Folder",
+                          "width": 13,
+                          "height": 13,
+                          "icon": "folder",
+                          "library": "lucide",
+                          "fill": "$text-tertiary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "E4viB7",
+                          "name": "Crumb Space",
+                          "fill": "$text-tertiary",
+                          "content": "工作",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "C8oW0p",
+                          "name": "Crumb Sep",
+                          "fill": "$text-tertiary",
+                          "content": "/",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "kEt6U",
+                          "name": "Crumb Doc",
+                          "fill": "$text-secondary",
+                          "content": "產品路線圖 2026",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 12.5,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KO7cT",
+                      "name": "Saved Pill",
+                      "fill": "$bg-hover",
+                      "cornerRadius": 20,
+                      "gap": 5,
+                      "padding": [
+                        3,
+                        8
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "VKniO",
+                          "name": "Saved Icon",
+                          "width": 12,
+                          "height": 12,
+                          "icon": "cloud",
+                          "library": "lucide",
+                          "fill": "$text-secondary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "C5yHY3",
+                          "name": "Saved Label",
+                          "fill": "$text-secondary",
+                          "content": "已儲存",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 11,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "EJJZb",
+                  "name": "Editor Toolbar Right",
+                  "gap": 4,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "id": "NQ73K",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB pin",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "pin",
+                          "library": "lucide"
+                        }
+                      }
+                    },
+                    {
+                      "id": "N34BCQ",
+                      "type": "ref",
+                      "ref": "QOPWl",
+                      "name": "ETB more",
+                      "descendants": {
+                        "SfOww": {
+                          "icon": "ellipsis",
+                          "library": "lucide"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "z6wxDB",
+              "name": "Doc Cover",
+              "metadata": {
+                "type": "unsplash",
+                "username": "codioful",
+                "link": "https://unsplash.com/@codioful",
+                "author": "Codioful (Formerly Gradienta)"
+              },
+              "clip": true,
+              "width": "fill_container",
+              "height": 178,
+              "fill": {
+                "type": "image",
+                "enabled": true,
+                "url": "images/generated-1790847080134.png",
+                "mode": "cover"
+              }
+            },
+            {
+              "type": "frame",
+              "id": "OFhxf",
+              "name": "Doc Body",
+              "width": "fill_container",
+              "height": "fill_container",
+              "layout": "vertical",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "STVZz",
+                  "name": "Doc Column",
+                  "width": 716,
+                  "layout": "vertical",
+                  "gap": 14,
+                  "padding": [
+                    40,
+                    0,
+                    0,
+                    0
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "O8e6RB",
+                      "name": "Doc Title",
+                      "fill": "$text-primary",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "產品路線圖 2026：把編輯器做回「順手」",
+                      "lineHeight": 1.35,
+                      "fontFamily": "$font-doc",
+                      "fontSize": 34,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Gy2Pu",
+                      "name": "Doc Meta",
+                      "width": "fill_container",
+                      "gap": 9,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "tP1e6",
+                          "name": "Tag Planning",
+                          "fill": "$bg-hover",
+                          "cornerRadius": 20,
+                          "gap": 5,
+                          "padding": [
+                            3,
+                            9
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "IIlAR",
+                              "name": "Tag Dot Planning",
+                              "fill": "$accent",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "UqTbR",
+                              "name": "Tag Label Planning",
+                              "fill": "$text-secondary",
+                              "content": "規劃中",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "M43FC",
+                          "name": "Tag Q4",
+                          "fill": "$bg-hover",
+                          "cornerRadius": 20,
+                          "gap": 5,
+                          "padding": [
+                            3,
+                            9
+                          ],
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "ellipse",
+                              "id": "sLN8f",
+                              "name": "Tag Dot Q4",
+                              "fill": "$yellow",
+                              "width": 6,
+                              "height": 6
+                            },
+                            {
+                              "type": "text",
+                              "id": "roAus",
+                              "name": "Tag Label Q4",
+                              "fill": "$text-secondary",
+                              "content": "第四季",
+                              "fontFamily": "$font-ui",
+                              "fontSize": 11,
+                              "fontWeight": "500"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "text",
+                          "id": "EltMe",
+                          "name": "Meta Edited",
+                          "fill": "$text-tertiary",
+                          "content": "2 分鐘前編輯",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 11.5,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "rectangle",
+                      "id": "W9oK4",
+                      "name": "Divider",
+                      "fill": "$border",
+                      "width": "fill_container",
+                      "height": 1
+                    },
+                    {
+                      "type": "text",
+                      "id": "Z3fc12",
+                      "name": "Intro Paragraph",
+                      "fill": "$text-body",
+                      "textGrowth": "fixed-width",
+                      "width": "fill_container",
+                      "content": "這份文件描述接下來十二個月的樣貌。每一季只押一個主軸：先把編輯體驗做到順手，再讓同步穩到可以忘記它的存在，最後才談擴充與外掛。如果你是明天才加入的夥伴，從這一段開始讀就夠了——其餘細節都在各自的連結頁面裡。",
+                      "lineHeight": 1.85,
+                      "fontFamily": "$font-doc",
+                      "fontSize": 15.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "u0KVI",
+                      "name": "Callout Card",
+                      "width": "fill_container",
+                      "fill": "$accent-soft",
+                      "cornerRadius": "$radius-md",
+                      "gap": 11,
+                      "padding": [
+                        13,
+                        15
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "irbO8",
+                          "name": "Callout Emoji",
+                          "fill": "$text-primary",
+                          "content": "💡",
+                          "fontFamily": "$font-ui",
+                          "fontSize": 17,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "rkabX",
+                          "name": "Callout Text",
+                          "fill": "$accent-deep",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "請在週一的規劃同步會前讀完；有意見直接寫在對應段落下方，不要直接改里程碑。",
+                          "lineHeight": 1.75,
+                          "fontFamily": "$font-doc",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JGGem",
+                      "name": "Focus Section",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 9,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "OV2hb",
+                          "name": "H2 Focus",
+                          "fill": "$text-primary",
+                          "content": "第四季重點",
+                          "fontFamily": "$font-doc",
+                          "fontSize": 19,
+                          "fontWeight": "700",
+                          "letterSpacing": -0.3
+                        },
+                        {
+                          "type": "frame",
+                          "id": "qfnRs",
+                          "name": "Task / Ship collaborative blocks to beta",
+                          "width": "fill_container",
+                          "gap": 11,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "zXwlp",
+                              "name": "Checkbox",
+                              "width": 19,
+                              "height": 19,
+                              "fill": "$accent",
+                              "cornerRadius": 6,
+                              "justifyContent": "center",
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "icon",
+                                  "id": "f738Ku",
+                                  "name": "Check",
+                                  "width": 13,
+                                  "height": 13,
+                                  "icon": "check",
+                                  "library": "lucide",
+                                  "fill": "#FFFFFF"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "text",
+                              "id": "zIvrA",
+                              "name": "Task Label",
+                              "fill": "$text-tertiary",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "將協作區塊推上 Beta",
+                              "lineHeight": 1.65,
+                              "fontFamily": "$font-doc",
+                              "fontSize": 15,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "jgcjc",
+                          "name": "Task / Rewrite the sync engine for offline edits",
+                          "width": "fill_container",
+                          "gap": 11,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "D7a6o",
+                              "name": "Checkbox",
+                              "width": 19,
+                              "height": 19,
+                              "fill": "$surface-raised",
+                              "cornerRadius": 6,
+                              "stroke": "$border-strong",
+                              "strokeWidth": 1.5,
+                              "justifyContent": "center",
+                              "alignItems": "center"
+                            },
+                            {
+                              "type": "text",
+                              "id": "U3Sg1",
+                              "name": "Task Label",
+                              "fill": "$text-body",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "重寫同步引擎，支援離線編輯與衝突合併",
+                              "lineHeight": 1.65,
+                              "fontFamily": "$font-doc",
+                              "fontSize": 15,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "ebuMj",
+                          "name": "Task / Design system audit across Mac & iOS",
+                          "width": "fill_container",
+                          "gap": 11,
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "x14HUW",
+                              "name": "Checkbox",
+                              "width": 19,
+                              "height": 19,
+                              "fill": "$surface-raised",
+                              "cornerRadius": 6,
+                              "stroke": "$border-strong",
+                              "strokeWidth": 1.5,
+                              "justifyContent": "center",
+                              "alignItems": "center"
+                            },
+                            {
+                              "type": "text",
+                              "id": "oDIHF",
+                              "name": "Task Label",
+                              "fill": "$text-body",
+                              "textGrowth": "fixed-width",
+                              "width": "fill_container",
+                              "content": "完成 Mac 與 iOS 的設計系統盤點",
+                              "lineHeight": 1.65,
+                              "fontFamily": "$font-doc",
+                              "fontSize": 15,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "B6FrYN",
+                      "name": "Milestones Section",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "DNgeh",
+                          "name": "H2 Milestones",
+                          "fill": "$text-primary",
+                          "content": "關聯頁面",
+                          "fontFamily": "$font-doc",
+                          "fontSize": 19,
+                          "fontWeight": "700",
+                          "letterSpacing": -0.3
+                        },
+                        {
+                          "type": "frame",
+                          "id": "rxvzH",
+                          "name": "Link Row",
+                          "width": "fill_container",
+                          "gap": 12,
+                          "children": [
+                            {
+                              "type": "frame",
+                              "id": "o1mxn",
+                              "name": "LinkCard Beta Launch Plan",
+                              "width": "fill_container",
+                              "height": 56,
+                              "fill": "$bg-panel",
+                              "cornerRadius": 10,
+                              "stroke": "$border",
+                              "strokeWidth": 1,
+                              "gap": 11,
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "vIkXp",
+                                  "name": "LinkIcon Beta Launch Plan",
+                                  "width": 32,
+                                  "height": 32,
+                                  "fill": "$type-doc-soft",
+                                  "cornerRadius": 9,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "pWmNN",
+                                      "name": "LinkIcon Doc",
+                                      "width": 16,
+                                      "height": 16,
+                                      "icon": "file-text",
+                                      "library": "lucide",
+                                      "fill": "$type-doc"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "x54b3d",
+                                  "name": "LinkText Beta Launch Plan",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "WjAJs",
+                                      "name": "LinkTitle Beta Launch Plan",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "Beta 上線計畫",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 13.5,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "O1iKN",
+                                      "name": "LinkSub Beta Launch Plan",
+                                      "fill": "$text-tertiary",
+                                      "content": "320 個字 · 今天更新",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "hb30m",
+                                  "name": "LinkChevron Beta Launch Plan",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-right",
+                                  "library": "lucide",
+                                  "fill": "$text-tertiary"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "frame",
+                              "id": "DQnQD",
+                              "name": "LinkCard Metrics & Targets",
+                              "width": "fill_container",
+                              "height": 56,
+                              "fill": "$bg-panel",
+                              "cornerRadius": 10,
+                              "stroke": "$border",
+                              "strokeWidth": 1,
+                              "gap": 11,
+                              "padding": [
+                                0,
+                                13
+                              ],
+                              "alignItems": "center",
+                              "children": [
+                                {
+                                  "type": "frame",
+                                  "id": "JHVo1",
+                                  "name": "LinkIcon Metrics & Targets",
+                                  "width": 32,
+                                  "height": 32,
+                                  "fill": "$type-csv-soft",
+                                  "cornerRadius": 9,
+                                  "stroke": "$border",
+                                  "strokeWidth": 1,
+                                  "justifyContent": "center",
+                                  "alignItems": "center",
+                                  "children": [
+                                    {
+                                      "type": "icon",
+                                      "id": "JeHMT",
+                                      "name": "LinkIcon CSV",
+                                      "width": 16,
+                                      "height": 16,
+                                      "icon": "file-spreadsheet",
+                                      "library": "lucide",
+                                      "fill": "$type-csv"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "frame",
+                                  "id": "B5HEz",
+                                  "name": "LinkText Metrics & Targets",
+                                  "width": "fill_container",
+                                  "layout": "vertical",
+                                  "gap": 2,
+                                  "children": [
+                                    {
+                                      "type": "text",
+                                      "id": "nWDKT",
+                                      "name": "LinkTitle Metrics & Targets",
+                                      "fill": "$text-primary",
+                                      "textGrowth": "fixed-width",
+                                      "width": "fill_container",
+                                      "content": "指標與目標",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 13.5,
+                                      "fontWeight": "600"
+                                    },
+                                    {
+                                      "type": "text",
+                                      "id": "Ioh0t",
+                                      "name": "LinkSub Metrics & Targets",
+                                      "fill": "$text-tertiary",
+                                      "content": "CSV · 24 列 · 3 天前更新",
+                                      "fontFamily": "Inter",
+                                      "fontSize": 11.5,
+                                      "fontWeight": "normal"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "icon",
+                                  "id": "P1ZSJ",
+                                  "name": "LinkChevron Metrics & Targets",
+                                  "width": 16,
+                                  "height": 16,
+                                  "icon": "chevron-right",
+                                  "library": "lucide",
+                                  "fill": "$text-tertiary"
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Dyr8z",
+                      "name": "Quote Block",
+                      "width": "fill_container",
+                      "height": 48,
+                      "fill": "$surface-quote",
+                      "gap": 14,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "rectangle",
+                          "cornerRadius": 2,
+                          "id": "JuvBu",
+                          "name": "Quote Accent Bar",
+                          "fill": "$accent",
+                          "width": 3,
+                          "height": 36
+                        },
+                        {
+                          "type": "text",
+                          "id": "n8oHF",
+                          "name": "Quote Line",
+                          "fill": "$text-secondary",
+                          "textGrowth": "fixed-width",
+                          "width": "fill_container",
+                          "content": "把路線圖寫成一份「明天才加入的人也看得懂」的文件——如果還需要口頭補充，那就是還沒寫清楚。",
+                          "lineHeight": 1.8,
+                          "fontFamily": "$font-doc",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "t1ZpY",
+              "layoutPosition": "absolute",
+              "x": 1016,
+              "y": 862,
+              "name": "Floating Block Toolbar",
+              "height": 44,
+              "fill": "$surface-glass",
+              "cornerRadius": 22,
+              "stroke": "$border",
+              "strokeWidth": 1,
+              "effect": [
+                {
+                  "type": "shadow",
+                  "shadowType": "outer",
+                  "color": "#0000001F",
+                  "offset": {
+                    "x": 0,
+                    "y": 4
+                  },
+                  "blur": 16
+                },
+                {
+                  "type": "background_blur",
+                  "radius": 20
+                }
+              ],
+              "gap": 2,
+              "padding": [
+                0,
+                8
+              ],
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "J7LlGS",
+                  "name": "FT type",
+                  "width": 32,
+                  "height": 32,
+                  "cornerRadius": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "IXxJ6",
+                      "name": "FT Icon type",
+                      "width": 17,
+                      "height": 17,
+                      "icon": "type",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "i45gv",
+                  "name": "FT list-checks",
+                  "width": 32,
+                  "height": 32,
+                  "cornerRadius": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "VxniK",
+                      "name": "FT Icon list-checks",
+                      "width": 17,
+                      "height": 17,
+                      "icon": "list-checks",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "JrDpq",
+                  "name": "FT image",
+                  "width": 32,
+                  "height": 32,
+                  "cornerRadius": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "MlLC7",
+                      "name": "FT Icon image",
+                      "width": 17,
+                      "height": 17,
+                      "icon": "image",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "FoDX5",
+                  "name": "FT table",
+                  "width": 32,
+                  "height": 32,
+                  "cornerRadius": 16,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "bsu19",
+                      "name": "FT Icon table",
+                      "width": 17,
+                      "height": 17,
+                      "icon": "table",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "RlKlN",
+              "layoutPosition": "absolute",
+              "x": 238,
+              "y": 190,
+              "name": "Emoji Badge",
+              "width": 58,
+              "height": 58,
+              "fill": "$surface-raised",
+              "cornerRadius": 16,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000024",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 10
+              },
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Fq2Ov",
+                  "name": "Emoji Glyph",
+                  "fill": "$text-primary",
+                  "content": "🗺",
+                  "fontFamily": "Inter",
+                  "fontSize": 30,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TiIuO",
+              "layoutPosition": "absolute",
+              "x": 955,
+              "y": 182,
+              "name": "Cover Tools",
+              "width": 215,
+              "height": 24,
+              "gap": 6,
+              "justifyContent": "end",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "f03i8n",
+                  "name": "CoverTool Change cover",
+                  "fill": "$surface-glass",
+                  "cornerRadius": 7,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 5,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "y534j",
+                      "name": "CoverTool Icon Change cover",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "image",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "nG4Vd",
+                      "name": "CoverTool Label Change cover",
+                      "fill": "$text-secondary",
+                      "content": "更換封面",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "e53A4",
+                  "name": "CoverTool Change icon",
+                  "fill": "$surface-glass",
+                  "cornerRadius": 7,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "gap": 5,
+                  "padding": [
+                    4,
+                    8
+                  ],
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "jaJHs",
+                      "name": "CoverTool Icon Change icon",
+                      "width": 12,
+                      "height": 12,
+                      "icon": "smile",
+                      "library": "lucide",
+                      "fill": "$text-secondary"
+                    },
+                    {
+                      "type": "text",
+                      "id": "Wuouv",
+                      "name": "CoverTool Label Change icon",
+                      "fill": "$text-secondary",
+                      "content": "更換圖示",
+                      "fontFamily": "Inter",
+                      "fontSize": 11,
+                      "fontWeight": "500"
                     }
                   ]
                 }
