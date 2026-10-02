@@ -30,10 +30,14 @@ public protocol DocumentSession: AnyObject {
     func open(_ path: String, line: Int?)
     /// 外掛寫了 `addSyncedMetaFolder` 註冊的資料夾內的檔案：排程上傳
     func metaChanged()
+    /// 外掛自己在 Vault 內搬移了檔案（例如 PDF 認領孤兒旁檔）：通知同步層保留 file id，並更新索引
+    func fileMoved(from: String, to: String)
 }
 
 extension DocumentSession {
     public var embedImageReader: @Sendable (_ path: String) async -> Data? { { _ in nil } }
+
+    public func fileMoved(from: String, to: String) {}
 
     public func readText(_ path: String) -> String {
         String(decoding: readData(path), as: UTF8.self)

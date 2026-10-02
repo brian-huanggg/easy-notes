@@ -15,7 +15,7 @@
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
-| 5 PDF 手寫與標註 | S4、5a 完成（App 內伴隨檔流程待 5b 實機驗證）；5b 起未開始 | [pdf.md](./architecture/pdf.md) |
+| 5 PDF 手寫與標註 | S4、5a 完成；5b 實作完成（匯入、iPad 實機放大清晰度、伴隨檔流程尚未驗證）；5c 起未開始 | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
 | i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -408,8 +408,13 @@
 ### 5b 檢視、縮圖與 Mac
 
 - [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
-- [ ] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
-- [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
+  - iPad Simulator 已驗證：標註與頁面對齊（直式、橫式、`rotation` 90）、螢光筆透明度、便利貼文字；列表縮圖、頁數、PDF 篩選 chip、`.pdf.ink` 不出現在列表。
+  - Mac App 已驗證：列表縮圖正常、關閉重開後標註仍保存、放大後便利貼與筆畫清晰。
+  - 尚未驗證：iPad 實機放大後的清晰度（Simulator 無法縮放）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
+- [x] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
+  - iPad Simulator 顯示提示列；「保留標註」只由單元測試驗證（`PDFInkDocumentTests`），尚未在 App 內按過。
+- [x] Mac：便利貼新增、移動、縮放、編輯（`NSTextView`）
+  - Mac App 已驗證：新增並以注音輸入（組字中 Esc 只取消選字）、拖曳（預覽完整、放開不閃回原位）、滑過顯示外框與縮放點、縮放（文字重新換行、最小 40 pt）、右鍵編輯與刪除。
 
 ### 5c iPad 編輯器
 
@@ -432,6 +437,7 @@
 - [ ] App 內改名、搬移、刪除再還原 PDF，旁檔跟著走
 - [ ] 多裝置：兩台在不同頁同時標註 → 同步後兩邊都保留
 - [ ] 便利貼內注音輸入正常（iPad、Mac）
+  - Mac 已驗證（5b）；iPad 待 5c。
 - [ ] 手動：匯出的 PDF 在「預覽程式」中正確顯示筆畫、螢光筆與便利貼
 
 ## Phase 6 — Sheets
@@ -444,11 +450,11 @@
 
 目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 [sheets.md](./architecture/sheets.md)（自寫 TS 虛擬表格或原生表格）再進 6b。
 
-- [ ] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
-- [ ] 組字中按 Enter 不結束編輯（`isComposing`）
-- [ ] 1 萬列捲動流暢（iPad、Mac）
-- [ ] bundle 大小在預算內（約 0.5–1 MB）
-- [ ] 關閉表格後 WebContent process 釋放
+- [x] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
+- [x] 組字中按 Enter 不結束編輯（`isComposing`）
+- [x] 1 萬列捲動流暢（iPad、Mac）
+- [x] bundle 大小在預算內（約 0.5–1 MB）
+- [x] 關閉表格後 WebContent process 釋放
 
 ### 6a 模型與格式（無 UI，單元測試）
 
@@ -557,6 +563,7 @@
 - [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
 - [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
 - [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
+- [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置
 
 ## 其餘功能清單
 

@@ -7,7 +7,7 @@
 **設計決定**：
 
 - **外掛**：新增 `Packages/KindSheet`，只依賴 EasyNotesCore / EasyNotesUI。`.csv` 與 `.tsv` 都支援，同一套解析器，只差分隔符（`,` / tab）。
-- **先驗證注音（S5 Spike）**：最大的風險是 RevoGrid 在 WKWebView 中的注音輸入。試算表習慣「選取儲存格後直接打字就進入編輯」，第一個按鍵在組字中，容易吃字或重複；做法是在選取的儲存格位置放一個常駐焦點的隱藏 `textarea`（同 Google Sheets），組字中的 Enter（`isComposing`）不結束編輯。Spike 同時量 1 萬列捲動、bundle 大小與關閉後 WebContent process 是否釋放。不通過就改用自寫的 TS 虛擬表格或原生 `UICollectionView` / `NSTableView`；6a 的模型不受影響。
+- **表格元件：RevoGrid（內建編輯器）**：S5 Spike 在 Mac 與 iPad 實機驗證通過：選取後直接以注音打字不吃字、組字中的 Enter（`isComposing`）不結束編輯、1 萬列捲動 60 fps、bundle 約 334 KB、關閉後 WebContent process 結束。因此直接用 RevoGrid 的內建編輯器，不另做輸入層。備案：若之後在特定情境發現吃字，改在選取的儲存格位置放一個常駐焦點的隱藏 `textarea`（同 Google Sheets；Spike 已有原型，要點是延到下一幀才 `focus()`、定位用 `.rgCell[data-rgrow][data-rgcol]`），組字中的 Enter 仍以 `isComposing` 判斷。再不行才改用自寫的 TS 虛擬表格或原生表格；6a 的模型不受影響。
 - **模型：保留原始位元組**：每筆記錄（record）保留原始位元組與解析後的欄位；未修改的記錄原樣寫回，修改過的記錄依檔案的風格重新產生。偵測：換行符（LF / CRLF，取多數）、引號風格（全部加 / 必要時才加）、BOM、檔尾是否有換行。欄數不一的列原樣保留，顯示時補空格，未編輯就不寫回補的空格。
 - **編碼**：UTF-8（含或不含 BOM）可編輯；偵測為 Big5（台灣 Excel 匯出常見）時唯讀開啟，提供「轉成 UTF-8」。
 - **索引**：標題 = 檔名；`plainText` = 儲存格內容（設上限，避免巨大檔案拖慢 FTS）；摘要「CSV · 86 列 · 5 欄」；儲存格中的 `[[連結]]` 收進 `links`，`renameLinks` 一併更新。
