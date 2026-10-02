@@ -124,7 +124,7 @@ private struct PhoneDocs: View {
             .onAppear { store.replace(with: .all) }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    VaultHeader(name: store.vaultName, account: nil).fixedSize()
+                    VaultHeader(name: store.vaultName, account: nil, icon: Image("AppLogo")).fixedSize()
                 }
                 ToolbarItem(placement: .topBarTrailing) { PhoneNewMenu() }
             }

@@ -375,12 +375,20 @@
 
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）
 
+### Desktop
+
+- [x] 點擊'未登入 不會同步'的按鈕要登入時，整個App會閃退，無法登入 -> 原因：TestFlight 安裝到 iPadOS
+- [x] Collapse/Expand icon佔據很大比例，應該縮小移動至下方 -> 原因：TestFlight 安裝到 iPadOS
+- [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
+- [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
+- [~] 在 Mac 或 iOS 裝置的畫面頂端（狀態列或選單列附近）出現的小橘點，代表目前有 App 正在使用你的麥克風。 請確認是否有在Background執行或是存取麥克風等設備 
+
 
 ## 其餘功能清單
 
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
-
+- [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言
 
 ## 風險與待決事項
 

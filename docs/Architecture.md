@@ -21,6 +21,7 @@ EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化
 | 非功能 | App < 100 MB（預估 15–30 MB）、記憶體與耗電有預算、離線可用、同步可靠（見「非功能預算」） |
 | 使用範圍 | 個人使用：不上架、不公開、不商業化（授權限制因此寬鬆，但仍優先選 MIT / BSD 套件） |
 | Vault 位置 | macOS：\~/Documents/EasyNotes（可見、不開沙盒）；iOS：App 的 Documents（「檔案」App 可見） |
+| 發佈 | iOS / iPadOS：TestFlight（`upload-testflight.sh`）；macOS：DMG（`make-dmg.sh`）。macOS 不開沙盒，所以不能走 TestFlight / Mac App Store；App Store Connect 關閉「iPad App 可在 Mac 上使用」，避免 Mac 裝到 iPad 版（沙盒 Vault、iOS UI） |
 
 ## 設計原則
 
