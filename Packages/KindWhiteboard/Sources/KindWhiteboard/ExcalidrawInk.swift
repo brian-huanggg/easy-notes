@@ -160,14 +160,16 @@ public struct ExcalidrawScene {
         let times = (custom?["t"] as? [Any])?.compactMap(number)
         let azimuths = (custom?["az"] as? [Any])?.compactMap(number)
         let altitudes = (custom?["alt"] as? [Any])?.compactMap(number)
-        let strokeWidth = number(el["strokeWidth"]) ?? 2
+        // excalidraw.com 畫的筆畫沒有點大小：沿用渲染器的 perfect-freehand 寬度（strokeWidth × 4.25），
+        // 否則 strokeWidth 1 的筆畫在 PencilKit 只有 1pt，與縮圖、excalidraw.com 不一致
+        let widths = sizes == nil ? ElementGeometry.freedrawWidths(Element(raw: el)) : []
 
         let points = rawPoints.enumerated().compactMap { i, p -> InkStroke.Point? in
             guard p.count >= 2, let dx = number(p[0]), let dy = number(p[1]) else { return nil }
             let force = forces?[safe: i] ?? pressures[safe: i].map { $0 * maxForce } ?? 1
             return InkStroke.Point(
                 x: originX + dx, y: originY + dy, force: force,
-                size: sizes?[safe: i] ?? strokeWidth,
+                size: sizes?[safe: i] ?? widths[safe: i] ?? 2,
                 timeOffset: times?[safe: i] ?? Double(i) / 120,
                 azimuth: azimuths?[safe: i] ?? 0,
                 altitude: altitudes?[safe: i] ?? .pi / 2)
