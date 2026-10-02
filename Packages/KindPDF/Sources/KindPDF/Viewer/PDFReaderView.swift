@@ -7,6 +7,8 @@ struct PDFReaderView: View {
     @Environment(\.documentSession) private var session
     @State private var document: PDFInkDocument?
     @State private var handle = PDFCanvasHandle()
+    /// iOS 手寫模式（工具列的畫筆）
+    @State private var inking = false
 
     var body: some View {
         // 不能用 Group：document 還是 nil 時沒有子 view，onAppear 永遠不會被呼叫
@@ -15,6 +17,7 @@ struct PDFReaderView: View {
                 PDFCanvas(document: document, handle: handle)
                     #if os(iOS)
                     .ignoresSafeArea(edges: .bottom)
+                    .onChange(of: inking) { _, on in handle.canvas?.setInking(on) }
                     #else
                     .overlay(alignment: .bottomTrailing) {
                         Button { handle.canvas?.addSticky() } label: {
@@ -26,7 +29,13 @@ struct PDFReaderView: View {
                     }
                     #endif
                     .safeAreaInset(edge: .top, spacing: 0) {
-                        if document.hashMismatch { HashMismatchBanner(document: document) }
+                        VStack(spacing: 0) {
+                            #if os(iOS)
+                            // 工具列獨立一排，在導覽列（檔名、設定）下方
+                            PDFToolbar(inking: $inking, handle: handle)
+                            #endif
+                            if document.hashMismatch { HashMismatchBanner(document: document) }
+                        }
                     }
             }
         }
