@@ -15,6 +15,7 @@
 | PDF 手寫與標註 | [pdf.md](./pdf.md) |
 | 表格 | [sheets.md](./sheets.md) |
 | 卡片與複習 | [flashcards.md](./flashcards.md) |
+| 多語言、字串寫法、不翻譯的字串 | [translation.md](./translation.md) |
 
 EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化）。核心只負責檔案、同步、索引與外掛註冊；Markdown、白板、PDF 手寫、CSV、Flashcards 都是編譯期外掛。所有資料都是開放格式的真實檔案，透過 Supabase 在 iOS、iPadOS、macOS 間同步，Claude Code 可以直接讀寫。
 
@@ -163,3 +164,4 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 - `[[筆記]]` 連結；`![[圖.excalidraw]]`、`![[表.csv]]` 在 md 內嵌入預覽，預覽由各外掛向 Registry 註冊的 DocumentPreviewProvider 提供。
 - 每個 `DocumentKind` 的 `index()` 抽出純文字與連結，所以白板內的文字元素也能搜尋、也會出現在反向連結（手寫筆畫不索引）。
 - App 設定放 `.easynotes/`（類似 `.obsidian/`），跟著 Vault 同步。
+- 介面語言（zh-Hant、English (US)）：每個模組自帶字串檔，Vault 內的路徑、檔名慣例與同步協定的字串不隨語言改變，見 [translation.md](./translation.md)。

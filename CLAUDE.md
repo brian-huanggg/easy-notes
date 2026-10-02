@@ -2,7 +2,7 @@
 
 ## 文件（來源是 `docs/` 的本地 md，三份內容不重複）
 
-- [Architecture](./docs/architecture/README.md)：現在的設計與理由（不放進度、日期）；README 放跨功能原則與依賴規則，每個功能一個檔（`core` / `ui` / `markdown` / `whiteboard` / `pdf` / `sheets` / `flashcards`）
+- [Architecture](./docs/architecture/README.md)：現在的設計與理由（不放進度、日期）；README 放跨功能原則與依賴規則，每個功能一個檔（`core` / `ui` / `markdown` / `whiteboard` / `pdf` / `sheets` / `flashcards` / `translation`）
 - [Roadmap](./docs/Roadmap.md)：勾選清單、驗收、Bug；進度以勾選為準（不放設計理由）
 - [Changelog](./docs/Changelog.md)：給使用者看的版本變更
 
@@ -21,6 +21,7 @@
 - 外掛只依賴 EasyNotesCore / EasyNotesUI，外掛之間不互相 import。
 - 打字熱路徑不跨 Swift ⇄ JS Bridge。
 - 使用者以**繁體中文**溝通，注音輸入相容性是必要條件。
+- 介面文字不寫死：中文字面值一律經過模組的 `L("…")`（見 [translation.md](./docs/architecture/translation.md)）；路徑、檔名慣例與同步協定的字串是例外，集中成常數並標 `// l10n:fixed`。提交前跑 `./scripts/check-l10n.py`。
 
 ## 指令
 
@@ -30,6 +31,7 @@ xcodegen generate                           # 修改 project.yml 後
 (cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
 supabase db push                            # 把 supabase/migrations 套到雲端專案
+./scripts/check-l10n.py                     # 找出沒有經過 L("…") 的中文字面值（提交前）
 ./scripts/fsrs-vectors.py                   # 重新產生 FSRS 參考向量（升級 swift-fsrs 後，需要 uv）
 ./scripts/whiteboard-stress.py 1000 <路徑>   # 產生 1,000 個元素的白板（4c 效能驗收）
 ./scripts/install-mac.sh                    # 本機快速更新 /Applications/EasyNotes.app 並重開（--web 先打包 web/src）

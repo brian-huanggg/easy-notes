@@ -17,6 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a 完成（App 內伴隨檔流程待 5b 實機驗證）；5b 起未開始 | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
+| i18n 多語言（English (US)） | i0 基礎建設進行中（在 `i18n-foundation` 分支）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
 
@@ -490,6 +491,45 @@
 - [ ] Big5 檔案開啟不損壞
 - [ ] 關閉表格後 WebContent process 結束（記憶體預算）
 
+## i18n — 多語言（English (US)）
+
+目標：介面支援 zh-Hant 與 English (US)；預設跟隨系統，系統語言不在清單時用 English；Mac 可在設定（⌘,）選語言。
+
+分三段：i0 基礎建設先做，做完後新程式碼不再增加寫死的中文；i1 是 Phase 5、6 開發期間要遵守的規則；i2 等功能穩定（Phase 6 完成）後一次補英文，只翻一次。i0 在獨立分支進行，不影響 Phase 5 的分支；合併前先確認 `swift test` 與兩個平台建置通過。
+
+### i0 基礎建設（不改變任何畫面：zh-Hant 輸出與遷移前逐字相同）
+
+- [ ] 設計：[translation.md](./architecture/translation.md)、README 的導覽列、CLAUDE.md 的規則
+- [ ] 每個有中文的模組加 `Localizable.xcstrings`、`Package.swift` 的 `defaultLocalization` 與 `resources`、`Localization.swift`（`L(_:)`）：App、EasyNotesCore、EasyNotesUI、ExcalidrawKit、KindMarkdown、KindWhiteboard、KindPDF、Flashcards
+- [ ] 既有約 450 個 Swift 中文字面值改走 `L(…)`；`EasyNotesUI` 元件的文字參數改成 `LocalizedStringResource`
+- [ ] 固定字串集中成常數並標 `// l10n:fixed`：`附件`、衝突副本命名（`DocumentToolbar` 改用同一個常數辨識）、Vault 的 `CLAUDE.md` 與範例內容
+- [ ] 沒有手拼的中文：「N 字」「N 頁」「N 個元素」改用插值；固定 `zh-Hant` 的 `Locale` 改用目前語言
+- [ ] Web：17 處中文收進 `web/src/shared/i18n.ts`；Swift 載入時傳入語言；相對時間改用 `Intl.RelativeTimeFormat`
+- [ ] `scripts/check-l10n.py`：找出沒有經過 `L(…)` / `t(…)` 也沒有 `// l10n:fixed` 的中文字面值
+- [ ] 驗證：各 package `swift test`；macOS 與 iOS 建置；zh-Hant 畫面與遷移前一致（尚未驗證）
+
+### i1 開發期規則（Phase 5、6 期間）
+
+- [ ] 新功能的文字一律走 `L(…)` / `t(…)`，`check-l10n.py` 沒有新增違規
+
+### i2 英文翻譯（Phase 6 完成後）
+
+- [ ] 各模組 catalog 補 `en`（含複數 variations）；`CFBundleDevelopmentRegion` 改 `en`、`CFBundleLocalizations` 加 `en`；系統選單跟著變英文
+- [ ] 索引記錄產生時的語言，語言改變時整份重建（`summary` 是顯示文字）
+- [ ] Mac 設定（⌘,）的語言選項（寫入 `AppleLanguages`，提示重新啟動）；iOS 以系統設定切換
+- [ ] Web 端 `en` 字典
+
+驗收測試：
+
+- [ ] zh-Hant 系統：畫面與 i0 之前逐字相同
+- [ ] English 系統：所有畫面沒有殘留中文（含 WebView、系統選單、錯誤訊息、空狀態）
+- [ ] 系統語言為 fr 等不支援的語言：顯示 English
+- [ ] Double-Length Pseudolanguage：iPhone、iPad、Mac 沒有截斷或破版
+- [ ] 複數：1 與多個（卡片數、文件數、頁數）
+- [ ] 切換語言後索引重建，列表摘要的語言正確
+- [ ] 兩台不同語言的裝置同步同一個 Vault：不會因語言產生衝突副本
+- [ ] English 介面下注音輸入正常（iPad、Mac）
+
 ## Bug Reports
 
 ### Mobiles
@@ -520,7 +560,7 @@
 
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
-- [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言
+- [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言（見上方「i18n」）
 - [ ] Settings > 支援Light/Dark Theme
 - [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
@@ -544,5 +584,8 @@
 - [x] Sheets 是否需要公式？→ 不需要。CSV 只存資料，需要公式時用外部 App 開啟。
 - [x] 是否需要 Android / Web 版？→ 不需要。個人使用，只支援 Apple 平台。
 - [ ] Sheets 的排序與篩選狀態要不要記住？（建議：只存在這台裝置，不同步；Phase 6 開工時決定）
+- [ ] 英文使用者的附件資料夾名稱：目前固定 `附件`（路徑被連結引用，隨語言改變會讓不同語言的裝置找不到附件）；i2 前決定維持，或改成可在 `.easynotes/` 設定
+- [ ] Vault 的 `CLAUDE.md` 要固定哪一種語言（目前是中文）；i2 前決定
+- [ ] `DocumentKind.index()` 的 `summary` 長期是否改成不含語言的結構化資料，取代 i2 的「語言改變就重建索引」
 
 Vault 位置已決定：macOS 用可見資料夾 `~/Documents/EasyNotes`，不開沙盒。
