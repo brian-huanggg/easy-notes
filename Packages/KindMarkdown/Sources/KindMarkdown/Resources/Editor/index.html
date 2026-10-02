@@ -56,7 +56,21 @@
   .cm-lp-tag { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 5px; padding: 0 3px; cursor: pointer; }
   .cm-lp-url, .cm-lp-mark { color: var(--muted); }
   .cm-lp-bullet { color: var(--muted); display: inline-block; width: 0.8em; }
-  .cm-lp-task { width: 1em; height: 1em; margin: 0 0.35em 0 0; vertical-align: -0.1em; accent-color: var(--accent); }
+  /* WebKit 原生 checkbox 不吃 width/height，改自繪；樣式仿 Apple 備忘錄的圓形勾選 */
+  .cm-lp-task {
+    -webkit-appearance: none; appearance: none;
+    box-sizing: border-box; width: 1.2em; height: 1.2em; margin: 0 0.45em 0 0; vertical-align: -0.22em;
+    border: 1.5px solid var(--muted); border-radius: 50%; background: transparent; cursor: pointer;
+    position: relative; touch-action: manipulation; transition: background-color 0.12s, border-color 0.12s;
+  }
+  .cm-lp-task:checked { background: var(--accent); border-color: var(--accent); }
+  .cm-lp-task:checked::after {
+    content: ""; position: absolute; left: 50%; top: 45%; width: 0.26em; height: 0.52em;
+    border: solid var(--bg); border-width: 0 0.12em 0.12em 0;
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+  /* 擴大觸控熱區（不影響排版） */
+  .cm-lp-task::before { content: ""; position: absolute; inset: -0.4em; border-radius: 50%; }
   /* [[ 自動完成 */
   .cm-tooltip.cm-tooltip-autocomplete { border: none; border-radius: 10px; overflow: hidden; background: var(--bg); box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 0 0 0.5px var(--quote); }
   .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: -apple-system, "PingFang TC", sans-serif; font-size: 15px; max-height: 14em; }
