@@ -35,6 +35,8 @@ class BulletWidget extends WidgetType {
   }
 }
 
+const CHECK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
 class CheckboxWidget extends WidgetType {
   constructor(readonly checked: boolean, readonly pos: number) {
     super();
@@ -43,10 +45,12 @@ class CheckboxWidget extends WidgetType {
     return other.checked === this.checked && other.pos === this.pos;
   }
   toDOM(view: EditorView) {
-    const box = document.createElement("input");
-    box.type = "checkbox";
-    box.checked = this.checked;
-    box.className = "cm-lp-task";
+    // 自繪而非 <input>：樣式照設計稿（19×19、圓角 6、勾選時 accent 底白勾）
+    const box = document.createElement("span");
+    box.className = this.checked ? "cm-lp-task is-checked" : "cm-lp-task";
+    box.setAttribute("role", "checkbox");
+    box.setAttribute("aria-checked", String(this.checked));
+    if (this.checked) box.innerHTML = CHECK;
     box.addEventListener("mousedown", (e) => {
       e.preventDefault();
       view.dispatch({
@@ -69,6 +73,30 @@ function activeLines(state: EditorState): Set<number> {
     for (let n = first; n <= last; n++) lines.add(n);
   }
   return lines;
+}
+
+// Callout：`> [!tip] 文字`
+const CALLOUT = /^\s*>\s?\[!(\w+)\][+-]?\s?/;
+const CALLOUT_ICONS: Record<string, string> = {
+  tip: "💡", hint: "💡", note: "📝", info: "ℹ️", abstract: "📋", summary: "📋", todo: "☑️",
+  success: "✅", question: "❓", warning: "⚠️", caution: "⚠️", danger: "⛔", error: "⛔", bug: "🐞",
+  example: "📌", quote: "💬",
+};
+const WARN_CALLOUTS = new Set(["warning", "caution", "danger", "error", "bug"]);
+
+class CalloutIconWidget extends WidgetType {
+  constructor(readonly icon: string) {
+    super();
+  }
+  eq(other: CalloutIconWidget) {
+    return other.icon === this.icon;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.className = "cm-lp-callout-icon";
+    span.textContent = this.icon;
+    return span;
+  }
 }
 
 const WIKILINK = /\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
@@ -116,13 +144,16 @@ function build(view: EditorView): DecorationSet {
       });
     }
     const inWiki = (a: number, b: number) => wikiRanges.some(([s, e]) => a < e && b > s);
+    // callout 的 `[!tip]` 會被 Lezer 當成連結，略過它的連結標記
+    const calloutRanges: [number, number][] = [];
+    const inCallout = (a: number, b: number) => calloutRanges.some(([s, e]) => a < e && b > s);
 
     syntaxTree(state).iterate({
       from,
       to,
       enter: (node) => {
         const name = node.name;
-        if ((name === "Link" || name === "LinkMark" || name === "URL") && inWiki(node.from, node.to)) return false;
+        if ((name === "Link" || name === "LinkMark" || name === "URL") && (inWiki(node.from, node.to) || inCallout(node.from, node.to))) return false;
         const heading = /^ATXHeading(\d)$/.exec(name);
         if (heading) {
           const line = state.doc.lineAt(node.from);
@@ -133,10 +164,30 @@ function build(view: EditorView): DecorationSet {
           });
         }
         if (name === "Blockquote") {
-          for (let p = node.from; p <= node.to; ) {
+          const first = state.doc.lineAt(node.from);
+          const last = state.doc.lineAt(node.to);
+          const callout = CALLOUT.exec(first.text);
+          const type = callout?.[1].toLowerCase();
+          for (let p = first.from; p <= last.to; ) {
             const line = state.doc.lineAt(p);
-            ranges.push({ from: line.from, to: line.from, deco: Decoration.line({ class: "cm-lp-quote" }) });
+            let cls = "cm-lp-quote";
+            if (type) {
+              cls = `cm-lp-callout${WARN_CALLOUTS.has(type) ? " cm-lp-callout-warn" : ""}`;
+              if (line.number === first.number) cls += " cm-lp-callout-first";
+              if (line.number === last.number) cls += " cm-lp-callout-last";
+            }
+            ranges.push({ from: line.from, to: line.from, deco: Decoration.line({ class: cls }) });
             p = line.to + 1;
+          }
+          // 非游標行：`[!tip]` 換成圖示
+          if (callout) calloutRanges.push([first.from + callout[0].indexOf("[!"), first.from + callout[0].length]);
+          if (callout && !isActive(first.from)) {
+            const start = first.from + callout[0].indexOf("[!");
+            ranges.push({
+              from: start,
+              to: first.from + callout[0].length,
+              deco: Decoration.replace({ widget: new CalloutIconWidget(CALLOUT_ICONS[type!] ?? "💡") }),
+            });
           }
         }
         if (name === "FencedCode") {
@@ -170,6 +221,10 @@ function build(view: EditorView): DecorationSet {
           const after = state.doc.sliceString(node.to + 1, node.to + 4);
           const isTask = /^\[[ xX]\]$/.test(after);
           if (isTask) {
+            if (after !== "[ ]") {
+              const line = state.doc.lineAt(node.from);
+              ranges.push({ from: line.from, to: line.from, deco: Decoration.line({ class: "cm-lp-done" }) });
+            }
             ranges.push({ from: node.from, to: node.to + 1, deco: hide });
             ranges.push({
               from: node.to + 1,

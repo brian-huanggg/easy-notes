@@ -148,6 +148,9 @@ protocol EasyNotesPlugin {
     func write(_ data: Data, to path: String)
     func openLink(_ target: String)
     func search(_ query: String)
+    func modified(_ path: String) -> Date?          // 文件頭的「N 分鐘前編輯」
+    func importAttachment(_ url: URL) async -> String?  // 複製到 Vault 的 `附件/`，回傳 Vault 內路徑
+    var resourceReader: @Sendable (String) async -> Data? { get }  // `vault://` 圖片，背景讀取
 }
 
 // EasyNotesUI：VaultStore 透過它通知編輯器，不再直接呼叫 WebEditorHost
@@ -156,7 +159,7 @@ protocol EasyNotesPlugin {
     func flush() async                              // 改名、刪除、進背景前
     func externalChange(path: String, data: Data)   // 外部修改或同步
     func close(path: String)
-    func linkTargetsChanged(_ names: [String])
+    func linkTargetsChanged(_ targets: [LinkTarget])  // [[ 自動完成與連結卡片：名稱、kind、摘要、mtime、tint、圖示
 }
 
 // PluginRegistry（@MainActor）的擴充點；等第二個外掛真的需要時才抽出，不預先設計
@@ -183,12 +186,16 @@ registry.addIndexContributor(CardExtractor())                  // Flashcards：�
 
 | 方向 | 訊息 | 時機 |
 | --- | --- | --- |
-| Swift → JS | `load({id, text})` | 開啟或切換筆記 |
-| Swift → JS | `applyRemote({id, text})` | 同步拉到遠端變更 |
-| Swift → JS | `exec({command})`、`setTheme` | 工具列、快捷鍵、深色模式 |
+| Swift → JS | `load({id, text, meta})` | 開啟或切換筆記；`meta.modified` 給文件頭 |
+| Swift → JS | `applyRemote({id, text})`、`setMeta` | 同步拉到遠端變更、寫入後更新編輯時間 |
+| Swift → JS | `exec({command, arg})` | 工具列、快捷鍵 |
+| Swift → JS | `setLinkTargets(targets)` | 索引變更（自動完成、連結卡片） |
 | JS → Swift | `ready` | bundle 載入完成（預熱結束） |
 | JS → Swift | `changed({id, text})` | 停止輸入 300ms 或失焦 |
-| JS → Swift | `openLink({target})` | 點擊 `[[連結]]` |
+| JS → Swift | `openLink({target})`、`openTag({tag})` | 點擊 `[[連結]]`、`#標籤` |
+| JS → Swift | `pickCover`、`pickIcon` | 文件頭的更換封面 / 圖示（原生 UI 處理，寫回 frontmatter） |
+
+主題不經 Bridge：`ThemeCSS.stylesheet()` 由 WebEditorHost 以 user script 在頁面載入前注入，深淺色由 `prefers-color-scheme` 切換。圖片由 `vault://<Vault 相對路徑>`（`WKURLSchemeHandler`）讀取，只允許 Vault 內路徑。文件 icon 為 SF Symbol（frontmatter `icon: sf:map`）時，經 `symbol:///<名稱>` 由 Swift 畫成 PNG，CSS 當 mask 上色。
 
 ## 流暢編輯的工程手法
 

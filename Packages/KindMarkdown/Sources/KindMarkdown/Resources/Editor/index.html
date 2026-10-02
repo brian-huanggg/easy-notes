@@ -5,77 +5,113 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="color-scheme" content="light dark">
 <style>
+  /* 顏色、字型、字級的 CSS variables 由 Swift 在頁面載入前注入（ThemeCSS.stylesheet()），
+     名稱與設計稿 design/easy-notes-ui.pen 的 variables 相同；深淺色依 prefers-color-scheme 切換 */
   :root {
-    --text: #1d1d1f;
-    --muted: #86868b;
-    --accent: #b8860b;
-    --link: #0a64d8;
-    --code-bg: rgba(0, 0, 0, 0.05);
-    --quote: rgba(0, 0, 0, 0.15);
-    --bg: #ffffff;
+    color-scheme: light dark;
+    /* 內文欄置中：左右留白 = (視窗寬 - 欄寬) / 2，最少 20px；封面以負 margin 撐滿 */
+    --gutter: max(20px, calc((100vw - var(--doc-column, 716px)) / 2));
+    --cover-height: 178px;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --text: #f5f5f7;
-      --muted: #8e8e93;
-      --accent: #ffcc4d;
-      --link: #4ea1ff;
-      --code-bg: rgba(255, 255, 255, 0.08);
-      --quote: rgba(255, 255, 255, 0.2);
-      --bg: #1c1c1e;
-    }
+  @media (max-width: 600px) {
+    :root { --cover-height: 120px; --doc-title-size: 28px; }
   }
-  html, body { margin: 0; height: 100%; background: var(--bg); }
+  html, body { margin: 0; height: 100%; background: var(--bg-canvas); }
   /* 停用 iOS 長按選單、雙擊放大等會干擾編輯的手勢 */
   body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   #editor { height: 100%; }
-  .cm-editor { height: 100%; color: var(--text); font-size: 17px; }
+  .cm-editor { height: 100%; color: var(--text-body); font-size: var(--doc-body-size, 15.5px); }
   /* CodeMirror 預設在 .cm-scroller 設 monospace，這裡改回系統字型 */
-  .cm-editor .cm-scroller { font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", sans-serif; }
+  .cm-editor .cm-scroller { font-family: var(--font-ui); line-height: var(--doc-body-line, 1.85); padding: 0 var(--gutter) 40vh; }
   .cm-editor.cm-focused { outline: none; }
-  .cm-scroller { line-height: 1.6; padding: 24px max(20px, calc((100% - 720px) / 2)) 40vh; }
-  .cm-content { caret-color: var(--accent); }
+  .cm-content { caret-color: var(--accent); padding: 0; }
+  /* CodeMirror 預設每行左右有內距，內文要與文件頭、卡片切齊 */
+  .cm-editor .cm-content .cm-line { padding: 0; }
   .cm-cursor { border-left: 2px solid var(--accent) !important; }
-  .cm-selectionBackground, .cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 25%, transparent) !important; }
+  .cm-selectionBackground, .cm-focused .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; }
 
-  .cm-lp-h { font-weight: 700; line-height: 1.3; }
-  .cm-lp-h1 { font-size: 1.75em; padding-top: 0.4em; }
-  .cm-lp-h2 { font-size: 1.4em; padding-top: 0.3em; }
-  .cm-lp-h3 { font-size: 1.2em; }
+  /* 文件頭：封面、icon */
+  .cm-doc-header { position: relative; margin: 0 calc(-1 * var(--gutter)); padding: 48px var(--gutter) 0; font-family: var(--font-ui); }
+  .cm-doc-header.has-cover { padding-top: 0; }
+  .cm-doc-header.has-icon { padding-bottom: 16px; }
+  .cm-doc-header.has-icon:not(.has-cover) { padding-top: 40px; }
+  .cm-doc-cover { position: relative; height: var(--cover-height); margin: 0 calc(-1 * var(--gutter)); background: var(--bg-hover); }
+  .cm-doc-cover img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .cm-doc-cover.is-missing img { visibility: hidden; }
+  .cm-doc-cover-tools { position: absolute; right: 20px; bottom: 18px; display: flex; gap: 6px; }
+  .cm-doc-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-glass); -webkit-backdrop-filter: blur(12px); color: var(--text-secondary); font-size: 11px; font-weight: 500; line-height: 16px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .cm-doc-btn:hover { background: var(--bg-hover); }
+  .cm-doc-add { position: absolute; left: var(--gutter); top: 12px; display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+  .cm-doc-add .cm-doc-btn { background: transparent; border-color: transparent; }
+  .cm-doc-add .cm-doc-btn:hover { background: var(--bg-hover); }
+  .cm-doc-header:hover .cm-doc-add, .cm-focused .cm-doc-header .cm-doc-add { opacity: 1; }
+  @media (hover: none) { .cm-doc-add { opacity: 0.8; } }
+  .cm-doc-icon { position: relative; box-sizing: border-box; width: 58px; height: 58px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--surface-raised); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14); font-size: 30px; line-height: 1; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .has-cover .cm-doc-icon { margin-top: -34px; }
+  .cm-doc-icon-symbol { width: 30px; height: 30px; background: var(--text-secondary); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+  @media (max-width: 600px) { .cm-doc-icon { width: 54px; height: 54px; font-size: 28px; } .has-cover .cm-doc-icon { margin-top: -27px; } }
+
+  /* 標題（第一行 `# `）與 meta 列 */
+  .cm-line.cm-doc-title { padding-top: 0; font-size: var(--doc-title-size, 34px); font-weight: 700; line-height: 1.35; color: var(--text-primary); }
+  .cm-doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--font-ui); font-size: 11.5px; line-height: 17px; color: var(--text-tertiary); }
+  .cm-doc-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-hover); color: var(--text-secondary); font-size: 11px; font-weight: 500; line-height: 16px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .cm-doc-tag i { width: 6px; height: 6px; border-radius: 50%; }
+  .cm-lp-yaml { font-family: var(--font-mono); font-size: 0.82em; color: var(--text-tertiary); }
+
+  /* Live Preview */
+  .cm-lp-h { font-weight: 700; line-height: 1.4; color: var(--text-primary); }
+  .cm-lp-h1 { font-size: 26px; padding-top: 0.6em; }
+  .cm-lp-h2 { font-size: var(--doc-heading-size, 19px); letter-spacing: -0.3px; padding-top: 0.7em; }
+  .cm-lp-h3 { font-size: 16.5px; padding-top: 0.5em; }
   .cm-lp-strong { font-weight: 700; }
   .cm-lp-em { font-style: italic; }
-  .cm-lp-strike { text-decoration: line-through; color: var(--muted); }
-  .cm-lp-code { font-family: ui-monospace, "SF Mono", monospace; font-size: 0.88em; background: var(--code-bg); border-radius: 4px; padding: 0 3px; }
-  .cm-lp-codeblock { font-family: ui-monospace, "SF Mono", monospace; font-size: 0.88em; background: var(--code-bg); }
-  .cm-lp-frontmatter { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 2px 10px 6px; cursor: pointer; }
-  .cm-lp-frontmatter span { font-size: 12.5px; color: var(--muted); background: var(--code-bg); border-radius: 6px; padding: 2px 8px; }
-  .cm-lp-yaml { font-family: ui-monospace, "SF Mono", monospace; font-size: 0.82em; color: var(--muted); }
-  .cm-lp-codeinfo { color: var(--muted); font-size: 0.8em; }
-  .cm-lp-quote { border-left: 3px solid var(--quote); padding-left: 12px !important; color: var(--muted); }
-  .cm-lp-link, .cm-lp-wikilink { color: var(--link); cursor: pointer; }
-  .cm-lp-tag { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 5px; padding: 0 3px; cursor: pointer; }
-  .cm-lp-url, .cm-lp-mark { color: var(--muted); }
-  .cm-lp-bullet { color: var(--muted); display: inline-block; width: 0.8em; }
-  /* WebKit 原生 checkbox 不吃 width/height，改自繪；樣式仿 Apple 備忘錄的圓形勾選 */
-  .cm-lp-task {
-    -webkit-appearance: none; appearance: none;
-    box-sizing: border-box; width: 1.2em; height: 1.2em; margin: 0 0.45em 0 0; vertical-align: -0.22em;
-    border: 1.5px solid var(--muted); border-radius: 50%; background: transparent; cursor: pointer;
-    position: relative; touch-action: manipulation; transition: background-color 0.12s, border-color 0.12s;
-  }
-  .cm-lp-task:checked { background: var(--accent); border-color: var(--accent); }
-  .cm-lp-task:checked::after {
-    content: ""; position: absolute; left: 50%; top: 45%; width: 0.26em; height: 0.52em;
-    border: solid var(--bg); border-width: 0 0.12em 0.12em 0;
-    transform: translate(-50%, -50%) rotate(45deg);
-  }
+  .cm-lp-strike { text-decoration: line-through; color: var(--text-tertiary); }
+  .cm-lp-code { font-family: var(--font-mono); font-size: 0.88em; background: var(--bg-hover); border-radius: 4px; padding: 0 3px; }
+  .cm-lp-codeblock { font-family: var(--font-mono); font-size: 0.86em; line-height: 1.6; background: var(--bg-panel); }
+  .cm-lp-codeinfo { color: var(--text-tertiary); font-size: 0.8em; }
+  .cm-lp-quote { background: var(--surface-quote); box-shadow: inset 3px 0 0 var(--accent); padding: 4px 0 4px 17px !important; color: var(--text-secondary); font-size: 15px; line-height: 1.8; }
+  .cm-lp-callout { background: var(--accent-soft); color: var(--accent-deep); padding: 0 15px !important; font-size: 14px; line-height: 1.75; }
+  .cm-lp-callout-first { padding-top: 13px !important; border-top-left-radius: var(--radius-md); border-top-right-radius: var(--radius-md); }
+  .cm-lp-callout-last { padding-bottom: 13px !important; border-bottom-left-radius: var(--radius-md); border-bottom-right-radius: var(--radius-md); margin-bottom: 4px; }
+  .cm-lp-callout-warn { background: var(--warn-soft); color: var(--warn-deep); }
+  .cm-lp-callout-icon { display: inline-block; margin-right: 11px; font-size: 17px; line-height: 1; vertical-align: -1px; }
+  .cm-lp-link, .cm-lp-wikilink { color: var(--accent); cursor: pointer; }
+  .cm-lp-tag { color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 3px; cursor: pointer; }
+  .cm-lp-url, .cm-lp-mark { color: var(--text-tertiary); }
+  .cm-lp-bullet { color: var(--text-tertiary); display: inline-block; width: 0.9em; }
+  /* 自繪的圓形勾選（仿 Apple 備忘錄，bf5da12）；勾選時 accent 底白勾 */
+  .cm-lp-task { position: relative; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; width: 1.2em; height: 1.2em; margin-right: 0.6em; vertical-align: -0.22em; border: 1.5px solid var(--text-tertiary); border-radius: 50%; background: transparent; color: #fff; cursor: pointer; touch-action: manipulation; transition: background-color 0.12s, border-color 0.12s; }
+  .cm-lp-task.is-checked { background: var(--accent); border-color: var(--accent); }
+  .cm-lp-task svg { width: 0.7em; height: 0.7em; }
   /* 擴大觸控熱區（不影響排版） */
   .cm-lp-task::before { content: ""; position: absolute; inset: -0.4em; border-radius: 50%; }
+  .cm-lp-done { color: var(--text-tertiary); }
+
+  /* 連結卡片（獨占一行的 [[連結]]） */
+  .cm-lp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 4px 0 6px; font-family: var(--font-ui); }
+  .cm-lp-card { display: flex; align-items: center; gap: 11px; box-sizing: border-box; height: 56px; padding: 0 13px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-panel); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .cm-lp-card:hover { border-color: var(--border-strong); }
+  .cm-lp-card.is-missing { border-style: dashed; background: transparent; }
+  .cm-lp-card-icon { flex: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 9px; background: var(--tint-soft, var(--bg-hover)); }
+  .cm-lp-card-icon i { width: 16px; height: 16px; background: var(--tint, var(--text-tertiary)); -webkit-mask: var(--icon, none) center / contain no-repeat; mask: var(--icon, none) center / contain no-repeat; }
+  .cm-lp-card.is-missing .cm-lp-card-icon i { -webkit-mask: none; mask: none; background: none; }
+  .cm-lp-card.is-missing .cm-lp-card-icon::after { content: "+"; color: var(--text-tertiary); font-size: 16px; }
+  .cm-lp-card-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .cm-lp-card-title, .cm-lp-card-sub { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .cm-lp-card-title { font-size: 13.5px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
+  .cm-lp-card-sub { font-size: 11.5px; line-height: 17px; color: var(--text-tertiary); }
+  .cm-lp-card-chevron { flex: none; display: flex; color: var(--text-tertiary); }
+  .cm-lp-embed { padding: 6px 0; }
+  .cm-lp-embed img { display: block; max-width: 100%; max-height: 70vh; border-radius: var(--radius-md); }
+  .cm-lp-embed.is-missing { color: var(--text-tertiary); font-size: 13px; }
+  .cm-lp-embed.is-missing img { display: none; }
+  .cm-lp-embed.is-missing::after { content: "找不到圖片"; }
+
   /* [[ 自動完成 */
-  .cm-tooltip.cm-tooltip-autocomplete { border: none; border-radius: 10px; overflow: hidden; background: var(--bg); box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 0 0 0.5px var(--quote); }
-  .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: -apple-system, "PingFang TC", sans-serif; font-size: 15px; max-height: 14em; }
-  .cm-tooltip-autocomplete > ul > li { padding: 6px 12px !important; color: var(--text); }
-  .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] { background: color-mix(in srgb, var(--accent) 22%, transparent) !important; color: var(--text) !important; }
+  .cm-tooltip.cm-tooltip-autocomplete { border: none; border-radius: var(--radius-md); overflow: hidden; background: var(--surface-raised); box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 0 0 0.5px var(--border-strong); }
+  .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: var(--font-ui); font-size: 14px; max-height: 14em; }
+  .cm-tooltip-autocomplete > ul > li { padding: 6px 12px !important; color: var(--text-primary); }
+  .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--bg-selected) !important; color: var(--text-primary) !important; }
   .cm-editor .cm-completionMatchedText { text-decoration: none; font-weight: 700; color: var(--accent); }
 </style>
 </head>

@@ -45,19 +45,29 @@ public struct TabBar<ID: Hashable>: View {
     }
 }
 
-/// 一個工具列按鈕：圖示 + 說明 + 動作
+/// 一個工具列按鈕：圖示 + 說明 + 動作；有 `menu` 時按下展開選單（項目以 `help` 為標題）
 public struct ToolItem: Identifiable {
-    public var id: String { symbol }
+    public var id: String { symbol + help }
     let symbol: String
     let help: String
     let isActive: Bool
+    let menu: [ToolItem]?
     let action: () -> Void
 
     public init(_ symbol: String, help: String, isActive: Bool = false, action: @escaping () -> Void) {
         self.symbol = symbol
         self.help = help
         self.isActive = isActive
+        self.menu = nil
         self.action = action
+    }
+
+    public init(_ symbol: String, help: String, menu: [ToolItem]) {
+        self.symbol = symbol
+        self.help = help
+        self.isActive = false
+        self.menu = menu
+        self.action = {}
     }
 }
 
@@ -92,17 +102,29 @@ public struct FormatBar: View {
     private func button(_ item: ToolItem, tint: ColorToken = Palette.textSecondary) -> some View {
         let floating = style == .floating
         let size: CGFloat = floating ? 32 : 36
-        return Button(action: item.action) {
-            Image(systemName: item.symbol)
-                .font(.system(size: floating ? 15 : 16))
-                .foregroundStyle(item.isActive ? Palette.accent : tint)
-                .frame(width: size, height: size)
-                .background {
-                    if floating { Circle().fill(item.isActive ? Palette.accentSoft : ColorToken.clear) }
-                    else { RoundedRectangle(cornerRadius: Metrics.radiusSmall).fill(item.isActive ? Palette.accentSoft : ColorToken.clear) }
+        let label = Image(systemName: item.symbol)
+            .font(.system(size: floating ? 15 : 16))
+            .foregroundStyle(item.isActive ? Palette.accent : tint)
+            .frame(width: size, height: size)
+            .background {
+                if floating { Circle().fill(item.isActive ? Palette.accentSoft : ColorToken.clear) }
+                else { RoundedRectangle(cornerRadius: Metrics.radiusSmall).fill(item.isActive ? Palette.accentSoft : ColorToken.clear) }
+            }
+            .contentShape(Rectangle())
+            .hoverBackground(cornerRadius: floating ? size / 2 : Metrics.radiusSmall, isActive: !item.isActive)
+        return Group {
+            if let menu = item.menu {
+                Menu {
+                    ForEach(menu) { entry in Button(entry.help, systemImage: entry.symbol, action: entry.action) }
+                } label: {
+                    label
                 }
-                .contentShape(Rectangle())
-                .hoverBackground(cornerRadius: floating ? size / 2 : Metrics.radiusSmall, isActive: !item.isActive)
+                .menuStyle(.button)
+                .menuIndicator(.hidden)
+                .fixedSize()
+            } else {
+                Button(action: item.action) { label }
+            }
         }
         .buttonStyle(.plain)
         .help(item.help)

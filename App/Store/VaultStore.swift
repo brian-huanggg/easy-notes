@@ -366,6 +366,35 @@ final class VaultStore: DocumentSession {
         searchText = query
     }
 
+    func modified(_ path: String) -> Date? {
+        file(at: path)?.mtime
+            ?? (try? fs.url(for: path).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+    }
+
+    /// 附件（封面、插入的圖片）一律放 Vault 根目錄的這個資料夾
+    static let attachmentsFolder = "附件"
+
+    func importAttachment(_ url: URL) async -> String? {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let root = fs.root.standardizedFileURL.path(percentEncoded: false)
+        let source = url.standardizedFileURL.path(percentEncoded: false)
+        if source.hasPrefix(root) { return fs.path(for: url) }
+        do {
+            let path = try fs.importFile(from: url, in: Self.attachmentsFolder)
+            onLocalChange?()
+            return path
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    var resourceReader: @Sendable (String) async -> Data? {
+        let fs = fs
+        return { path in try? fs.read(path) }
+    }
+
     func isFolder(_ path: String) -> Bool {
         var isDir: ObjCBool = false
         return FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false), isDirectory: &isDir)
@@ -415,11 +444,21 @@ final class VaultStore: DocumentSession {
             guard !Task.isCancelled, let index else { return }
             tags = (try? await index.tags()) ?? []
             files = (try? await index.files()) ?? []
-            let targets = (try? await index.linkTargets()) ?? []
+            let targets = linkTargets()
             for editor in editors { editor.linkTargetsChanged(targets) }
             refreshBacklinks()
             if !searchText.isEmpty { runSearch() }
         }
+    }
+
+    /// `[[` 自動完成與連結卡片：類型的圖示與顏色從 PluginRegistry 取，編輯器不認識其他外掛
+    private func linkTargets() -> [LinkTarget] {
+        files.map { file in
+            let kindID = kindID(file.path)
+            return LinkTarget(name: fs.kinds.displayName(file.path), path: file.path, symbol: plugins.symbol(for: kindID),
+                              tint: plugins.tint(for: kindID), summary: file.summary, modified: file.mtime)
+        }
+        .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
     // MARK: 列表

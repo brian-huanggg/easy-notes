@@ -10,6 +10,7 @@
 		00510153B7BCE96032DD107D /* PhoneShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579B252C4E387DAA206A81C4 /* PhoneShell.swift */; };
 		101E2195848FAA36B004175C /* DocumentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408995D942130D7C246E9488 /* DocumentList.swift */; };
 		26D8C7AF355BC8EC6375792E /* Seed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621DAA0D9BC592CA611B85CD /* Seed.swift */; };
+		2BC105003B98F723E7122D75 /* DocumentToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */; };
 		2DD864AD35BAE672AD261BEF /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6CB15764ED9797D6EAC845 /* MeView.swift */; };
 		4E3F9CE490D0F1A4D2231248 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0381EF19D6A158B3D066B56 /* Supabase.swift */; };
 		5053C674585C371A9FF065B5 /* KindMarkdown in Frameworks */ = {isa = PBXBuildFile; productRef = 5F513C491EF263012ADAAAA5 /* KindMarkdown */; };
@@ -50,6 +51,7 @@
 		BA6A0FF1DE592EB8765FAF6C /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		BC2458B612293008933144BC /* QuickOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickOpen.swift; sourceTree = "<group>"; };
 		C133D004357078C1AC75F9A8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentToolbar.swift; sourceTree = "<group>"; };
 		DF9993BD4CC3547317AEF773 /* EasyNotes.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EasyNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCoordinator.swift; sourceTree = "<group>"; };
 		FBD41C33E0C444D157A12471 /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusView.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 			children = (
 				C133D004357078C1AC75F9A8 /* ContentView.swift */,
 				408995D942130D7C246E9488 /* DocumentList.swift */,
+				CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */,
 				6A6CB15764ED9797D6EAC845 /* MeView.swift */,
 				579B252C4E387DAA206A81C4 /* PhoneShell.swift */,
 				BC2458B612293008933144BC /* QuickOpen.swift */,
@@ -223,6 +226,7 @@
 			files = (
 				C94F18E977A2FA3EEBF6F080 /* ContentView.swift in Sources */,
 				101E2195848FAA36B004175C /* DocumentList.swift in Sources */,
+				2BC105003B98F723E7122D75 /* DocumentToolbar.swift in Sources */,
 				71B87B4921F329C07C51EB22 /* EasyNotesApp.swift in Sources */,
 				2DD864AD35BAE672AD261BEF /* MeView.swift in Sources */,
 				00510153B7BCE96032DD107D /* PhoneShell.swift in Sources */,
