@@ -125,7 +125,11 @@ protocol DocumentKind {
     static func index(_ data: Data, fileName: String) -> IndexEntry
     static func merge(base: Data?, local: Data, remote: Data) -> Data?  // nil = 衝突副本
     static func renameLinks(in data: Data, from: String, to: String) -> Data?  // 預設 nil = 沒有要改的連結
+    static func setPinned(_ pinned: Bool, in data: Data) -> Data?  // 預設 nil = 不支援釘選
 }
+
+// index() 的結果；icon、pinned、summary 由外掛決定，Core 只存不解讀
+struct IndexEntry { title, plainText, links, tags, icon: String?, pinned: Bool, summary: String? }
 
 // EasyNotesCore：Vault、Index、Sync 只認識這張表（Sendable，啟動後不變）
 struct KindRegistry {
@@ -156,7 +160,8 @@ protocol EasyNotesPlugin {
 }
 
 // PluginRegistry（@MainActor）的擴充點；等第二個外掛真的需要時才抽出，不預先設計
-registry.addKind(MarkdownKind.self, symbol: "doc.text", tint: .neutral)  // 第一個註冊的 Kind = [[連結]] 找不到時建立的類型；tint = 類型顏色
+registry.addKind(MarkdownKind.self, name: "筆記", symbol: "doc.text", tint: .neutral)  // 第一個註冊的 Kind = [[連結]] 找不到時建立的類型；name = 篩選 chip；tint = 類型顏色
+registry.addPreview(for: MarkdownKind.id, MarkdownPreview())   // 列表卡片縮圖（原生渲染）；之後也用於 ![[x]] 嵌入、白板筆記卡片
 registry.addEditor(for: MarkdownKind.id) { path in MarkdownEditorView(path: path) }
 registry.addNewFile("新筆記", kind: MarkdownKind.self, symbol: "square.and.pencil", shortcut: "n", defaultName: "未命名")
 registry.addController(MarkdownEditor.shared)
@@ -166,10 +171,11 @@ registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badg
 registry.kinds                                                // → KindRegistry，交給 VaultFS、VaultIndex
 // 之後的 Phase：
 registry.addIndexContributor(CardExtractor())                  // Flashcards：從 md 抽出卡片
-registry.addPreview(for: MarkdownKind.id, MarkdownPreview())   // ![[x]] 嵌入、白板筆記卡片
 ```
 
 2026-10-01 決定：Registry 分兩層。Core 只有無 UI 的 KindRegistry，給 Vault、Index、Sync 使用；PluginRegistry 需要 SwiftUI（addEditor 回傳 View），所以放在 EasyNotesUI。外掛不能 import App，因此 VaultStore 中 Markdown 專屬的邏輯（改名時更新連結、外部修改推給編輯器、自動完成清單）改走 DocumentKind.renameLinks 與 EditorController。
+
+2026-10-02 決定（2.5c）：`PreviewProvider` 分兩段。`makePreview(Data) -> DocumentPreview` 在背景執行，結果可序列化，依內容 hash 快取在 `.easynotes/cache/preview/<hash>.json`；`view(_:)` 在主執行緒用原生 SwiftUI 渲染。沒有註冊預覽的類型顯示骨架佔位。
 
 現況（2026-10-01）：Phase 1.5 的結構重構已完成，Core 不再包含任何檔案類型；`VaultIndex.clean()` 的片段清理仍是 Markdown 語法，第二個有文字的外掛需要時再抽成擴充點。
 
