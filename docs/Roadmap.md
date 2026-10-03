@@ -425,7 +425,7 @@
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
   - 實作完成（含工具列的「便利貼」按鈕、選取選單的編輯 / 刪除、模型 Undo）。
   - iPad 第一輪回報：手指與 Pencil 無法移動、縮放；書寫或打字時看到便利貼底下的文字；書寫時明顯延遲、掉幀。已修正（手勢改裝在 PDFView 外層、筆畫改變不再重畫標註層、文字框不透明且延後移除），iPad 實機已驗證：移動、縮放、不再露出底下文字、延遲明顯改善。
-  - iPad 第二輪回報：手寫模式中 Pencil 無法寫在便利貼上。已修正（手寫模式不讓書寫等便利貼的點選失敗），尚未驗證；iPad 便利貼內注音輸入尚未驗證。已知：鍵盤可能蓋住頁面下方的便利貼（PDFView 不會自動捲動）；旋轉頁上的編輯框不跟著旋轉。
+  - iPad 第二輪回報：手寫模式中 Pencil 無法寫在便利貼上，`bc00a16` 的修正無效，暫時跳過（見 Bug Reports「PDF」）；iPad 便利貼內注音輸入尚未驗證。已知：鍵盤可能蓋住頁面下方的便利貼（PDFView 不會自動捲動）；旋轉頁上的編輯框不跟著旋轉。
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
   - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；iPad 實機已驗證關閉重開後筆畫保存；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
 - [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）
@@ -572,6 +572,10 @@
 - [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
 - [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置
 
+### PDF
+
+- [ ] iPad 手寫模式中 Pencil 無法寫在便利貼上（便利貼以外正常）。已試：手寫模式不讓書寫手勢等便利貼的點選失敗（`bc00a16`），無效，所以不是手勢的失敗依賴。待查：便利貼範圍內 Pencil 的觸控落在哪個 view（`hitTest`）、PDFKit 在 `isInMarkupMode` 下是否另有攔截。
+
 ## 其餘功能清單
 
 - [ ] Xmind - Mindmap
@@ -602,6 +606,7 @@
 - [ ] Sheets 的排序與篩選狀態要不要記住？（建議：只存在這台裝置，不同步；Phase 6 開工時決定）
 - [x] 附件資料夾名稱 → `Attachments/`（固定英文，不隨介面語言）。舊版的 `附件/` 不搬動、不改寫連結，`vault://` 在 `Attachments/` 找不到時改找 `附件/`（單元測試涵蓋路徑對應；實機開啟舊筆記的圖片與封面尚未驗證）
 - [x] Vault 的 `CLAUDE.md` 要固定哪一種語言？→ 英文。只在檔案不存在時建立，所以既有 Vault 裡的中文版不會被改寫，要換自己刪掉重建（尚未驗證）
+- [ ] PDF 便利貼上的手寫要不要跟著便利貼移動？目前筆畫與便利貼是各自獨立的元素，移動便利貼時筆畫留在原處（GoodNotes 的做法是跟著走，需要記錄筆畫屬於哪張便利貼）
 - [ ] `DocumentKind.index()` 的 `summary` 長期是否改成不含語言的結構化資料，取代 i2 的「語言改變就重建索引」
 
 Vault 位置已決定：macOS 用可見資料夾 `~/Documents/EasyNotes`，不開沙盒。
