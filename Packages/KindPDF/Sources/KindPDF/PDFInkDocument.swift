@@ -20,7 +20,7 @@ final class PDFInkDocument {
     @ObservationIgnored var onInkChange: ((_ pages: Set<Int>?) -> Void)?
     /// 把檢視器裡尚未寫回的內容（編輯中的便利貼文字）併進標註並存檔
     @ObservationIgnored var flushHandler: (() -> Void)?
-    @ObservationIgnored private let session: any DocumentSession
+    @ObservationIgnored let session: any DocumentSession
     @ObservationIgnored private var lastData: Data?
     @ObservationIgnored private(set) var hasUnsavedEdits = false
     @ObservationIgnored private var hashTask: Task<Void, Never>?

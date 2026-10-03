@@ -9,6 +9,7 @@ struct PDFReaderView: View {
     @State private var handle = PDFCanvasHandle()
     /// iOS 手寫模式（工具列的畫筆）
     @State private var inking = false
+    @State private var exportJob: PDFExportJob?
 
     var body: some View {
         // 不能用 Group：document 還是 nil 時沒有子 view，onAppear 永遠不會被呼叫
@@ -20,11 +21,17 @@ struct PDFReaderView: View {
                     .onChange(of: inking) { _, on in handle.canvas?.setInking(on) }
                     #else
                     .overlay(alignment: .bottomTrailing) {
-                        Button { handle.canvas?.addSticky() } label: {
-                            Label(L("便利貼"), systemImage: "note.text")
+                        HStack(spacing: 8) {
+                            Button { exportJob = PDFExportJob(document: document) } label: {
+                                Label(L("匯出"), systemImage: "square.and.arrow.up")
+                            }
+                            .help(L("匯出含標註的 PDF"))
+                            Button { handle.canvas?.addSticky() } label: {
+                                Label(L("便利貼"), systemImage: "note.text")
+                            }
+                            .help(L("在目前頁新增便利貼"))
                         }
                         .controlSize(.large)
-                        .help(L("在目前頁新增便利貼"))
                         .padding(16)
                     }
                     #endif
@@ -32,11 +39,14 @@ struct PDFReaderView: View {
                         VStack(spacing: 0) {
                             #if os(iOS)
                             // 工具列獨立一排，在導覽列（檔名、設定）下方
-                            PDFToolbar(inking: $inking, handle: handle)
+                            PDFToolbar(inking: $inking, handle: handle) {
+                                exportJob = PDFExportJob(document: document)
+                            }
                             #endif
                             if document.hashMismatch { HashMismatchBanner(document: document) }
                         }
                     }
+                    .sheet(item: $exportJob) { PDFExportSheet(job: $0) }
             }
         }
         .onAppear {
