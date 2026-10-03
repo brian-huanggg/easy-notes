@@ -1,7 +1,153 @@
 {
   "sourceLanguage" : "zh-Hant",
   "strings" : {
+    "%lld" : {
 
+    },
+    "%lld 頁" : {
+
+    },
+    "FPS %lld　最長一幀 %@ ms" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "FPS %1$lld　最長一幀 %2$@ ms"
+          }
+        }
+      }
+    },
+    "overlay %@　cropBox %@　旋轉 %lld°" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "overlay %1$@　cropBox %2$@　旋轉 %3$lld°"
+          }
+        }
+      }
+    },
+    "PDF" : {
+
+    },
+    "PDF 已變更，標註可能錯位" : {
+
+    },
+    "Undo %@ Redo %@　最近復原：%@　PencilKit 被吞 %lld" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Undo %1$@ Redo %2$@　最近復原：%3$@　PencilKit 被吞 %4$lld"
+          }
+        }
+      }
+    },
+    "不限" : {
+
+    },
+    "便利貼" : {
+
+    },
+    "保留標註" : {
+
+    },
+    "刪除" : {
+
+    },
+    "加入對齊參考筆畫（每頁）" : {
+
+    },
+    "匯入 PDF…" : {
+
+    },
+    "復原" : {
+
+    },
+    "手指也能書寫（Simulator）" : {
+
+    },
+    "模型 Undo（關閉 = PencilKit 原生）" : {
+
+    },
+    "每頁加 30 筆隨機筆畫" : {
+
+    },
+    "清除所有筆畫" : {
+
+    },
+    "畫筆" : {
+
+    },
+    "結束手寫" : {
+
+    },
+    "編輯" : {
+
+    },
+    "縮放 %@×　螢幕上 %@×　raster %@　重新載入 %lld" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "縮放 %1$@×　螢幕上 %2$@×　raster %3$@　重新載入 %4$lld"
+          }
+        }
+      }
+    },
+    "縮放後重設 contentScaleFactor" : {
+
+    },
+    "自動捲動（壓力測試）" : {
+
+    },
+    "螢幕 × 4" : {
+
+    },
+    "螢幕 × 6" : {
+
+    },
+    "螢幕 × 8" : {
+
+    },
+    "記憶體 %@ MB　峰值 %@ MB" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "記憶體 %1$@ MB　峰值 %2$@ MB"
+          }
+        }
+      }
+    },
+    "載入 200 頁範例" : {
+
+    },
+    "選項" : {
+
+    },
+    "重做" : {
+
+    },
+    "重設記憶體峰值" : {
+
+    },
+    "開啟 PDF…" : {
+
+    },
+    "頁 %lld / %lld　overlay %lld（累計 %lld）　有筆畫 %lld 頁" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "頁 %1$lld / %2$lld　overlay %3$lld（累計 %4$lld）　有筆畫 %5$lld 頁"
+          }
+        }
+      }
+    },
+    "點陣上限" : {
+
+    }
   },
   "version" : "1.0"
 }
