@@ -16,7 +16,7 @@
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
-| 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
+| 6 Sheets | S5、6a–6c 實作完成（Swift 端未在 macOS / iOS 編譯與實機驗證）；6d 未開始 | [sheets.md](./architecture/sheets.md) |
 | i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -493,8 +493,10 @@
 
 ### 6c 顯示設定
 
-- [ ] `.csv.meta.json` / `.tsv.meta.json`（欄寬、凍結欄、標題列）；只在改了顯示設定時建立
-- [ ] 以 `companionOf` 註冊為伴隨檔；增刪欄時一起調整；以欄位 LWW 合併
+- [x] `.csv.meta.json` / `.tsv.meta.json`（欄寬、凍結欄、標題列）；只在改了顯示設定時建立
+- [x] 以 `companionOf` 註冊為伴隨檔；增刪欄時一起調整；以欄位三方合併（兩邊都改時本地優先）
+- [ ] 驗證：macOS 與 iOS 建置、`swift test`（`SheetMetaTests`）、實機調整欄寬 / 凍結首欄 / 第一列是標題後重開仍保留、改名搬移刪除時旁檔跟著走、兩台各改不同設定同步後合併
+  - 目前只在 Linux 的 Chromium（Playwright）驗證 JS 端：載入時套用欄寬與凍結欄、切換凍結 / 標題列送出 `meta`、關掉標題列後排序並寫入包含第一列、插入 / 刪除欄（含復原）移動欄寬與凍結欄數、拖曳欄寬送出寬度、`applyMeta` 重畫。這個環境沒有 Swift 工具鏈（`download.swift.org` 被網路政策擋住），`SheetMeta` 與 `SheetSession` 的修改未編譯過，`SheetMetaTests` 未執行。
 
 ### 6d 預覽、嵌入、新增與匯入
 

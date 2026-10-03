@@ -7,11 +7,23 @@ export type Op =
   | { op: "deleteColumn"; at: number }
   | { op: "order"; rows: number[] };
 
-// ops 以 JSON 字串送出：Swift 用 JSONDecoder 解碼（避免 NSNumber 的整數 / 浮點轉換）
-export type Outgoing = { type: "ready" } | { type: "edit"; ops: string };
+/** 顯示設定（`.csv.meta.json`）；`columns` 比欄數少時，其餘欄位是預設值 */
+export interface Meta {
+  version: number;
+  columns: { width?: number | null }[];
+  frozenColumns: number;
+  headerRow: boolean;
+}
+
+// ops 與 meta 以 JSON 字串送出：Swift 用 JSONDecoder 解碼（避免 NSNumber 的整數 / 浮點轉換）
+export type Outgoing = { type: "ready" } | { type: "edit"; ops: string } | { type: "meta"; meta: string };
 
 export function postEdit(ops: Op[]) {
   post({ type: "edit", ops: JSON.stringify(ops) });
+}
+
+export function postMeta(meta: Meta) {
+  post({ type: "meta", meta: JSON.stringify(meta) });
 }
 
 // `window.webkit` 的型別由 markdown/bridge.ts 宣告（訊息型別不同），這裡自己轉型
