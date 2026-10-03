@@ -1,14 +1,15 @@
 // EasyNotes 表格編輯器：RevoGrid（內建編輯器，S5 Spike 驗證過注音）+ Swift Bridge
 //
 // Bridge 協定（見 docs/architecture/sheets.md）：
-//   Swift → JS : window.sheet.load / applyRemote / exec / flush / focus
-//   JS → Swift : ready / edit
+//   Swift → JS : window.sheet.load / applyRemote / applyMeta / exec / flush / focus
+//   JS → Swift : ready / edit / meta
 // 打字的熱路徑不跨 Bridge：edit 只在儲存格編輯結束時送出。Undo 在 JS 端以 op 堆疊實作，
 // 復原也是一般的 edit（Swift 不區分）。排序與篩選只影響畫面；「依此欄排序並寫入」才送 order。
+// 顯示設定（欄寬、凍結欄、標題列）在 JS 改，整份以 meta 送出，Swift 寫進 `.csv.meta.json`。
 import type { BeforeRangeSaveDataDetails, BeforeSaveDataDetails, ColumnRegular } from "@revolist/revogrid";
 import { defineCustomElement } from "@revolist/revogrid/standalone/revo-grid.js";
 import { locale } from "../shared/i18n";
-import { Op, post, postEdit } from "./bridge";
+import { Meta, Op, post, postEdit, postMeta } from "./bridge";
 
 defineCustomElement();
 
@@ -17,6 +18,7 @@ type Row = { __id: number; [col: number]: string };
 interface Payload {
   rows: { id: number; cells: string[] }[];
   readOnly?: boolean;
+  meta?: Meta;
 }
 interface Entry {
   forward: Op[];
@@ -41,13 +43,12 @@ const applyTheme = () => (grid.theme = dark.matches ? "darkCompact" : "compact")
 applyTheme();
 dark.addEventListener("change", applyTheme);
 
-/** 檔案順序；第一列是標題列，固定在上方，不參與排序與篩選 */
+/** 檔案順序；`meta.headerRow` 時第一列是標題列，固定在上方，不參與排序與篩選 */
 let rows: Row[] = [];
 let byId = new Map<number, Row>();
 let width = 0;
 let readOnly = false;
-/** 凍結首欄（顯示設定，6c 起存進 `.csv.meta.json`） */
-let frozen = false;
+let meta: Meta = defaultMeta();
 let nextLocalId = -1;
 let undoStack: Entry[] = [];
 let redoStack: Entry[] = [];
@@ -61,6 +62,31 @@ const collator = new Intl.Collator(locale, { numeric: true, sensitivity: "base" 
 function compareCells(a: string, b: string): number {
   if (a === "" || b === "") return a === b ? 0 : a === "" ? 1 : -1;
   return collator.compare(a, b);
+}
+
+const defaultWidth = 140;
+
+function defaultMeta(): Meta {
+  return { version: 1, columns: [], frozenColumns: 0, headerRow: true };
+}
+
+/** 去掉結尾的預設欄位（與 Swift 的 `SheetMeta` 相同），相同的設定送出相同的內容 */
+function normalizeMeta(m: Meta): Meta {
+  const columns = m.columns.map((c) => (typeof c?.width === "number" ? { width: c.width } : {}));
+  while (columns.length > 0 && !("width" in columns[columns.length - 1])) columns.pop();
+  return { version: m.version ?? 1, columns, frozenColumns: Math.max(0, m.frozenColumns ?? 0), headerRow: m.headerRow ?? true };
+}
+
+function updateMeta(change: (m: Meta) => void) {
+  const before = JSON.stringify(meta);
+  change(meta);
+  meta = normalizeMeta(meta);
+  if (JSON.stringify(meta) !== before) postMeta(meta);
+}
+
+/** 標題列（固定在上方的第一列）的 id；沒有標題列時為 undefined */
+function headerId(): number | undefined {
+  return meta.headerRow ? rows[0]?.__id : undefined;
 }
 
 function cell(row: Row, col: number): string {
@@ -88,9 +114,9 @@ function columns(): ColumnRegular[] {
   return Array.from({ length: width }, (_, i) => ({
     prop: i,
     name: columnName(i),
-    size: 140,
+    size: meta.columns[i]?.width ?? defaultWidth,
     sortable: true,
-    pin: frozen && i === 0 ? "colPinStart" : undefined,
+    pin: i < meta.frozenColumns ? "colPinStart" : undefined,
     cellCompare: (prop, a, b) => compareCells(String(a[prop] ?? ""), String(b[prop] ?? "")),
   }));
 }
@@ -98,8 +124,9 @@ function columns(): ColumnRegular[] {
 function render() {
   byId = new Map(rows.map((row) => [row.__id, row]));
   grid.columns = columns();
-  grid.pinnedTopSource = rows.slice(0, 1);
-  grid.source = rows.slice(1);
+  const header = meta.headerRow ? 1 : 0;
+  grid.pinnedTopSource = rows.slice(0, header);
+  grid.source = rows.slice(header);
   grid.readonly = readOnly;
 }
 
@@ -121,7 +148,7 @@ async function focused(): Promise<CellRef | null> {
 async function selectedRowIds(): Promise<number[]> {
   const range = await grid.getSelectedRange();
   if (range) {
-    if (range.rowType === "rowPinStart") return rows.length > 0 ? [rows[0].__id] : [];
+    if (range.rowType === "rowPinStart") return headerId() !== undefined ? [headerId()!] : [];
     const visible = (await grid.getVisibleSource("rgRow")) as Row[];
     return visible.slice(Math.min(range.y, range.y1), Math.max(range.y, range.y1) + 1).map((r) => r.__id);
   }
@@ -131,9 +158,10 @@ async function selectedRowIds(): Promise<number[]> {
 
 async function restoreFocus(ref: CellRef | null) {
   if (!ref || !byId.has(ref.id) || ref.col >= width) return;
-  const colType = frozen && ref.col === 0 ? "colPinStart" : "rgCol";
-  const x = frozen && ref.col > 0 ? ref.col - 1 : ref.col;
-  if (rows[0]?.__id === ref.id) {
+  const pinned = ref.col < meta.frozenColumns;
+  const colType = pinned ? "colPinStart" : "rgCol";
+  const x = pinned ? ref.col : ref.col - meta.frozenColumns;
+  if (headerId() === ref.id) {
     await grid.setCellsFocus({ x, y: 0 }, { x, y: 0 }, colType, "rowPinStart");
     return;
   }
@@ -170,6 +198,11 @@ function applyLocal(op: Op) {
         row[op.at] = "";
       }
       width += 1;
+      // 顯示設定跟著移動：插入的欄是預設寬度，插在凍結範圍內就多凍結一欄
+      updateMeta((m) => {
+        if (op.at < m.columns.length) m.columns.splice(op.at, 0, {});
+        if (op.at < m.frozenColumns) m.frozenColumns += 1;
+      });
       break;
     case "deleteColumn":
       for (const row of rows) {
@@ -177,6 +210,10 @@ function applyLocal(op: Op) {
         delete row[width - 1];
       }
       width = Math.max(0, width - 1);
+      updateMeta((m) => {
+        if (op.at < m.columns.length) m.columns.splice(op.at, 1);
+        if (op.at < m.frozenColumns) m.frozenColumns -= 1;
+      });
       break;
     case "order":
       rows = op.rows.map((id) => byId.get(id)).filter((r): r is Row => r !== undefined);
@@ -246,6 +283,18 @@ grid.addEventListener("afteredit", () => {
   if (deferredRemote !== null) void applyDeferredRemote(forward);
 });
 
+/** 拖曳調整欄寬：detail 的 key 是欄位在各自區域（凍結 / 一般）內的位置，以 prop 對回欄位 */
+grid.addEventListener("aftercolumnresize", (e: CustomEvent<Record<number, ColumnRegular>>) => {
+  updateMeta((m) => {
+    for (const column of Object.values(e.detail)) {
+      const col = Number(column.prop);
+      if (!Number.isInteger(col) || typeof column.size !== "number") continue;
+      while (m.columns.length <= col) m.columns.push({});
+      m.columns[col] = { width: Math.round(column.size) };
+    }
+  });
+});
+
 /** 編輯器沒有保存就關閉（Esc）時，afteredit 不會觸發 */
 grid.addEventListener("focusout", () => {
   setTimeout(() => {
@@ -311,8 +360,9 @@ async function deleteColumn() {
 /** 依目前欄排序並寫入檔案；標題列不動 */
 async function sortAndWrite(descending: boolean) {
   const ref = await focused();
-  if (!ref || rows.length < 3) return;
-  const [header, ...body] = rows;
+  const header = rows.slice(0, meta.headerRow ? 1 : 0);
+  const body = rows.slice(header.length);
+  if (!ref || body.length < 2) return;
   const sorted = [...body].sort((a, b) => {
     const order = compareCells(cell(a, ref.col), cell(b, ref.col));
     // 空白一律在最後
@@ -320,17 +370,29 @@ async function sortAndWrite(descending: boolean) {
     return descending ? -order : order;
   });
   const before = rows.map((r) => r.__id);
-  const after = [header, ...sorted].map((r) => r.__id);
+  const after = [...header, ...sorted].map((r) => r.__id);
   if (before.every((id, i) => id === after[i])) return;
   grid.clearSorting();
   await perform({ forward: [{ op: "order", rows: after }], backward: [{ op: "order", rows: before }] });
 }
 
-async function toggleFreeze() {
+/** 顯示設定改變後重畫，保留選取的儲存格 */
+async function rerender(change: () => void) {
   const ref = await focused();
-  frozen = !frozen;
-  grid.columns = columns();
+  change();
+  render();
   await restoreFocus(ref);
+}
+
+/** 凍結首欄；已經凍結（不論幾欄）就取消 */
+async function toggleFreeze() {
+  await rerender(() => updateMeta((m) => (m.frozenColumns = m.frozenColumns > 0 ? 0 : 1)));
+}
+
+/** 第一列是標題（固定在上方）或一般資料列；切換時清掉畫面上的排序 */
+async function toggleHeaderRow() {
+  grid.clearSorting();
+  await rerender(() => updateMeta((m) => (m.headerRow = !m.headerRow)));
 }
 
 const commands: Record<string, () => Promise<void>> = {
@@ -343,6 +405,7 @@ const commands: Record<string, () => Promise<void>> = {
   sortAscending: () => sortAndWrite(false),
   sortDescending: () => sortAndWrite(true),
   toggleFreeze,
+  toggleHeaderRow,
   undo,
   redo,
 };
@@ -374,6 +437,7 @@ const api = {
     const payload: Payload = JSON.parse(json);
     loadRows(payload);
     readOnly = payload.readOnly ?? false;
+    meta = normalizeMeta(payload.meta ?? defaultMeta());
     undoStack = [];
     redoStack = [];
     pending = [];
@@ -391,6 +455,11 @@ const api = {
     loadRows(JSON.parse(json));
     render();
     await restoreFocus(ref);
+  },
+
+  /** 顯示設定旁檔被外部修改或同步合併 */
+  async applyMeta(json: string) {
+    await rerender(() => (meta = normalizeMeta(JSON.parse(json))));
   },
 
   async exec(command: string) {

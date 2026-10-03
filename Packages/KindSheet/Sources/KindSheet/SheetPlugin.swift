@@ -6,6 +6,8 @@ public enum SheetPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
         registry.addKind(CSVKind.self, name: L("表格"), symbol: "tablecells", tint: .green)
         registry.addKind(TSVKind.self, name: "TSV", symbol: "tablecells", tint: .green)
+        registry.addCompanionKind(CSVMetaKind.self)
+        registry.addCompanionKind(TSVMetaKind.self)
         registry.addController(SheetController.shared)
         registry.addEditor(for: CSVKind.id) { SheetEditorView(path: $0, kind: CSVKind.self).id($0) }
         registry.addEditor(for: TSVKind.id) { SheetEditorView(path: $0, kind: TSVKind.self).id($0) }
@@ -26,6 +28,7 @@ public enum SheetPlugin: EasyNotesPlugin {
                 .init(L("依此欄遞增排序並寫入")) { sheet.exec("sortAscending") },
                 .init(L("依此欄遞減排序並寫入")) { sheet.exec("sortDescending") },
                 .init(L("凍結首欄")) { sheet.exec("toggleFreeze") },
+                .init(L("第一列是標題")) { sheet.exec("toggleHeaderRow") },
             ],
         ])
     }
