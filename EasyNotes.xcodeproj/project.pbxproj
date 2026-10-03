@@ -12,17 +12,17 @@
 		26D8C7AF355BC8EC6375792E /* Seed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621DAA0D9BC592CA611B85CD /* Seed.swift */; };
 		2BC105003B98F723E7122D75 /* DocumentToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */; };
 		2DD864AD35BAE672AD261BEF /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6CB15764ED9797D6EAC845 /* MeView.swift */; };
+		44F7F76D1757548363DB2BA0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C1AA5C478ED64BDD2C28AB55 /* Supabase */; };
 		4E3F9CE490D0F1A4D2231248 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0381EF19D6A158B3D066B56 /* Supabase.swift */; };
 		5053C674585C371A9FF065B5 /* KindMarkdown in Frameworks */ = {isa = PBXBuildFile; productRef = 5F513C491EF263012ADAAAA5 /* KindMarkdown */; };
 		562E9CFCE40CCCAC90603D90 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FC84ABDAAA1676CC2BB8B71 /* Assets.xcassets */; };
 		61239FA9D59ACA922EBF1F61 /* VaultStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478E093E92082AF0228D7FDB /* VaultStore.swift */; };
-		661B52D1596DA264E6C7FD18 /* SupabaseSync in Frameworks */ = {isa = PBXBuildFile; productRef = 9D5B39998C83E05A037ADDFB /* SupabaseSync */; };
+		661B52D1596DA264E6C7FD18 /* Flashcards in Frameworks */ = {isa = PBXBuildFile; productRef = BC21D5F4A99FEA9B0F34414C /* Flashcards */; };
 		71B87B4921F329C07C51EB22 /* EasyNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */; };
 		7B39F0C84A82CBE036935CFD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */; };
 		810508B94A5967474123D458 /* QuickOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2458B612293008933144BC /* QuickOpen.swift */; };
 		89A25B0B136CCD5053459038 /* KindPDF in Frameworks */ = {isa = PBXBuildFile; productRef = 5AE66D168F0693ED64D33821 /* KindPDF */; };
-		7C30D879E393E35176CC8451 /* KindSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 7935127C421FA96A42557002 /* KindSheet */; };
-		9ABE5F25F2FD7C89AF3E6C6B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C1AA5C478ED64BDD2C28AB55 /* Supabase */; };
+		9ABE5F25F2FD7C89AF3E6C6B /* SupabaseSync in Frameworks */ = {isa = PBXBuildFile; productRef = 9D5B39998C83E05A037ADDFB /* SupabaseSync */; };
 		9E895F42899E4023B412BB5B /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */; };
 		9F7F874263CA5DF02B065C52 /* EasyNotesCore in Frameworks */ = {isa = PBXBuildFile; productRef = B9C6D86826182F8A6B0C1A75 /* EasyNotesCore */; };
 		A3293461134EC4B1FC322280 /* Route.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C06943C1E3B03FBB43D2F18 /* Route.swift */; };
@@ -33,7 +33,7 @@
 		C94F18E977A2FA3EEBF6F080 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C133D004357078C1AC75F9A8 /* ContentView.swift */; };
 		CA00D08815DA96AD3E154DFB /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F60100543025B4150BDF63 /* Localization.swift */; };
 		CB2F1AF36D1B3836CF57867A /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD41C33E0C444D157A12471 /* SyncStatusView.swift */; };
-		F4B2C11CE46963F42C1001FE /* Flashcards in Frameworks */ = {isa = PBXBuildFile; productRef = BC21D5F4A99FEA9B0F34414C /* Flashcards */; };
+		F4B2C11CE46963F42C1001FE /* KindSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 5ED64E5120E3A21332117C90 /* KindSheet */; };
 		F7C896CC5E14D34A847A7F5F /* KindWhiteboard in Frameworks */ = {isa = PBXBuildFile; productRef = 376C0F5FD94C5941AA73AA60 /* KindWhiteboard */; };
 		F827F36A57A76A636081793D /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6A0FF1DE592EB8765FAF6C /* Sidebar.swift */; };
 /* End PBXBuildFile section */
@@ -41,7 +41,6 @@
 /* Begin PBXFileReference section */
 		0C06943C1E3B03FBB43D2F18 /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
 		131D57F2B13446461773B699 /* KindPDF */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindPDF; path = Packages/KindPDF; sourceTree = SOURCE_ROOT; };
-		74EB1999CF7BF34A5CB627ED /* KindSheet */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindSheet; path = Packages/KindSheet; sourceTree = SOURCE_ROOT; };
 		1959DEF5F7FF257FF7420913 /* KindMarkdown */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindMarkdown; path = Packages/KindMarkdown; sourceTree = SOURCE_ROOT; };
 		2024AECF50DE93B1BFB3D1B3 /* VaultWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultWatcher.swift; sourceTree = "<group>"; };
 		2C161B996879933835F5809A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -52,6 +51,7 @@
 		408995D942130D7C246E9488 /* DocumentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentList.swift; sourceTree = "<group>"; };
 		41122F522BECB2CC19813DA0 /* EasyNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EasyNotes.entitlements; sourceTree = "<group>"; };
 		4349B0177C6608D882AA5873 /* KindWhiteboard */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindWhiteboard; path = Packages/KindWhiteboard; sourceTree = SOURCE_ROOT; };
+		43567A49400A2CF4BDFE7F18 /* KindSheet */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindSheet; path = Packages/KindSheet; sourceTree = SOURCE_ROOT; };
 		478E093E92082AF0228D7FDB /* VaultStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultStore.swift; sourceTree = "<group>"; };
 		579B252C4E387DAA206A81C4 /* PhoneShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneShell.swift; sourceTree = "<group>"; };
 		621DAA0D9BC592CA611B85CD /* Seed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seed.swift; sourceTree = "<group>"; };
@@ -81,10 +81,10 @@
 				5053C674585C371A9FF065B5 /* KindMarkdown in Frameworks */,
 				F7C896CC5E14D34A847A7F5F /* KindWhiteboard in Frameworks */,
 				89A25B0B136CCD5053459038 /* KindPDF in Frameworks */,
-				7C30D879E393E35176CC8451 /* KindSheet in Frameworks */,
-				F4B2C11CE46963F42C1001FE /* Flashcards in Frameworks */,
-				661B52D1596DA264E6C7FD18 /* SupabaseSync in Frameworks */,
-				9ABE5F25F2FD7C89AF3E6C6B /* Supabase in Frameworks */,
+				F4B2C11CE46963F42C1001FE /* KindSheet in Frameworks */,
+				661B52D1596DA264E6C7FD18 /* Flashcards in Frameworks */,
+				9ABE5F25F2FD7C89AF3E6C6B /* SupabaseSync in Frameworks */,
+				44F7F76D1757548363DB2BA0 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -176,7 +176,7 @@
 				2D85937F8C8590D67D738942 /* Flashcards */,
 				1959DEF5F7FF257FF7420913 /* KindMarkdown */,
 				131D57F2B13446461773B699 /* KindPDF */,
-				74EB1999CF7BF34A5CB627ED /* KindSheet */,
+				43567A49400A2CF4BDFE7F18 /* KindSheet */,
 				4349B0177C6608D882AA5873 /* KindWhiteboard */,
 				6EFDC3012F2B7775D1A82DB8 /* SupabaseSync */,
 			);
@@ -205,7 +205,7 @@
 				5F513C491EF263012ADAAAA5 /* KindMarkdown */,
 				376C0F5FD94C5941AA73AA60 /* KindWhiteboard */,
 				5AE66D168F0693ED64D33821 /* KindPDF */,
-				7935127C421FA96A42557002 /* KindSheet */,
+				5ED64E5120E3A21332117C90 /* KindSheet */,
 				BC21D5F4A99FEA9B0F34414C /* Flashcards */,
 				9D5B39998C83E05A037ADDFB /* SupabaseSync */,
 				C1AA5C478ED64BDD2C28AB55 /* Supabase */,
@@ -244,7 +244,7 @@
 				5D8073A2CCCF43FD55DA742B /* XCLocalSwiftPackageReference "Packages/Flashcards" */,
 				DB31D807D8C8A13A17C3E40C /* XCLocalSwiftPackageReference "Packages/KindMarkdown" */,
 				630C687C49D077C9BE804129 /* XCLocalSwiftPackageReference "Packages/KindPDF" */,
-				6114940F676DBC45A136393C /* XCLocalSwiftPackageReference "Packages/KindSheet" */,
+				E9D018F38161BDE96CEA798F /* XCLocalSwiftPackageReference "Packages/KindSheet" */,
 				D095AA571B3BF157F27170B9 /* XCLocalSwiftPackageReference "Packages/KindWhiteboard" */,
 				FF7ABDF6926B2C3628FF0FB6 /* XCLocalSwiftPackageReference "Packages/SupabaseSync" */,
 			);
@@ -512,10 +512,6 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/KindPDF;
 		};
-		6114940F676DBC45A136393C /* XCLocalSwiftPackageReference "Packages/KindSheet" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/KindSheet;
-		};
 		D095AA571B3BF157F27170B9 /* XCLocalSwiftPackageReference "Packages/KindWhiteboard" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/KindWhiteboard;
@@ -523,6 +519,10 @@
 		DB31D807D8C8A13A17C3E40C /* XCLocalSwiftPackageReference "Packages/KindMarkdown" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/KindMarkdown;
+		};
+		E9D018F38161BDE96CEA798F /* XCLocalSwiftPackageReference "Packages/KindSheet" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/KindSheet;
 		};
 		FF7ABDF6926B2C3628FF0FB6 /* XCLocalSwiftPackageReference "Packages/SupabaseSync" */ = {
 			isa = XCLocalSwiftPackageReference;
@@ -550,7 +550,7 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = KindPDF;
 		};
-		7935127C421FA96A42557002 /* KindSheet */ = {
+		5ED64E5120E3A21332117C90 /* KindSheet */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = KindSheet;
 		};
