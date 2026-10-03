@@ -1,7 +1,8 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
-/// 工具列插入（見 Architecture「工具列改版」）：形狀、便條紙、文字框插在畫面中央，先離開手寫模式。
+/// 工具列插入（見 architecture/whiteboard.md「工具列改版」）：形狀、便條紙、文字框插在畫面中央，先離開手寫模式。
 /// 尺寸是螢幕點（除以縮放倍率），不論縮放多少，插入後在畫面上一樣大。
 extension BoardEditor {
     static let shapeSize: CGFloat = 160
@@ -31,7 +32,7 @@ extension BoardEditor {
         let el = Element.stickyNote(x: r.minX, y: r.minY, size: r.width)
         inking = false
         tool = .select
-        operation("便條紙", select: { [el.id] }) { $0.insert(el) }
+        operation(L("便條紙"), select: { [el.id] }) { $0.insert(el) }
         editText(of: el.id)
     }
 

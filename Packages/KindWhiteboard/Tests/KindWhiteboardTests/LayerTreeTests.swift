@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import QuartzCore
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 @MainActor

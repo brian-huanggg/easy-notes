@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<style>
+  /* 顏色與字型的 CSS variables 由 Swift 在頁面載入前注入（ThemeCSS.stylesheet()）；
+     RevoGrid 的主題（compact / darkCompact）由 sheet.js 依 prefers-color-scheme 切換 */
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; background: var(--bg-canvas); }
+  body { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+  #sheet { position: fixed; inset: 0; }
+  revo-grid { height: 100%; font-family: var(--font-ui); font-size: 13px; color: var(--text-body); }
+  revo-grid[theme] { --revo-grid-background: var(--bg-canvas); --revo-grid-foreground: var(--text-body); }
+  /* 標題列（檔案第一列）固定在上方，加粗 */
+  revo-grid revogr-data[type="rowPinStart"] .rgCell { font-weight: 600; color: var(--text-primary); }
+  revo-grid .rgHeaderCell, revo-grid .rowHeaders .rgCell { color: var(--text-tertiary); }
+  revo-grid revogr-focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="sheet"></div>
+<script src="sheet.js"></script>
+</body>
+</html>

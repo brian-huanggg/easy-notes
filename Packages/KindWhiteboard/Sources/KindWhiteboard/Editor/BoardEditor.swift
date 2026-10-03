@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 import Observation
 
@@ -36,7 +37,7 @@ struct BoardChange {
     var finished = false
 }
 
-/// 白板的編輯核心（見 Architecture「Whiteboard」4c 編輯核心）。不依賴平台：
+/// 白板的編輯核心（見 architecture/whiteboard.md4c 編輯核心）。不依賴平台：
 /// 宿主把觸控 / 滑鼠事件換成畫布座標交給它，它修改 `BoardDocument` 的場景、維護選取，
 /// 每個操作結束時在 `undoManager` 註冊一筆可復原的紀錄。
 @MainActor @Observable
@@ -375,10 +376,10 @@ final class BoardEditor {
 
         let name: String
         switch gesture {
-        case .move: name = "移動"
-        case .resize: name = "縮放"
+        case .move: name = L("移動")
+        case .resize: name = L("縮放")
         case let .end(id, end, original):
-            name = "移動端點"
+            name = L("移動端點")
             if original.type == .arrow {
                 perform { scene in
                     if let target {
@@ -458,13 +459,13 @@ final class BoardEditor {
     func deleteSelection() {
         let ids = selection
         guard !ids.isEmpty else { return }
-        operation("刪除", select: { _ in [] }) { $0.delete(ids) }
+        operation(L("刪除"), select: { _ in [] }) { $0.delete(ids) }
     }
 
     func duplicateSelection() {
         let ids = selection
         guard !ids.isEmpty else { return }
-        operation("再製", select: roots) { $0.duplicate(ids, offset: Self.duplicateOffset) }
+        operation(L("再製"), select: roots) { $0.duplicate(ids, offset: Self.duplicateOffset) }
     }
 
     func copySelection() -> Data? {
@@ -474,7 +475,7 @@ final class BoardEditor {
     /// 貼上 Excalidraw 剪貼簿，中心放在 `center`；不是 Excalidraw 剪貼簿回傳 false
     @discardableResult
     func paste(_ data: Data, center: CGPoint) -> Bool {
-        operation("貼上", select: { $0.map(roots) }) { $0.paste(data, center: center) } != nil
+        operation(L("貼上"), select: { $0.map(roots) }) { $0.paste(data, center: center) } != nil
     }
 
     /// 外部變動、筆畫 Undo 之後：移除已刪除的選取

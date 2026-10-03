@@ -106,7 +106,7 @@ public final class MarkdownEditor: EditorController {
         guard let png else { return false }
         let stamp = Int(Date().timeIntervalSince1970)
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let url = dir.appendingPathComponent("貼上的圖片-\(stamp).png")
+        let url = dir.appendingPathComponent(L("貼上的圖片-\(stamp).png"))
         do {
             try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
             try png.write(to: url)
@@ -116,7 +116,7 @@ public final class MarkdownEditor: EditorController {
         return true
     }
 
-    /// 格式工具列的插入圖片：`![[附件/x.png]]` 獨占一行
+    /// 格式工具列的插入圖片：`![[Attachments/x.png]]` 獨占一行
     func insertImage(_ url: URL) async {
         guard let path = await session?.importAttachment(url) else { return }
         exec("insertText", "![[\(path)]]")
@@ -125,15 +125,15 @@ public final class MarkdownEditor: EditorController {
     /// 浮動格式工具列與 iOS 鍵盤工具列共用的按鈕
     var formatItems: [ToolItem] {
         [
-            ToolItem("textformat", help: "文字樣式", menu: [
-                ToolItem("text.alignleft", help: "內文") { self.exec("paragraph") },
-                ToolItem("1.square", help: "標題 1") { self.exec("heading1") },
-                ToolItem("2.square", help: "標題 2") { self.exec("heading2") },
-                ToolItem("3.square", help: "標題 3") { self.exec("heading3") },
+            ToolItem("textformat", help: L("文字樣式"), menu: [
+                ToolItem("text.alignleft", help: L("內文")) { self.exec("paragraph") },
+                ToolItem("1.square", help: L("標題 1")) { self.exec("heading1") },
+                ToolItem("2.square", help: L("標題 2")) { self.exec("heading2") },
+                ToolItem("3.square", help: L("標題 3")) { self.exec("heading3") },
             ]),
-            ToolItem("checklist", help: "待辦事項") { self.exec("task") },
-            ToolItem("photo", help: "插入圖片") { self.picker = .image },
-            ToolItem("tablecells", help: "插入表格") { self.exec("table") },
+            ToolItem("checklist", help: L("待辦事項")) { self.exec("task") },
+            ToolItem("photo", help: L("插入圖片")) { self.picker = .image },
+            ToolItem("tablecells", help: L("插入表格")) { self.exec("table") },
         ]
     }
 
@@ -238,7 +238,7 @@ public final class MarkdownEditor: EditorController {
 
     #if os(iOS)
     private static func makeKeyboardBar(_ editor: MarkdownEditor) -> UIViewController {
-        let bar = FormatBar(editor.formatItems, style: .keyboard, dismiss: ToolItem("keyboard.chevron.compact.down", help: "收起鍵盤") {
+        let bar = FormatBar(editor.formatItems, style: .keyboard, dismiss: ToolItem("keyboard.chevron.compact.down", help: L("收起鍵盤")) {
             UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         })
         .padding(.horizontal, 8)

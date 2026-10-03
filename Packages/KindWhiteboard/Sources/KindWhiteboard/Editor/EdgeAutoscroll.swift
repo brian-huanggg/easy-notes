@@ -1,6 +1,7 @@
 import CoreGraphics
+import ExcalidrawKit
 
-/// 拖曳到畫面邊緣時自動捲動（見 Architecture「4c：Mac 自動捲動與拖放圖片」）。平台無關：
+/// 拖曳到畫面邊緣時自動捲動（見 architecture/whiteboard.md「4c：Mac 自動捲動與拖放圖片」）。平台無關：
 /// 宿主每一幀以游標的螢幕位置問 `velocity`，平移畫面後再把同一個螢幕位置換成畫布座標交給編輯器。
 enum EdgeAutoscroll {
     /// 距離邊緣多近開始捲動（螢幕點）

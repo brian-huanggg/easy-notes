@@ -1,8 +1,9 @@
+import ExcalidrawKit
 import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// 白板工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
+/// 白板工具列（Freeform 式，見 architecture/whiteboard.md「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
 /// 有選取時的操作（樣式、再製、刪除）| Undo / Redo。導覽列下方獨立一排
 struct BoardToolbar: View {
     let editor: BoardEditor
@@ -20,18 +21,18 @@ struct BoardToolbar: View {
     var body: some View {
         HStack(spacing: 6) {
             if showsInk {
-                button(editor.inking ? "結束手寫" : "畫筆",
+                button(editor.inking ? L("結束手寫") : L("畫筆"),
                        editor.inking ? "pencil.tip.crop.circle.fill" : "pencil.tip.crop.circle",
                        active: editor.inking) { editor.inking.toggle() }
             }
             // 圖示顯示目前的方式，點一下切換（只影響非手寫模式在空白處拖曳的範圍選取）
             // 手寫模式中按：先回到選取（不切換方式），之後再按才切換
-            button("\(selectionShape.title)（點一下切換）", selectionShape.systemImage, active: !editor.inking) {
+            button(L("\(selectionShape.title)（點一下切換）"), selectionShape.systemImage, active: !editor.inking) {
                 if editor.inking { editor.inking = false } else { selectionShape = selectionShape.toggled }
             }
             separator
-            button("便條紙", "note.text") { editor.insertStickyNote() }
-            button("形狀", "square.on.circle", active: showsShapes || editor.tool.creates && editor.tool != .text) { showsShapes = true }
+            button(L("便條紙"), "note.text") { editor.insertStickyNote() }
+            button(L("形狀"), "square.on.circle", active: showsShapes || editor.tool.creates && editor.tool != .text) { showsShapes = true }
                 .popover(isPresented: $showsShapes) {
                     ShapePalette { shape in
                         showsShapes = false
@@ -39,24 +40,24 @@ struct BoardToolbar: View {
                     }
                     .presentationCompactAdaptation(.popover)
                 }
-            button("文字框", "character.textbox", active: editor.tool == .text) { editor.insertText() }
+            button(L("文字框"), "character.textbox", active: editor.tool == .text) { editor.insertText() }
             imageMenu
             if !editor.selection.isEmpty {
                 separator
                 if !editor.styleSummary.isEmpty {
-                    button("樣式", "paintpalette", active: showsStyle) { showsStyle = true }
+                    button(L("樣式"), "paintpalette", active: showsStyle) { showsStyle = true }
                         .popover(isPresented: $showsStyle) {
                             StylePanel(editor: editor)
                                 .presentationCompactAdaptation(.popover)
                         }
                 }
-                button("再製", "plus.square.on.square") { editor.duplicateSelection() }
-                button("刪除", "trash") { editor.deleteSelection() }
+                button(L("再製"), "plus.square.on.square") { editor.duplicateSelection() }
+                button(L("刪除"), "trash") { editor.deleteSelection() }
             }
             separator
-            button("復原", "arrow.uturn.backward") { editor.undoManager?.undo(); refreshUndo() }
+            button(L("復原"), "arrow.uturn.backward") { editor.undoManager?.undo(); refreshUndo() }
                 .disabled(!canUndo)
-            button("重做", "arrow.uturn.forward") { editor.undoManager?.redo(); refreshUndo() }
+            button(L("重做"), "arrow.uturn.forward") { editor.undoManager?.redo(); refreshUndo() }
                 .disabled(!canRedo)
         }
         .padding(.horizontal, 12)
@@ -96,17 +97,17 @@ struct BoardToolbar: View {
     /// 圖片不是常駐工具：選了來源就插入
     private var imageMenu: some View {
         Menu {
-            Button("照片", systemImage: "photo.on.rectangle") { showsPhotos = true }
-            Button("檔案", systemImage: "folder") { showsFiles = true }
-            Button("貼上", systemImage: "doc.on.clipboard") { editor.pasteFromPasteboard() }
+            Button(L("照片"), systemImage: "photo.on.rectangle") { showsPhotos = true }
+            Button(L("檔案"), systemImage: "folder") { showsFiles = true }
+            Button(L("貼上"), systemImage: "doc.on.clipboard") { editor.pasteFromPasteboard() }
         } label: {
             Image(systemName: "photo.on.rectangle.angled").frame(width: 34, height: 34)
         }
         .menuStyle(.button)
         .buttonStyle(.plain)
         .foregroundStyle(Color.accentColor)
-        .help("圖片")
-        .accessibilityLabel("圖片")
+        .help(L("圖片"))
+        .accessibilityLabel(L("圖片"))
     }
 
     private func button(_ title: String, _ image: String, active: Bool = false,
@@ -151,7 +152,7 @@ struct BoardBackgroundMenu: View {
 
     var body: some View {
         Menu {
-            Picker("背景", selection: $background) {
+            Picker(L("背景"), selection: $background) {
                 ForEach(BoardBackground.allCases) { bg in
                     Label(bg.title, systemImage: bg.systemImage).tag(bg)
                 }
@@ -167,8 +168,8 @@ struct BoardBackgroundMenu: View {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .foregroundStyle(Color.accentColor)
-        .help("背景")
-        .accessibilityLabel("背景")
+        .help(L("背景"))
+        .accessibilityLabel(L("背景"))
     }
 }
 

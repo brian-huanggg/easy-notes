@@ -1,4 +1,5 @@
 import EasyNotesUI
+import ExcalidrawKit
 import ImageIO
 import SwiftUI
 

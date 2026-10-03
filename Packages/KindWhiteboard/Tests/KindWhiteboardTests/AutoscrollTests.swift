@@ -1,5 +1,6 @@
 import CoreGraphics
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：拖曳到邊緣自動捲動的速度

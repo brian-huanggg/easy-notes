@@ -16,6 +16,10 @@ public protocol DocumentKind: SendableMetatype {
     static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data?
     /// 設定或取消釘選，其餘內容不變；回傳 nil 代表這個類型不支援釘選
     static func setPinned(_ pinned: Bool, in data: Data) -> Data?
+    /// 伴隨檔（例如 PDF 的標註旁檔 `x.pdf.ink`）回傳主檔路徑；預設 nil = 一般檔案。
+    /// 伴隨檔的路徑必須以主檔路徑開頭（`x.pdf` + `.ink`），改名時 Core 據此算出新路徑。
+    /// Core 不在檔案樹、列表、搜尋顯示伴隨檔；改名、刪除、還原主檔時一起處理；仍照常索引與同步。
+    static func companionOf(_ path: String) -> String?
 }
 
 /// `icon`、`pinned`、`summary` 由外掛決定，Core 只存不解讀
@@ -74,6 +78,21 @@ public struct KindRegistry: Sendable {
         all.first { $0.id == id }
     }
 
+    /// 伴隨檔的主檔路徑；不是伴隨檔回傳 nil
+    public func mainFile(ofCompanion path: String) -> String? {
+        kind(for: path)?.companionOf(path)
+    }
+
+    public func isCompanion(_ path: String) -> Bool {
+        mainFile(ofCompanion: path) != nil
+    }
+
+    /// 主檔從 `oldMain` 搬到 `newMain` 時，伴隨檔 `companion` 的新路徑（主檔路徑換掉、後綴不變）
+    public func companionPath(_ companion: String, from oldMain: String, to newMain: String) -> String? {
+        guard companion.hasPrefix(oldMain), mainFile(ofCompanion: companion) == oldMain else { return nil }
+        return newMain + companion.dropFirst(oldMain.count)
+    }
+
     /// 去掉已註冊的副檔名，例如 "a/筆記.md" → "筆記"
     public func displayName(_ path: String) -> String {
         var name = (path as NSString).lastPathComponent
@@ -96,6 +115,10 @@ extension DocumentKind {
     }
 
     public static func setPinned(_ pinned: Bool, in data: Data) -> Data? {
+        nil
+    }
+
+    public static func companionOf(_ path: String) -> String? {
         nil
     }
 

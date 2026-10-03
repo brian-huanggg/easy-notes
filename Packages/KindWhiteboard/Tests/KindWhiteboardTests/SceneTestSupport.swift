@@ -5,6 +5,7 @@ import Foundation
 import ImageIO
 import Testing
 import UniformTypeIdentifiers
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 enum Fixture {

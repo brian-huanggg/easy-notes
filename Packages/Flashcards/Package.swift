@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Flashcards",
+    defaultLocalization: "zh-Hant",
     platforms: [.iOS(.v18), .macOS(.v15)],
     products: [
         .library(name: "Flashcards", targets: ["Flashcards"]),
@@ -21,7 +22,8 @@ let package = Package(
                 .product(name: "EasyNotesCore", package: "EasyNotesCore"),
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
                 .product(name: "FSRS", package: "swift-fsrs"),
-            ]
+            ],
+            resources: [.process("Localizable.xcstrings")]
         ),
         .testTarget(name: "FlashcardsTests", dependencies: [
             "Flashcards", .product(name: "EasyNotesCore", package: "EasyNotesCore"),

@@ -1,3 +1,4 @@
+// l10n:fixed-file 首次啟動的範例內容；依介面語言產生留到 Roadmap 的 i2
 enum Seed {
     /// 由對應的外掛產生空白範本（外掛沒註冊就略過）
     static let templates: [(path: String, title: String)] = [

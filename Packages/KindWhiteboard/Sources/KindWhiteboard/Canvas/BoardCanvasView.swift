@@ -1,8 +1,10 @@
+import ExcalidrawKit
+
 #if os(iOS)
 import PencilKit
 import UIKit
 
-/// iPad / iPhone 的白板畫布（見 Architecture「Whiteboard」）。
+/// iPad / iPhone 的白板畫布（見 architecture/whiteboard.md）。
 /// 下層：`structureHost` 裡的背景（網格 / 點）與 `BoardLayerTree`，以 transform 跟著 `PKCanvasView` 的 contentOffset / zoomScale。
 /// 中層：透明的 `PKCanvasView`，負責手寫、捲動、縮放與所有觸控。
 /// 上層：`overlayHost` 裡的 `SelectionOverlay`（螢幕座標）。
@@ -472,19 +474,19 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
 
     // MARK: 鍵盤（外接鍵盤）
 
-    /// V R O A T F、Delete、⌘D、⌘A（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。
+    /// V R O A T F、Delete、⌘D、⌘A（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。
     /// 文字框編輯中不攔截，字母才打得進文字框
     override var keyCommands: [UIKeyCommand]? {
         guard textView == nil else { return [] }
-        let tools: [(String, String)] = [("v", "選取"), ("r", "矩形"), ("o", "橢圓"), ("a", "箭頭"), ("t", "文字"), ("f", "Frame")]
+        let tools: [(String, String)] = [("v", L("選取")), ("r", L("矩形")), ("o", L("橢圓")), ("a", L("箭頭")), ("t", L("文字")), ("f", "Frame")]
         var commands = tools.map { key, title in
             UIKeyCommand(title: title, action: #selector(handleKeyCommand(_:)), input: key, modifierFlags: [])
         }
-        commands.append(UIKeyCommand(title: "刪除", action: #selector(handleKeyCommand(_:)),
+        commands.append(UIKeyCommand(title: L("刪除"), action: #selector(handleKeyCommand(_:)),
                                      input: UIKeyCommand.inputDelete, modifierFlags: []))
-        commands.append(UIKeyCommand(title: "再製", action: #selector(handleKeyCommand(_:)), input: "d", modifierFlags: .command))
-        commands.append(UIKeyCommand(title: "全選", action: #selector(handleKeyCommand(_:)), input: "a", modifierFlags: .command))
-        commands.append(UIKeyCommand(title: "結束", action: #selector(handleKeyCommand(_:)),
+        commands.append(UIKeyCommand(title: L("再製"), action: #selector(handleKeyCommand(_:)), input: "d", modifierFlags: .command))
+        commands.append(UIKeyCommand(title: L("全選"), action: #selector(handleKeyCommand(_:)), input: "a", modifierFlags: .command))
+        commands.append(UIKeyCommand(title: L("結束"), action: #selector(handleKeyCommand(_:)),
                                      input: UIKeyCommand.inputEscape, modifierFlags: []))
         return commands
     }

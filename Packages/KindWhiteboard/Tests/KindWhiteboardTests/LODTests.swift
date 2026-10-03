@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：LOD（縮很小又有很多元素時改畫點陣快照）

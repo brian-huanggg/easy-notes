@@ -2,6 +2,8 @@ import EasyNotesCore
 import EasyNotesUI
 import Flashcards
 import KindMarkdown
+import KindPDF
+import KindSheet
 import KindWhiteboard
 import SwiftUI
 
@@ -9,6 +11,8 @@ import SwiftUI
 private let plugins: [any EasyNotesPlugin.Type] = [
     MarkdownPlugin.self,
     WhiteboardPlugin.self,
+    PDFPlugin.self,
+    SheetPlugin.self,
     FlashcardsPlugin.self,
 ]
 
@@ -52,19 +56,19 @@ struct EasyNotesApp: App {
             CommandGroup(replacing: .newItem) {
                 NewDocumentItems(store: store, shell: shell)
             }
-            CommandMenu("前往") {
-                Button("快速開啟…") { shell.showQuickOpen = true }
+            CommandMenu(L("前往")) {
+                Button(L("快速開啟…")) { shell.showQuickOpen = true }
                     .keyboardShortcut("k")
                 Divider()
-                Button("上一頁") { store.goBack() }
+                Button(L("上一頁")) { store.goBack() }
                     .keyboardShortcut("[")
                     .disabled(store.backStack.isEmpty)
-                Button("下一頁") { store.goForward() }
+                Button(L("下一頁")) { store.goForward() }
                     .keyboardShortcut("]")
                     .disabled(store.forwardStack.isEmpty)
                 Divider()
-                Button("所有文件") { store.navigate(.all) }
-                Button("最近") { store.navigate(.recents) }
+                Button(L("所有文件")) { store.navigate(.all) }
+                Button(L("最近")) { store.navigate(.recents) }
             }
             PluginMenus(menus: store.plugins.menus)
         }

@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 快照：渲染結果與 `Snapshots/<名稱>.png` 比對。

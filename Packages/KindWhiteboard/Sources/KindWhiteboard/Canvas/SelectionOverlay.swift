@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import QuartzCore
 
 /// 選取外框、控制點、框選範圍與箭頭綁定目標（含 4 個連接點）的提示。以螢幕座標繪製（宿主給畫布 → 螢幕的轉換），

@@ -39,7 +39,7 @@ struct ReviewSessionView: View {
     private var topBar: some View {
         HStack {
             HStack(spacing: 10) {
-                IconButton("xmark", help: "離開（Esc）") { store.end() }
+                IconButton("xmark", help: L("離開（Esc）")) { store.end() }
                 Label(store.session?.title ?? "", systemImage: "rectangle.stack")
                     .labelStyle(CompactLabelStyle(spacing: 6))
                     .textStyle(TextStyle(13, .semibold))
@@ -49,20 +49,20 @@ struct ReviewSessionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             let counts = store.sessionCounts
             HStack(spacing: 14) {
-                QueueCount(value: counts.new, label: "新卡", color: Palette.cardNew)
-                QueueCount(value: counts.learning, label: "學習中", color: Palette.cardLearn)
-                QueueCount(value: counts.review, label: "到期", color: Palette.cardDue)
+                QueueCount(value: counts.new, label: L("新卡"), color: Palette.cardNew)
+                QueueCount(value: counts.learning, label: L("學習中"), color: Palette.cardLearn)
+                QueueCount(value: counts.review, label: L("到期"), color: Palette.cardDue)
             }
             HStack(spacing: 8) {
                 if store.session?.canUndo == true {
-                    Button { store.undo() } label: { Label("復原", systemImage: "arrow.uturn.backward") }
+                    Button { store.undo() } label: { Label(L("復原"), systemImage: "arrow.uturn.backward") }
                         .buttonStyle(SecondaryButtonStyle())
-                        .help("復原上一次作答（U）")
+                        .help(L("復原上一次作答（U）"))
                 }
                 if store.session?.current != nil {
-                    Button { store.editCurrentNote() } label: { Label("編輯筆記", systemImage: "square.and.pencil") }
+                    Button { store.editCurrentNote() } label: { Label(L("編輯筆記"), systemImage: "square.and.pencil") }
                         .buttonStyle(SecondaryButtonStyle())
-                        .help("開啟卡片所在的筆記（E）")
+                        .help(L("開啟卡片所在的筆記（E）"))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -84,9 +84,9 @@ struct ReviewSessionView: View {
     }
 
     private var finished: some View {
-        EmptyState("這次的卡片都複習完了", message: "已作答 \(store.session?.answered ?? 0) 次。learning 中的卡片到期後會再出現。",
+        EmptyState(L("這次的卡片都複習完了"), message: L("已作答 \(store.session?.answered ?? 0) 次。learning 中的卡片到期後會再出現。"),
                    symbol: "checkmark.circle") {
-            Button("回到牌組") { store.end() }.buttonStyle(PrimaryButtonStyle())
+            Button(L("回到牌組")) { store.end() }.buttonStyle(PrimaryButtonStyle())
         }
     }
 
@@ -105,12 +105,12 @@ struct ReviewSessionView: View {
                 }
             } else {
                 Button { store.showAnswer() } label: {
-                    Text("顯示答案").frame(width: 300)
+                    Text(L("顯示答案")).frame(width: 300)
                 }
                 .buttonStyle(PrimaryButtonStyle(size: .large))
             }
             HStack(spacing: 16) {
-                ForEach(["Space = \(store.session?.showingAnswer == true ? "良好" : "顯示答案")", "U 復原", "E 編輯筆記", "Esc 離開"], id: \.self) {
+                ForEach(["Space = \(store.session?.showingAnswer == true ? L("良好") : L("顯示答案"))", L("U 復原"), L("E 編輯筆記"), L("Esc 離開")], id: \.self) {
                     Text($0).textStyle(TextStyle(11)).foregroundStyle(Palette.textTertiary)
                 }
             }
@@ -123,14 +123,14 @@ struct ReviewSessionView: View {
     static func interval(_ ivl: Int) -> String {
         if ivl < 0 {
             let seconds = -ivl
-            if seconds < 60 { return "< 1 分鐘" }
-            if seconds < 3600 { return "\(seconds / 60) 分鐘" }
-            if seconds < 86_400 { return "\(format(Double(seconds) / 3600)) 小時" }
-            return "\(format(Double(seconds) / 86_400)) 天"
+            if seconds < 60 { return L("< 1 分鐘") }
+            if seconds < 3600 { return L("\(seconds / 60) 分鐘") }
+            if seconds < 86_400 { return L("\(format(Double(seconds) / 3600)) 小時") }
+            return L("\(format(Double(seconds) / 86_400)) 天")
         }
-        if ivl < 30 { return "\(ivl) 天" }
-        if ivl < 365 { return "\(format(Double(ivl) / 30.4)) 個月" }
-        return "\(format(Double(ivl) / 365)) 年"
+        if ivl < 30 { return L("\(ivl) 天") }
+        if ivl < 365 { return L("\(format(Double(ivl) / 30.4)) 個月") }
+        return L("\(format(Double(ivl) / 365)) 年")
     }
 
     private static func format(_ value: Double) -> String {
@@ -187,7 +187,7 @@ private struct CardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("問題").textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
+                Text(L("問題")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
                 Self.text(card.front, highlight: Palette.cardNew)
                     .textStyle(TextStyle(card.type == .cloze ? 26 : 34, .semibold))
                     .foregroundStyle(Palette.textPrimary)
@@ -195,7 +195,7 @@ private struct CardView: View {
             if showingAnswer {
                 Rectangle().fill(Palette.border).frame(height: 1).padding(.vertical, 30)
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("答案").textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
+                    Text(L("答案")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
                     Self.text(card.back, highlight: Palette.cardDue)
                         .textStyle(TextStyle(23, .semibold))
                         .foregroundStyle(Palette.textPrimary)
@@ -235,7 +235,7 @@ private struct CardView: View {
             Text(((card.path as NSString).lastPathComponent as NSString).deletingPathExtension)
                 .textStyle(TextStyle(12.5, .medium))
                 .foregroundStyle(Palette.accent)
-            Text("· 第 \(card.line + 1) 行").textStyle(.meta).foregroundStyle(Palette.textTertiary)
+            Text(L("· 第 \(card.line + 1) 行")).textStyle(.meta).foregroundStyle(Palette.textTertiary)
         }
         .lineLimit(1)
     }
@@ -243,7 +243,7 @@ private struct CardView: View {
     private func pills(_ tags: [String], _ lapses: Int) -> some View {
         HStack(spacing: 6) {
             ForEach(tags, id: \.self) { Pill("#\($0)") }
-            if lapses > 0 { Pill("遺忘 \(lapses) 次", dot: Palette.cardLearn) }
+            if lapses > 0 { Pill(L("遺忘 \(lapses) 次"), dot: Palette.cardLearn) }
         }
     }
 
@@ -290,15 +290,15 @@ private struct RatingButton: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: 176)
-        .accessibilityLabel(style.title + (interval.map { "，\($0)" } ?? ""))
+        .accessibilityLabel(style.title + (interval.map { L("，\($0)") } ?? ""))
     }
 
     private static func style(_ grade: Grade) -> (title: String, fill: ColorToken, text: AnyShapeStyle) {
         switch grade {
-        case .again: ("重來", Palette.cardLearnSoft, AnyShapeStyle(Palette.cardLearn))
-        case .hard: ("困難", Palette.warnSoft, AnyShapeStyle(Palette.warnDeep))
-        case .good: ("良好", Palette.cardDue, AnyShapeStyle(Color.white))
-        case .easy: ("簡單", Palette.cardNewSoft, AnyShapeStyle(Palette.cardNew))
+        case .again: (L("重來"), Palette.cardLearnSoft, AnyShapeStyle(Palette.cardLearn))
+        case .hard: (L("困難"), Palette.warnSoft, AnyShapeStyle(Palette.warnDeep))
+        case .good: (L("良好"), Palette.cardDue, AnyShapeStyle(Color.white))
+        case .easy: (L("簡單"), Palette.cardNewSoft, AnyShapeStyle(Palette.cardNew))
         }
     }
 }

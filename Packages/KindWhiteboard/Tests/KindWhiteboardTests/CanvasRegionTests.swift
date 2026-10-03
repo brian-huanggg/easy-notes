@@ -1,5 +1,6 @@
 import CoreGraphics
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 struct CanvasRegionTests {

@@ -1,4 +1,5 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
 /// 正在用原生文字框編輯的文字。編輯器只記錄目標與樣式；文字框（iOS `UITextView`、Mac `NSTextView`）
@@ -126,7 +127,7 @@ extension BoardEditor {
         // 換工具時結束的編輯：不要蓋掉剛選的工具
         if tool == .text, !switchingTool { tool = .select }
         selection = selected.map { [$0] } ?? []
-        recordUndo("文字")
+        recordUndo(L("文字"))
     }
 
     /// 宿主沒有文字框可以結束（例如測試）時，放棄編輯中的內容
@@ -181,7 +182,7 @@ extension BoardEditor {
         let maxDisplay = 400 / Double(max(zoom, 0.01))
         inking = false
         tool = .select
-        operation("插入圖片", select: { [$0] }) { $0.insertImage(encoded, center: center, maxDisplay: maxDisplay) }
+        operation(L("插入圖片"), select: { [$0] }) { $0.insertImage(encoded, center: center, maxDisplay: maxDisplay) }
         return true
     }
 }

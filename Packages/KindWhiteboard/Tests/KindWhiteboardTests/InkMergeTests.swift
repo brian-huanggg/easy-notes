@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import EasyNotesCore
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// Phase 2：.excalidraw 依元素 id + version 合併

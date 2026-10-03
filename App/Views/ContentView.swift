@@ -28,11 +28,11 @@ struct ContentView: View {
                 guard case .success(let urls) = result else { return }
                 Task { for url in urls { await store.importFile(url) } }
             }
-            .alert("重新命名", isPresented: Binding(get: { shell.renaming != nil },
+            .alert(L("重新命名"), isPresented: Binding(get: { shell.renaming != nil },
                                                 set: { if !$0 { shell.renaming = nil } })) {
-                TextField("名稱", text: $shell.newName)
-                Button("取消", role: .cancel) { shell.renaming = nil }
-                Button("確定") {
+                TextField(L("名稱"), text: $shell.newName)
+                Button(L("取消"), role: .cancel) { shell.renaming = nil }
+                Button(L("確定")) {
                     if let path = shell.renaming {
                         let name = shell.newName
                         Task { await store.rename(path, to: name) }
@@ -40,7 +40,7 @@ struct ContentView: View {
                     shell.renaming = nil
                 }
             } message: {
-                Text("其他筆記中指向它的 [[連結]] 會一併更新。")
+                Text(L("其他筆記中指向它的 [[連結]] 會一併更新。"))
             }
     }
 
@@ -108,7 +108,7 @@ struct ShellDetail: View {
         if let editor = store.plugins.editor(for: store.kindID(path), path: path) {
             editor
         } else {
-            ContentUnavailableView("不支援的檔案類型", systemImage: "doc.questionmark")
+            ContentUnavailableView(L("不支援的檔案類型"), systemImage: "doc.questionmark")
         }
     }
 }
@@ -122,12 +122,12 @@ struct ShellToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
-            Button("上一頁", systemImage: "chevron.left") { store.goBack() }
+            Button(L("上一頁"), systemImage: "chevron.left") { store.goBack() }
                 .disabled(store.backStack.isEmpty)
-                .help("上一頁（⌘[）")
-            Button("下一頁", systemImage: "chevron.right") { store.goForward() }
+                .help(L("上一頁（⌘[）"))
+            Button(L("下一頁"), systemImage: "chevron.right") { store.goForward() }
                 .disabled(store.forwardStack.isEmpty)
-                .help("下一頁（⌘]）")
+                .help(L("下一頁（⌘]）"))
         }
         ToolbarItem(placement: .navigation) {
             HStack(spacing: 4) {
@@ -144,8 +144,8 @@ struct ShellToolbar: ToolbarContent {
             // 分段控制有自己的底色，不放進工具列共用的玻璃底（否則邊緣露白）
             ToolbarItem(placement: Self.trailing) {
                 IconSegmentedControl(selection: $layout, segments: [
-                    .init(.grid, symbol: "square.grid.2x2", help: "網格"),
-                    .init(.list, symbol: "list.bullet", help: "列表"),
+                    .init(.grid, symbol: "square.grid.2x2", help: L("網格")),
+                    .init(.list, symbol: "list.bullet", help: L("列表")),
                 ])
             }
             .withoutSharedBackground()
@@ -166,13 +166,13 @@ struct ShellToolbar: ToolbarContent {
         ToolbarItemGroup(placement: Self.trailing) {
             if isList {
                 Picker(selection: $sort) {
-                    Text("最近編輯").tag(ListSort.modified)
-                    Text("名稱").tag(ListSort.name)
+                    Text(L("最近編輯")).tag(ListSort.modified)
+                    Text(L("名稱")).tag(ListSort.name)
                 } label: {
-                    Label("排序", systemImage: "arrow.up.arrow.down")
+                    Label(L("排序"), systemImage: "arrow.up.arrow.down")
                 }
                 .pickerStyle(.menu)
-                .help("排序")
+                .help(L("排序"))
                 .disabled(route == .recents)
             }
             if let url = revealURL {
@@ -217,13 +217,13 @@ struct NewDocumentMenu: View {
         Menu {
             NewDocumentItems(store: store, shell: shell)
         } label: {
-            Label("新增文件", systemImage: "plus")
+            Label(L("新增文件"), systemImage: "plus")
         } primaryAction: {
             if let command = store.plugins.newFileCommands.first {
                 store.create(command.kind, title: command.defaultName)
             }
         }
-        .help("新增文件")
+        .help(L("新增文件"))
     }
 }
 
@@ -247,7 +247,7 @@ struct NewDocumentItems: View {
             }
         }
         Divider()
-        Button("新資料夾", systemImage: "folder.badge.plus") { store.createFolder() }
+        Button(L("新資料夾"), systemImage: "folder.badge.plus") { store.createFolder() }
             .keyboardShortcut("f", modifiers: [.command, .shift])
     }
 }

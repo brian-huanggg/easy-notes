@@ -18,7 +18,7 @@ struct QuickOpen: View {
         VStack(spacing: 0) {
             HStack(spacing: 9) {
                 Image(systemName: "magnifyingglass").font(.system(size: 15)).foregroundStyle(Palette.textTertiary)
-                TextField("搜尋內容，或 #標籤", text: $store.searchText)
+                TextField(L("搜尋內容，或 #標籤"), text: $store.searchText)
                     .textFieldStyle(.plain)
                     .textStyle(TextStyle(15))
                     .focused($focused)
@@ -33,7 +33,7 @@ struct QuickOpen: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
-                        Text(store.searchText.isEmpty ? "最近" : hits.isEmpty ? "沒有符合的文件" : "\(hits.count) 筆結果")
+                        Text(store.searchText.isEmpty ? L("最近") : hits.isEmpty ? L("沒有符合的文件") : L("\(hits.count) 筆結果"))
                             .textStyle(.groupLabel)
                             .foregroundStyle(Palette.textTertiary)
                             .padding(.horizontal, 10)

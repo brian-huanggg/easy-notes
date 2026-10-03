@@ -5,6 +5,7 @@
 // 只標示，不改內容：`^id` 由 App 在離開檔案後補上，打字與注音組字中不會插入文字。
 import { RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
+import { t } from "../shared/i18n";
 import { frontmatterRange } from "./docHeader";
 import { activeLines, inCode } from "./livePreview";
 
@@ -24,7 +25,7 @@ class SeparatorWidget extends WidgetType {
     const span = document.createElement("span");
     span.className = "cm-card-sep";
     span.textContent = this.bidirectional ? "⇄" : "→";
-    span.title = this.bidirectional ? "雙向卡片" : "卡片";
+    span.title = this.bidirectional ? t("雙向卡片") : t("卡片");
     return span;
   }
 }

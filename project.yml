@@ -16,6 +16,10 @@ packages:
     path: Packages/KindMarkdown
   KindWhiteboard:
     path: Packages/KindWhiteboard
+  KindPDF:
+    path: Packages/KindPDF
+  KindSheet:
+    path: Packages/KindSheet
   Flashcards:
     path: Packages/Flashcards
   # SyncBackend 的 Supabase 實作（不是外掛）
@@ -46,6 +50,8 @@ targets:
         product: EasyNotesUI
       - package: KindMarkdown
       - package: KindWhiteboard
+      - package: KindPDF
+      - package: KindSheet
       - package: Flashcards
       - package: SupabaseSync
       - package: Supabase
