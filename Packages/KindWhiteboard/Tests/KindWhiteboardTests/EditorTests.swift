@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：編輯核心（選取、移動、縮放、建立、Undo），全部在畫布座標下

@@ -36,6 +36,11 @@ public final class WebEditorHost {
         config.setURLSchemeHandler(schemeHandler, forURLScheme: VaultSchemeHandler.scheme)
         config.setURLSchemeHandler(symbolHandler, forURLScheme: SymbolSchemeHandler.scheme)
         config.setURLSchemeHandler(embedHandler, forURLScheme: EmbedSchemeHandler.scheme)
+        // 介面語言一次性注入，web/src/shared/i18n.ts 的 `locale` 讀它；不經 Bridge，也不在打字路徑上
+        let language = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
+        let languageLiteral = String(decoding: (try? JSONEncoder().encode(language)) ?? Data("\"zh-Hant\"".utf8), as: UTF8.self)
+        config.userContentController.addUserScript(
+            WKUserScript(source: "window.__locale=\(languageLiteral);", injectionTime: .atDocumentStart, forMainFrameOnly: true))
         if let stylesheet {
             let literal = String(decoding: (try? JSONEncoder().encode(stylesheet)) ?? Data("\"\"".utf8), as: UTF8.self)
             let source = "{const s=document.createElement('style');s.id='theme';s.textContent=\(literal);document.documentElement.appendChild(s);}"

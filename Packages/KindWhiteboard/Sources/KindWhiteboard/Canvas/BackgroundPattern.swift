@@ -1,7 +1,8 @@
 import CoreGraphics
+import ExcalidrawKit
 import QuartzCore
 
-/// 編輯器的畫布背景：網格或點（見 Architecture「工具列改版」）。放在結構層底下、跟著同一個 transform
+/// 編輯器的畫布背景：網格或點（見 architecture/whiteboard.md「工具列改版」）。放在結構層底下、跟著同一個 transform
 /// （畫布座標）。用兩層 `CAReplicatorLayer` 複製一個點或一條線，只涵蓋畫面範圍；
 /// 間距是 20 的 2ⁿ 倍（螢幕上至少約 14 點），點的大小與線寬除以縮放倍率，螢幕上固定。iOS / macOS 共用。
 @MainActor

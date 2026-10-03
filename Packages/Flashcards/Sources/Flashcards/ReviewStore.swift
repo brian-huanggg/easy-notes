@@ -255,15 +255,15 @@ public final class ReviewStore: EditorController {
                 let suspend = ReviewEntry.manual(.suspend, cid: card.id, at: now)
                 entries.append(suspend)
                 state = scheduler.apply(suspend, to: state)
-                notice = "這張卡片已遺忘 \(state.lapses) 次，標為 Leech 並暫停"
+                notice = L("這張卡片已遺忘 \(state.lapses) 次，標為 Leech 並暫停")
             } else {
-                notice = "這張卡片已遺忘 \(state.lapses) 次，標為 Leech"
+                notice = L("這張卡片已遺忘 \(state.lapses) 次，標為 Leech")
             }
         }
         do {
             try ReviewLog(fs: fs, deviceID: deviceID).append(entries)
         } catch {
-            notice = "無法寫入複習紀錄：\(error.localizedDescription)"
+            notice = L("無法寫入複習紀錄：\(error.localizedDescription)")
             return
         }
         history[card.id, default: []] += entries
@@ -281,7 +281,7 @@ public final class ReviewStore: EditorController {
         guard var session, let last = session.undo.last, let deviceID, let fs else { return }
         let removed = (try? ReviewLog(fs: fs, deviceID: deviceID).removeLast(last.entries)) ?? false
         guard removed else {
-            notice = "紀錄檔已有新的內容，無法復原"
+            notice = L("紀錄檔已有新的內容，無法復原")
             session.undo.removeAll()
             self.session = session
             return
@@ -331,7 +331,7 @@ public final class ReviewStore: EditorController {
         do {
             guard try SRSSettings.save(new, replacing: old, fs: fs, deviceID: deviceID) else { return }
         } catch {
-            notice = "無法儲存設定：\(error.localizedDescription)"
+            notice = L("無法儲存設定：\(error.localizedDescription)")
             return
         }
         config = SRSSettings.load(fs)

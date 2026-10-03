@@ -2,6 +2,7 @@
 import AppKit
 import Foundation
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：macOS 宿主（`BoardMacCanvasView`）。放進離屏視窗，用合成的滑鼠 / 鍵盤事件驅動

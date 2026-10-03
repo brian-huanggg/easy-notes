@@ -144,11 +144,11 @@ struct DocumentList: View {
         switch route {
         case .all:
             let spaces = store.tree.count(where: \.isFolder)
-            return spaces > 0 ? "\(docs) 份文件 · \(spaces) 個空間" : "\(docs) 份文件"
+            return spaces > 0 ? L("\(docs) 份文件 · \(spaces) 個空間") : L("\(docs) 份文件")
         case .folder(let folder) where docs == 0 && folders == 0:
-            return "空資料夾 · \(store.vaultName)/\(folder)"
+            return L("空資料夾 · \(store.vaultName)/\(folder)")
         default:
-            return folders > 0 ? "\(docs) 份文件 · \(folders) 個資料夾" : "\(docs) 份文件"
+            return folders > 0 ? L("\(docs) 份文件 · \(folders) 個資料夾") : L("\(docs) 份文件")
         }
     }
 
@@ -158,7 +158,7 @@ struct DocumentList: View {
     private var filterBar: some View {
         ScrollView(.horizontal) {
             HStack(spacing: mobile ? 8 : 6) {
-                FilterChip("全部", isSelected: filter == nil) { filter = nil }
+                FilterChip(L("全部"), isSelected: filter == nil) { filter = nil }
                 ForEach(store.plugins.kindInfos) { info in
                     FilterChip(info.name, symbol: info.symbol, tint: info.tint.base, isSelected: filter == info.id) {
                         filter = filter == info.id ? nil : info.id
@@ -174,8 +174,8 @@ struct DocumentList: View {
 
     private func pinnedSection(_ pinned: [IndexedFile]) -> some View {
         VStack(alignment: .leading, spacing: mobile ? 13 : 14) {
-            SectionHeader("釘選", symbol: "pin", detail: "\(pinned.count)", size: mobile ? .mobile : .desktop,
-                          actionTitle: "查看全部") { go(.pinned) }
+            SectionHeader(L("釘選"), symbol: "pin", detail: "\(pinned.count)", size: mobile ? .mobile : .desktop,
+                          actionTitle: L("查看全部")) { go(.pinned) }
             if mobile {
                 ScrollView(.horizontal) {
                     LazyHStack(alignment: .top, spacing: 12) {
@@ -194,7 +194,7 @@ struct DocumentList: View {
 
     private func folderSection(_ folders: [String]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader("資料夾", symbol: "folder", detail: "\(folders.count)", size: mobile ? .mobile : .desktop)
+            SectionHeader(L("資料夾"), symbol: "folder", detail: "\(folders.count)", size: mobile ? .mobile : .desktop)
             if mobile {
                 VStack(spacing: 4) { ForEach(folders, id: \.self) { folderRow($0) } }
             } else {
@@ -209,7 +209,7 @@ struct DocumentList: View {
     private func folderRow(_ path: String) -> some View {
         Button { go(.folder(path)) } label: {
             DocRow((path as NSString).lastPathComponent, symbol: "folder", tint: .neutral,
-                   meta: "\(store.fileCount(in: path)) 份文件", style: mobile ? .list : .card)
+                   meta: L("\(store.fileCount(in: path)) 份文件"), style: mobile ? .list : .card)
         }
         .buttonStyle(.plain)
         .contextMenu { NodeMenu(path: path, isFolder: true) }
@@ -220,7 +220,7 @@ struct DocumentList: View {
             Group {
                 if mobile {
                     SectionHeader(sectionTitle, symbol: sectionSymbol, detail: "\(docs.count)", size: .mobile,
-                                  actionTitle: sort == .modified ? "依名稱" : "依時間") {
+                                  actionTitle: sort == .modified ? L("依名稱") : L("依時間")) {
                         sort = sort == .modified ? .name : .modified
                     }
                 } else {
@@ -243,8 +243,8 @@ struct DocumentList: View {
     }
 
     private var sectionTitle: String {
-        if route == .pinned { return "釘選" }
-        return sort == .modified || route == .recents ? "最近" : "文件"
+        if route == .pinned { return L("釘選") }
+        return sort == .modified || route == .recents ? L("最近") : L("文件")
     }
 
     private var sectionSymbol: String {
@@ -296,8 +296,8 @@ struct DocumentList: View {
 
     /// 設計稿 `xGsaX`
     private var emptyVault: some View {
-        EmptyState("Vault 是空的",
-                   message: "所有內容都是磁碟上的一般檔案。建立第一份筆記或白板，或把檔案拖進來。",
+        EmptyState(L("Vault 是空的"),
+                   message: L("所有內容都是磁碟上的一般檔案。建立第一份筆記或白板，或把檔案拖進來。"),
                    symbol: "doc.text") {
             NewFileButtons(limit: 2)
             #if os(macOS)
@@ -311,21 +311,21 @@ struct DocumentList: View {
         switch route {
         case .folder:
             // 設計稿 `m4Bb4`：可拖入檔案的空資料夾
-            EmptyState("這個資料夾是空的", message: "把檔案拖到這裡，或在這個資料夾中建立新文件。", symbol: "folder",
+            EmptyState(L("這個資料夾是空的"), message: L("把檔案拖到這裡，或在這個資料夾中建立新文件。"), symbol: "folder",
                        style: .dropZone) {
                 NewFileButtons(limit: 2)
             }
         case .pinned:
-            EmptyState("還沒有釘選的文件", message: "在文件上按右鍵（或長按）選擇「釘選」。", symbol: "pin", style: .dropZone) {}
+            EmptyState(L("還沒有釘選的文件"), message: L("在文件上按右鍵（或長按）選擇「釘選」。"), symbol: "pin", style: .dropZone) {}
         default:
-            EmptyState("沒有文件", message: "", symbol: "doc", style: .dropZone) {}
+            EmptyState(L("沒有文件"), message: "", symbol: "doc", style: .dropZone) {}
         }
     }
 
     private var noMatch: some View {
-        EmptyState("沒有符合的文件", message: "這裡沒有這個類型的文件。", symbol: "line.3.horizontal.decrease",
+        EmptyState(L("沒有符合的文件"), message: L("這裡沒有這個類型的文件。"), symbol: "line.3.horizontal.decrease",
                    style: .dropZone) {
-            Button("顯示全部") { filter = nil }.buttonStyle(.enSecondary(size: .large))
+            Button(L("顯示全部")) { filter = nil }.buttonStyle(.enSecondary(size: .large))
         }
     }
 }

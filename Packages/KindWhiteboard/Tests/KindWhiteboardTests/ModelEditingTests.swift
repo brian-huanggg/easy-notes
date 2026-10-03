@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import Testing
 import EasyNotesCore
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4a：箭頭綁定、文字、frame、圖片、連結

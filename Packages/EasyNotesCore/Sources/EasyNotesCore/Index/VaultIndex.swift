@@ -205,6 +205,10 @@ public actor VaultIndex {
 
     /// `#標籤` 查標籤（含子標籤 `#a/b`）；其他為全文搜尋，空白分隔的詞以 AND 結合
     public func search(_ query: String, limit: Int = 50) throws -> [SearchHit] {
+        try searchAll(query, limit: limit).filter { !fs.kinds.isCompanion($0.path) }
+    }
+
+    private func searchAll(_ query: String, limit: Int) throws -> [SearchHit] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return [] }
 
@@ -271,9 +275,10 @@ public actor VaultIndex {
         }
     }
 
-    /// 所有已索引的檔案，最近修改的在前
+    /// 所有已索引的檔案，最近修改的在前；伴隨檔不列出
     public func files() throws -> [IndexedFile] {
         try db.query("SELECT \(Self.fileColumns("")) FROM files ORDER BY mtime DESC", row: Self.indexedFile)
+            .filter { !fs.kinds.isCompanion($0.path) }
     }
 
     /// 帶有標籤 `tag`（含子標籤 `tag/…`）的檔案，最近修改的在前
@@ -282,6 +287,7 @@ public actor VaultIndex {
             SELECT DISTINCT \(Self.fileColumns("f.")) FROM tags t JOIN files f ON f.path = t.path
             WHERE t.tag = ? COLLATE NOCASE OR t.tag LIKE ? ORDER BY f.mtime DESC
             """, [.text(tag), .text(tag + "/%")], row: Self.indexedFile)
+            .filter { !fs.kinds.isCompanion($0.path) }
     }
 
     private static func fileColumns(_ table: String) -> String {

@@ -204,13 +204,15 @@ final class VaultStore: DocumentSession {
             refresh()
             if let current = selection, changed.contains(current) {
                 if FileManager.default.fileExists(atPath: fs.url(for: current).path(percentEncoded: false)) {
-                    let data = readData(current)
-                    if data != lastWritten[current] {
-                        lastWritten[current] = data
-                        for editor in editors { editor.externalChange(path: current, data: data) }
-                    }
+                    pushExternalChange(current)
                 } else {
                     routesDeleted(current)
+                }
+            }
+            // 開啟中檔案的伴隨檔（例如 PDF 的標註旁檔）被外部修改：交給同一個編輯器合併
+            if let current = selection {
+                for companion in changed where fs.kinds.mainFile(ofCompanion: companion) == current && fs.exists(companion) {
+                    pushExternalChange(companion)
                 }
             }
             scheduleDerivedRefresh()
@@ -220,6 +222,19 @@ final class VaultStore: DocumentSession {
             report(error)
             return []
         }
+    }
+
+    private func pushExternalChange(_ path: String) {
+        let data = readData(path)
+        guard data != lastWritten[path] else { return }
+        lastWritten[path] = data
+        for editor in editors { editor.externalChange(path: path, data: data) }
+    }
+
+    /// 開啟中的檔案或它的伴隨檔
+    private func isOpen(_ path: String) -> Bool {
+        guard let selection else { return false }
+        return path == selection || fs.kinds.mainFile(ofCompanion: path) == selection
     }
 
     // MARK: 外掛的背景改寫（ContentFixer）
@@ -360,11 +375,16 @@ final class VaultStore: DocumentSession {
         let newTitle = (name as NSString).deletingPathExtension
         do {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
+            let newPathGuess = ((path as NSString).deletingLastPathComponent as NSString).appendingPathComponent(name)
+            let companions = isFolder(path) ? [] : fs.companionMoves(from: path, to: newPathGuess)
             let newPath = try fs.rename(path, to: name)
-            onMove?(path, newPath)
-            for editor in editors {
-                editor.close(path: path)
-                editor.moved(from: path, to: newPath)
+            // 伴隨檔由 `fs.rename` 一起搬移；同步層與編輯器也要知道
+            for move in [(from: path, to: newPath)] + companions where fs.exists(move.to) {
+                onMove?(move.from, move.to)
+                for editor in editors {
+                    editor.close(path: move.from)
+                    editor.moved(from: move.from, to: move.to)
+                }
             }
             refresh()
             routesMoved(from: path, to: newPath)
@@ -388,8 +408,9 @@ final class VaultStore: DocumentSession {
     func delete(_ path: String) async {
         await flushEditors()
         do {
-            try fs.trash(path)
-            for editor in editors { editor.close(path: path) }
+            let companions = fs.companions(of: path)
+            try fs.trash(path) // 伴隨檔一起刪除
+            for closed in [path] + companions { for editor in editors { editor.close(path: closed) } }
             routesDeleted(path)
             refresh()
             await syncIndex()
@@ -414,7 +435,7 @@ final class VaultStore: DocumentSession {
         if let data {
             lastWritten[path] = data
             for editor in editors {
-                if path == selection { editor.externalChange(path: path, data: data) } else { editor.close(path: path) }
+                if isOpen(path) { editor.externalChange(path: path, data: data) } else { editor.close(path: path) }
             }
         } else if oldPath == nil {
             for editor in editors { editor.close(path: path) }
@@ -453,13 +474,18 @@ final class VaultStore: DocumentSession {
         onLocalChange?()
     }
 
+    func fileMoved(from: String, to: String) {
+        onMove?(from, to)
+        Task {
+            await syncIndex(paths: [from, to])
+            onLocalChange?()
+        }
+    }
+
     func modified(_ path: String) -> Date? {
         file(at: path)?.mtime
             ?? (try? fs.url(for: path).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
     }
-
-    /// 附件（封面、插入的圖片）一律放 Vault 根目錄的這個資料夾
-    static let attachmentsFolder = "附件"
 
     func importAttachment(_ url: URL) async -> String? {
         let scoped = url.startAccessingSecurityScopedResource()
@@ -468,7 +494,7 @@ final class VaultStore: DocumentSession {
         let source = url.standardizedFileURL.path(percentEncoded: false)
         if source.hasPrefix(root) { return fs.path(for: url) }
         do {
-            let path = try fs.importFile(from: url, in: Self.attachmentsFolder)
+            let path = try fs.importFile(from: url, in: Attachments.folder)
             onLocalChange?()
             return path
         } catch {
@@ -497,10 +523,10 @@ final class VaultStore: DocumentSession {
     }
 
     private func uniqueFolderName(in folder: String) -> String {
-        var name = "新資料夾"
+        var name = L("新資料夾")
         var n = 2
         while FileManager.default.fileExists(atPath: fs.url(for: folder.isEmpty ? name : "\(folder)/\(name)").path(percentEncoded: false)) {
-            name = "新資料夾 \(n)"
+            name = L("新資料夾 \(n)")
             n += 1
         }
         return name
@@ -601,14 +627,15 @@ final class VaultStore: DocumentSession {
         let path = "CLAUDE.md"
         guard !plugins.vaultGuides.isEmpty,
               !FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) else { return }
+        // l10n:fixed Vault 的 CLAUDE.md 給 Claude Code 讀，內容固定用英文（見 translation.md）
         let header = """
             # EasyNotes Vault
 
-            這個資料夾是 EasyNotes 的 Vault。每筆筆記都是真實的檔案，App 的資料庫只是可重建的索引：直接讀寫這裡的檔案即可，App 會即時偵測、重新索引並同步到其他裝置。
+            This folder is an EasyNotes vault. Every note is a real file; the app's database is only a rebuildable index. Read and write the files here directly: the app detects changes immediately, re-indexes, and syncs them to other devices.
 
-            - 第一層資料夾是 App 側邊欄的「空間」；子資料夾可以任意建立。
-            - 改名、搬移檔案都可以直接做，App 會以內容推斷並保留同步歷史。
-            - 不要修改 `.easynotes/`（索引快取、同步狀態、複習紀錄與設定）。
+            - Top-level folders are the "spaces" in the app's sidebar; subfolders can be created freely.
+            - Renaming and moving files is fine: the app infers the move from file content and keeps the sync history.
+            - Do not modify `.easynotes/` (index cache, sync state, review logs and settings).
             """
         let text = ([header] + plugins.vaultGuides).joined(separator: "\n\n") + "\n"
         do { try fs.write(Data(text.utf8), to: path) } catch { report(error) }

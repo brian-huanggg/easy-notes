@@ -14,7 +14,7 @@ struct ReviewPanel: View {
             }
         }
         .alert(store.notice ?? "", isPresented: Binding(get: { store.notice != nil }, set: { if !$0 { store.notice = nil } })) {
-            Button("好") { store.notice = nil }
+            Button(L("好")) { store.notice = nil }
         }
     }
 }
@@ -49,11 +49,11 @@ struct DeckListView: View {
             VStack(alignment: .leading, spacing: 24) {
                 header
                 if store.loaded, store.cards.isEmpty {
-                    EmptyState("還沒有卡片", message: "在筆記中寫「問題 :: 答案」、「中文 ;; English」或「{{克漏字}}」，就會出現在這裡。", symbol: "rectangle.stack") {}
+                    EmptyState(L("還沒有卡片"), message: L("在筆記中寫「問題 :: 答案」、「中文 ;; English」或「{{克漏字}}」，就會出現在這裡。"), symbol: "rectangle.stack") {}
                         .frame(maxWidth: .infinity)
                         .padding(.top, 40)
                 } else {
-                    TodayBanner(compact: compact, start: { store.start(.all, title: "所有牌組") })
+                    TodayBanner(compact: compact, start: { store.start(.all, title: L("所有牌組")) })
                     deckSection
                 }
             }
@@ -65,8 +65,8 @@ struct DeckListView: View {
         .background(Palette.bgCanvas)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("牌組選項", systemImage: "gearshape") { optionsDeck = "" }
-                    .help("預設 preset 與全域設定")
+                Button(L("牌組選項"), systemImage: "gearshape") { optionsDeck = "" }
+                    .help(L("預設 preset 與全域設定"))
             }
         }
         .sheet(item: Binding(get: { optionsDeck.map(DeckRef.init) }, set: { optionsDeck = $0?.path })) { ref in
@@ -90,7 +90,7 @@ struct DeckListView: View {
 
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("複習").textStyle(.pageTitle).foregroundStyle(Palette.textPrimary)
+            Text(L("複習")).textStyle(.pageTitle).foregroundStyle(Palette.textPrimary)
             Text(subtitle).textStyle(.pageSubtitle).foregroundStyle(Palette.textSecondary)
         }
     }
@@ -103,13 +103,13 @@ struct DeckListView: View {
             deck.children.forEach(visit)
         }
         store.decks.forEach(visit)
-        return "\(store.cards.count) 張卡片 · \(notes) 篇筆記 · \(decks) 個牌組"
+        return L("\(store.cards.count) 張卡片 · \(notes) 篇筆記 · \(decks) 個牌組")
     }
 
     private var chips: some View {
         HStack(spacing: 6) {
-            FilterChip("今天到期", isSelected: filter == .due) { filter = .due }
-            FilterChip("所有牌組", isSelected: filter == .all) { filter = .all }
+            FilterChip(L("今天到期"), isSelected: filter == .due) { filter = .due }
+            FilterChip(L("所有牌組"), isSelected: filter == .all) { filter = .all }
             TagFilterMenu()
         }
     }
@@ -117,7 +117,7 @@ struct DeckListView: View {
     private var deckSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                SectionHeader("牌組", symbol: "rectangle.stack", detail: "\(visibleRows.count)")
+                SectionHeader(L("牌組"), symbol: "rectangle.stack", detail: "\(visibleRows.count)")
                 // compact 的牌組列在數字旁直接寫出名稱，不需要圖例
                 if !compact { Legend() }
             }
@@ -159,7 +159,7 @@ private struct TagFilterMenu: View {
         Menu {
             let tags = store.planner.availableTags
             if tags.isEmpty {
-                Text("筆記還沒有標籤")
+                Text(L("筆記還沒有標籤"))
             }
             ForEach(tags, id: \.self) { tag in
                 Button("#\(tag)") { store.start(.tag(tag), title: "#\(tag)") }
@@ -167,7 +167,7 @@ private struct TagFilterMenu: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "tag").font(.system(size: 11))
-                Text("依標籤複習").textStyle(.control)
+                Text(L("依標籤複習")).textStyle(.control)
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .semibold))
             }
             .foregroundStyle(Palette.textSecondary)
@@ -206,16 +206,16 @@ private struct TodayBanner: View {
         }
         .frame(width: compact ? 64 : 76, height: compact ? 64 : 76)
         let summary = VStack(alignment: .leading, spacing: 6) {
-            Text(left == 0 ? "今天的卡片都複習完了" : "今天還有 \(left) 張")
+            Text(left == 0 ? L("今天的卡片都複習完了") : L("今天還有 \(left) 張"))
                 .textStyle(TextStyle(19, .bold))
                 .foregroundStyle(Palette.textPrimary)
-            Text("已複習 \(done) / \(total) · \(waiting) 個牌組等待中")
+            Text(L("已複習 \(done) / \(total) · \(waiting) 個牌組等待中"))
                 .textStyle(.pageSubtitle)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         let button = Button(action: start) {
-            Label("開始複習", systemImage: "play.fill")
+            Label(L("開始複習"), systemImage: "play.fill")
                 .frame(maxWidth: compact ? .infinity : nil)
         }
         .buttonStyle(PrimaryButtonStyle(size: .large))
@@ -247,9 +247,9 @@ private struct TodayBanner: View {
 private struct Legend: View {
     var body: some View {
         HStack(spacing: 12) {
-            item("新卡", Palette.cardNew)
-            item("學習中", Palette.cardLearn)
-            item("到期", Palette.cardDue)
+            item(L("新卡"), Palette.cardNew)
+            item(L("學習中"), Palette.cardLearn)
+            item(L("到期"), Palette.cardDue)
         }
     }
 
@@ -277,12 +277,12 @@ private struct DeckRow: View {
                     HStack(spacing: 10) {
                         leading
                         Spacer(minLength: 8)
-                        IconButton("slider.horizontal.3", help: "牌組選項", tint: Palette.textTertiary, action: options)
+                        IconButton("slider.horizontal.3", help: L("牌組選項"), tint: Palette.textTertiary, action: options)
                     }
                     HStack(spacing: 12) {
-                        inlineCount(counts.new, "新卡", Palette.cardNew)
-                        inlineCount(counts.learning, "學習中", Palette.cardLearn)
-                        inlineCount(counts.review, "到期", Palette.cardDue)
+                        inlineCount(counts.new, L("新卡"), Palette.cardNew)
+                        inlineCount(counts.learning, L("學習中"), Palette.cardLearn)
+                        inlineCount(counts.review, L("到期"), Palette.cardDue)
                         Spacer(minLength: 8)
                         studyButton(counts)
                     }
@@ -293,10 +293,10 @@ private struct DeckRow: View {
                 HStack(spacing: 14) {
                     leading
                     Spacer(minLength: 12)
-                    count(counts.new, "新卡", Palette.cardNew)
-                    count(counts.learning, "學習中", Palette.cardLearn)
-                    count(counts.review, "到期", Palette.cardDue)
-                    IconButton("slider.horizontal.3", help: "牌組選項", tint: Palette.textTertiary, action: options)
+                    count(counts.new, L("新卡"), Palette.cardNew)
+                    count(counts.learning, L("學習中"), Palette.cardLearn)
+                    count(counts.review, L("到期"), Palette.cardDue)
+                    IconButton("slider.horizontal.3", help: L("牌組選項"), tint: Palette.textTertiary, action: options)
                     studyButton(counts)
                 }
             }
@@ -331,7 +331,7 @@ private struct DeckRow: View {
         Button {
             store.start(deck.scope, title: deck.path.isEmpty ? deck.name : deck.path.replacingOccurrences(of: "/", with: " / "))
         } label: {
-            Label("複習", systemImage: "play.fill")
+            Label(L("複習"), systemImage: "play.fill")
                 .labelStyle(CompactLabelStyle(spacing: 5))
                 .textStyle(TextStyle(12, .semibold))
                 .foregroundStyle(counts.total == 0 ? Palette.textTertiary : Palette.accent)
@@ -361,7 +361,7 @@ private struct DeckRow: View {
         .buttonStyle(.plain)
         .opacity(deck.children.isEmpty ? 0 : 1)
         .disabled(deck.children.isEmpty)
-        .accessibilityLabel(collapsed ? "展開" : "收合")
+        .accessibilityLabel(collapsed ? L("展開") : L("收合"))
     }
 
     private var icon: some View {
@@ -375,10 +375,10 @@ private struct DeckRow: View {
     }
 
     private var meta: String {
-        var parts = ["\(deck.cardCount) 張卡片", "\(deck.noteCount) 篇筆記"]
-        if deck.path.isEmpty { parts.insert("Vault 根目錄的筆記", at: 0) }
+        var parts = [L("\(deck.cardCount) 張卡片"), L("\(deck.noteCount) 篇筆記")]
+        if deck.path.isEmpty { parts.insert(L("Vault 根目錄的筆記"), at: 0) }
         if let id = store.config.decks[deck.path], let preset = store.config.presets[id] {
-            parts.append("Preset：\(preset.name)")
+            parts.append(L("Preset：\(preset.name)"))
         }
         return parts.joined(separator: " · ")
     }

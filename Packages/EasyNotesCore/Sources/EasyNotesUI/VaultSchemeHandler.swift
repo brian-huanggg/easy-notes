@@ -1,3 +1,4 @@
+import EasyNotesCore
 import Foundation
 import UniformTypeIdentifiers
 import WebKit
@@ -19,7 +20,9 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
         }
         let id = ObjectIdentifier(task)
         Task {
-            let data = await read(path)
+            var data = await read(path)
+            // 舊版的附件在 `附件/`：`Attachments/` 找不到時改找舊資料夾（只寫檔名的 `![[x.png]]` 因此不會失效）
+            if data == nil, let legacy = Attachments.legacyPath(for: path) { data = await read(legacy) }
             guard !stopped.contains(id) else { return }
             if let data {
                 let mime = UTType(filenameExtension: (path as NSString).pathExtension)?.preferredMIMEType ?? "application/octet-stream"
@@ -36,7 +39,7 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
         stopped.insert(ObjectIdentifier(task))
     }
 
-    /// `vault://附件/a.jpg` 或 `vault:///附件/a.jpg` → `附件/a.jpg`；拒絕 `..` 與絕對路徑
+    /// `vault://Attachments/a.jpg` 或 `vault:///Attachments/a.jpg` → `Attachments/a.jpg`；拒絕 `..` 與絕對路徑
     nonisolated static func path(of url: URL) -> String? {
         guard var raw = url.absoluteString.dropFirst(scheme.count + 1).removingPercentEncoding else { return nil }
         while raw.hasPrefix("/") { raw.removeFirst() }

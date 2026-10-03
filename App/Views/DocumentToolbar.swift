@@ -18,13 +18,13 @@ struct DocumentStatusPill: View {
 
     /// 編輯內容由編輯器自動存檔，所以本地一律是「已儲存」；登入後再區分同步中與衝突
     private var status: (String, String) {
-        guard case .signedIn = sync.account else { return ("已儲存", "checkmark") }
+        guard case .signedIn = sync.account else { return (L("已儲存"), "checkmark") }
         let stem = store.displayName(path)
-        if sync.conflicts.contains(where: { store.displayName($0).hasPrefix(stem + " (衝突") }) {
-            return ("有衝突副本", "exclamationmark.triangle")
+        if sync.conflicts.contains(where: { SyncEngine.isConflictCopy(store.displayName($0), of: stem) }) {
+            return (L("有衝突副本"), "exclamationmark.triangle")
         }
-        if sync.status.isSyncing || sync.status.pending > 0 { return ("同步中", "arrow.triangle.2.circlepath") }
-        return ("已儲存", "checkmark.icloud")
+        if sync.status.isSyncing || sync.status.pending > 0 { return (L("同步中"), "arrow.triangle.2.circlepath") }
+        return (L("已儲存"), "checkmark.icloud")
     }
 }
 
@@ -36,11 +36,11 @@ struct PinButton: View {
     var body: some View {
         if store.fs.kinds.kind(for: path)?.supportsPinning == true {
             let pinned = store.file(at: path)?.pinned ?? false
-            Button(pinned ? "取消釘選" : "釘選", systemImage: pinned ? "pin.fill" : "pin") {
+            Button(pinned ? L("取消釘選") : L("釘選"), systemImage: pinned ? "pin.fill" : "pin") {
                 Task { await store.setPinned(path, !pinned) }
             }
             .tint(pinned ? Palette.yellow.color : nil)
-            .help(pinned ? "取消釘選" : "釘選")
+            .help(pinned ? L("取消釘選") : L("釘選"))
         }
     }
 }
@@ -52,20 +52,20 @@ struct DocumentMoreMenu: View {
     let path: String
 
     var body: some View {
-        Menu("更多", systemImage: "ellipsis") {
+        Menu(L("更多"), systemImage: "ellipsis") {
             let url = store.fs.url(for: path)
             Button(revealTitle, systemImage: "folder") { reveal(url) }
-            Button("複製路徑", systemImage: "doc.on.doc") { copyToPasteboard(url.path(percentEncoded: false)) }
+            Button(L("複製路徑"), systemImage: "doc.on.doc") { copyToPasteboard(url.path(percentEncoded: false)) }
             #if os(macOS)
             OpenWithMenu(url: url)
             #endif
             Divider()
-            Button("重新命名", systemImage: "pencil") { shell.rename(path, current: store.displayName(path)) }
-            Button("移到垃圾桶", systemImage: "trash", role: .destructive) {
+            Button(L("重新命名"), systemImage: "pencil") { shell.rename(path, current: store.displayName(path)) }
+            Button(L("移到垃圾桶"), systemImage: "trash", role: .destructive) {
                 Task { await store.delete(path) }
             }
         }
-        .help("更多")
+        .help(L("更多"))
     }
 
     private func copyToPasteboard(_ text: String) {
@@ -84,7 +84,7 @@ private struct OpenWithMenu: View {
     let url: URL
 
     var body: some View {
-        Menu("用其他 App 開啟", systemImage: "arrow.up.forward.app") {
+        Menu(L("用其他 App 開啟"), systemImage: "arrow.up.forward.app") {
             let apps = NSWorkspace.shared.urlsForApplications(toOpen: url)
                 .filter { $0.lastPathComponent != Bundle.main.bundleURL.lastPathComponent }
             ForEach(apps, id: \.self) { app in

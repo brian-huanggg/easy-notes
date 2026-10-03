@@ -72,6 +72,8 @@ public final class PluginRegistry {
 
     /// 依註冊順序
     public private(set) var kindInfos: [KindInfo] = []
+    /// 伴隨檔類型（`DocumentKind.companionOf`）：進 KindRegistry 照常索引與同步，但不是篩選 chip、沒有圖示
+    public private(set) var companionKinds: [any DocumentKind.Type] = []
     private var previews: [String: any DocumentPreviewProvider] = [:]
     private var editors: [String: (String) -> AnyView] = [:]
     public private(set) var newFileCommands: [NewFileCommand] = []
@@ -94,6 +96,11 @@ public final class PluginRegistry {
     /// `name`：篩選 chip 的名稱；`tint`：圖示、篩選 chip、縮圖底色用的類型顏色，App 不寫死
     public func addKind(_ kind: any DocumentKind.Type, name: String, symbol: String, tint: KindTint = .neutral) {
         kindInfos.append(KindInfo(kind: kind, name: name, symbol: symbol, tint: tint))
+    }
+
+    /// 伴隨檔類型，例如 PDF 的標註旁檔 `.pdf.ink`
+    public func addCompanionKind(_ kind: any DocumentKind.Type) {
+        companionKinds.append(kind)
     }
 
     /// 列表卡片的縮圖；沒有註冊的類型顯示骨架佔位
@@ -166,7 +173,7 @@ public final class PluginRegistry {
 
     /// 重複註冊同一副檔名會拋出錯誤
     public func makeKinds() throws -> KindRegistry {
-        try KindRegistry(kindInfos.map(\.kind))
+        try KindRegistry(kindInfos.map(\.kind) + companionKinds)
     }
 
     public var defaultKind: (any DocumentKind.Type)? {

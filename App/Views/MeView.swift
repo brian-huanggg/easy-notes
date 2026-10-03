@@ -9,17 +9,17 @@ struct MeView: View {
 
     var body: some View {
         Form {
-            Section("帳號與同步") {
+            Section(L("帳號與同步")) {
                 SyncPanel()
                     .padding(.vertical, 4)
             }
             Section {
-                Button("最近刪除", systemImage: "trash") { showDeleted = true }
-                LabeledContent("保留期限", value: "\(SyncEngine.retentionDays) 天")
+                Button(L("最近刪除"), systemImage: "trash") { showDeleted = true }
+                LabeledContent(L("保留期限"), value: L("\(SyncEngine.retentionDays) 天"))
             }
             Section("Vault") {
-                LabeledContent("名稱", value: store.vaultName)
-                LabeledContent("位置") {
+                LabeledContent(L("名稱"), value: store.vaultName)
+                LabeledContent(L("位置")) {
                     Text(store.fs.root.path(percentEncoded: false))
                         .textSelection(.enabled)
                         .lineLimit(2)
@@ -30,7 +30,7 @@ struct MeView: View {
         }
         .formStyle(.grouped)
         .sheet(isPresented: $showDeleted) { RecentlyDeletedView() }
-        .navigationTitle("設定")
+        .navigationTitle(L("設定"))
         #if os(macOS)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)

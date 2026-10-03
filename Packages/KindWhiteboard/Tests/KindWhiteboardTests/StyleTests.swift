@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 /// 4c：樣式面板（模型層的 `setStyle` / `styleSummary`，編輯器的 Undo 與新元素沿用上次的樣式）

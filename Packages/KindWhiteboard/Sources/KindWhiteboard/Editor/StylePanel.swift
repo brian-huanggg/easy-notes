@@ -1,6 +1,7 @@
+import ExcalidrawKit
 import SwiftUI
 
-/// 樣式面板（見 Architecture「4c：樣式面板」）：只顯示選取元素適用的區塊，只用預設色盤。
+/// 樣式面板（見 architecture/whiteboard.md「4c：樣式面板」）：只顯示選取元素適用的區塊，只用預設色盤。
 /// 多選時值不一致就不標記任何選項
 struct StylePanel: View {
     let editor: BoardEditor
@@ -11,14 +12,14 @@ struct StylePanel: View {
     /// 第 1 階（填色），第一個是無
     static let fillPalette = ["transparent", "#e9ecef", "#ffc9c9", "#fcc2d7", "#eebefa", "#d0bfff",
                               "#a5d8ff", "#99e9f2", "#96f2d7", "#b2f2bb", "#ffec99", "#ffd8a8"]
-    static let strokeWidths: [(String, Double)] = [("細", 1), ("中", 2), ("粗", 4)]
-    static let strokeStyles: [(String, String)] = [("實線", "solid"), ("虛線", "dashed"), ("點線", "dotted")]
-    static let fontSizes: [(String, Double)] = [("小", 16), ("中", 20), ("大", 28), ("特大", 36)]
-    static let textAligns: [(String, String, String)] = [("靠左", "left", "text.alignleft"),
-                                                         ("置中", "center", "text.aligncenter"),
-                                                         ("靠右", "right", "text.alignright")]
-    static let arrowheads: [(String, String?)] = [("無", nil), ("箭頭", "arrow"), ("三角形", "triangle"),
-                                                  ("橫線", "bar"), ("圓點", "circle"), ("菱形", "diamond")]
+    static let strokeWidths: [(String, Double)] = [(L("細"), 1), (L("中"), 2), (L("粗"), 4)]
+    static let strokeStyles: [(String, String)] = [(L("實線"), "solid"), (L("虛線"), "dashed"), (L("點線"), "dotted")]
+    static let fontSizes: [(String, Double)] = [(L("小"), 16), (L("中"), 20), (L("大"), 28), (L("特大"), 36)]
+    static let textAligns: [(String, String, String)] = [(L("靠左"), "left", "text.alignleft"),
+                                                         (L("置中"), "center", "text.aligncenter"),
+                                                         (L("靠右"), "right", "text.alignright")]
+    static let arrowheads: [(String, String?)] = [(L("無"), nil), (L("箭頭"), "arrow"), (L("三角形"), "triangle"),
+                                                  (L("橫線"), "bar"), (L("圓點"), "circle"), (L("菱形"), "diamond")]
 
     /// 透明度滑桿拖曳中的值（放開前不讀場景，避免跳動）
     @State private var draggingOpacity: Double?
@@ -34,12 +35,12 @@ struct StylePanel: View {
         let style = editor.styleSummary
         return VStack(alignment: .leading, spacing: 14) {
             if !style.fills.isEmpty {
-                section("填色") {
+                section(L("填色")) {
                     colors(Self.fillPalette, current: style.fills) { editor.setStyle(.fill($0)) }
                 }
             }
             if !style.strokeColors.isEmpty {
-                section("外框") {
+                section(L("外框")) {
                     colors((style.strokeCanBeNone ? ["transparent"] : []) + Self.strokePalette,
                            current: style.strokeColors) { editor.setStyle(.strokeColor($0)) }
                     HStack(spacing: 16) {
@@ -57,14 +58,14 @@ struct StylePanel: View {
                 }
             }
             if !style.rounded.isEmpty {
-                section("邊角") {
-                    options([("直角", false), ("圓角", true)], current: style.rounded, set: { editor.setStyle(.rounded($0)) }) { on in
+                section(L("邊角")) {
+                    options([(L("直角"), false), (L("圓角"), true)], current: style.rounded, set: { editor.setStyle(.rounded($0)) }) { on in
                         Image(systemName: on ? "app" : "square").font(.system(size: 17))
                     }
                 }
             }
             if !style.startArrowheads.isEmpty {
-                section("箭頭") {
+                section(L("箭頭")) {
                     VStack(alignment: .leading, spacing: 6) {
                         arrowheadRow(.start, current: style.startArrowheads)
                         arrowheadRow(.end, current: style.endArrowheads)
@@ -72,7 +73,7 @@ struct StylePanel: View {
                 }
             }
             if !style.textColors.isEmpty {
-                section("文字") {
+                section(L("文字")) {
                     colors(Self.strokePalette, current: style.textColors) { editor.setStyle(.textColor($0)) }
                     HStack(spacing: 16) {
                         options(Self.fontSizes, current: style.fontSizes, set: { editor.setStyle(.fontSize($0)) }) { size in
@@ -87,7 +88,7 @@ struct StylePanel: View {
                 }
             }
             if !style.opacities.isEmpty {
-                section("透明度") { opacity(style.opacities) }
+                section(L("透明度")) { opacity(style.opacities) }
             }
         }
         .padding(16)
@@ -110,8 +111,8 @@ struct StylePanel: View {
                     Swatch(hex: hex, selected: current == [hex])
                 }
                 .buttonStyle(.plain)
-                .help(hex == "transparent" ? "無" : hex)
-                .accessibilityLabel(hex == "transparent" ? "無" : hex)
+                .help(hex == "transparent" ? L("無") : hex)
+                .accessibilityLabel(hex == "transparent" ? L("無") : hex)
             }
         }
     }
@@ -138,7 +139,7 @@ struct StylePanel: View {
 
     private func arrowheadRow(_ end: ArrowEnd, current: Set<String>) -> some View {
         HStack(spacing: 6) {
-            Text(end == .start ? "起點" : "終點").font(.caption2).foregroundStyle(.secondary).frame(width: 28, alignment: .leading)
+            Text(end == .start ? L("起點") : L("終點")).font(.caption2).foregroundStyle(.secondary).frame(width: 28, alignment: .leading)
             options(Self.arrowheads.map { ($0.0, $0.1 ?? "") }, current: current,
                     set: { editor.setStyle(.arrowhead(end, $0.isEmpty ? nil : $0)) }) { kind in
                 ArrowheadSample(kind: kind, end: end)
@@ -158,7 +159,7 @@ struct StylePanel: View {
                     editor.endStylePreview()
                 }
             }
-            Text(current.count > 1 && draggingOpacity == nil ? "混合" : "\(Int(value))")
+            Text(current.count > 1 && draggingOpacity == nil ? L("混合") : "\(Int(value))")
                 .font(.caption.monospacedDigit())
                 .frame(width: 32, alignment: .trailing)
         }

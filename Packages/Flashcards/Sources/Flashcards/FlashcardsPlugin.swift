@@ -8,28 +8,28 @@ public enum FlashcardsPlugin: EasyNotesPlugin {
         registry.addVaultGuide(guide)
         registry.addSyncedMetaFolder(ReviewLog.metaFolder)
         registry.addController(ReviewStore.shared)
-        registry.addPanel(id: "review", title: "複習", symbol: "rectangle.stack", badgeTint: Palette.cardDue,
+        registry.addPanel(id: "review", title: L("複習"), symbol: "rectangle.stack", badgeTint: Palette.cardDue,
                           badge: { ReviewStore.shared.dueCount }) { ReviewPanel() }
     }
 
-    /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節
+    /// Vault 根目錄 `CLAUDE.md` 的卡片語法一節（l10n:fixed：給 Claude Code 讀，內容固定用英文）
     static let guide = """
-        ## 卡片（Flashcards）
+        ## Cards (Flashcards)
 
-        卡片直接寫在 md 裡，一行一張（Anki 的 note）：
+        Cards are written directly in markdown, one per line (an Anki "note"):
 
-        | 語法 | 產生 |
+        | Syntax | Produces |
         | --- | --- |
-        | `光合作用發生在 :: 葉綠體` | 正向一張 |
-        | `中文 ;; Chinese` | 正向、反向各一張 |
-        | `{{粒線體}}是{{細胞的發電廠}}` | 每個 `{{}}` 一張克漏字 |
+        | `Photosynthesis takes place in :: chloroplasts` | one forward card |
+        | `中文 ;; Chinese` | one forward and one reverse card |
+        | `{{Mitochondria}} are the {{powerhouse of the cell}}` | one cloze card per `{{}}` |
 
-        - `::`、`;;` 前後要有空白；有 `{{}}` 的行一律是克漏字。
-        - 行首可以有清單、待辦、標題、引言標記（`- 問 :: 答`）。
-        - 程式碼區塊、行內程式碼與 frontmatter 內不算卡片。
-        - 只要寫語法就好，**不要自己加 `^id`**：App 會在行尾補上 `^c-xxxxxx`，它是卡片的身分，複習紀錄靠它對應。
-        - 修改卡片文字或把整行搬到別的筆記時，保留行尾原本的 `^id`，複習歷史才會跟著走。
-        - 牌組 = 資料夾（含子資料夾）；標籤只用來篩選。
-        - 不要手動修改 `.easynotes/srs/` 下的檔案（複習紀錄與設定）。
+        - `::` and `;;` need spaces on both sides; a line containing `{{}}` is always a cloze card.
+        - A line may start with a list, task, heading or quote marker (`- Question :: Answer`).
+        - Code blocks, inline code and frontmatter are not parsed for cards.
+        - Write the syntax only and **do not add `^id` yourself**: the app appends `^c-xxxxxx` to the end of the line. It is the card's identity, and review history is matched through it.
+        - When editing a card's text or moving the whole line to another note, keep the trailing `^id` so the review history follows the card.
+        - A deck is a folder (including subfolders); tags are only used for filtering.
+        - Do not modify files under `.easynotes/srs/` (review logs and settings).
         """
 }

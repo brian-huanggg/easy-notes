@@ -80,11 +80,11 @@ final class SyncCoordinator {
             guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
                   let token = credential.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
             else {
-                authError = "Apple 沒有回傳登入憑證"
+                authError = L("Apple 沒有回傳登入憑證")
                 return
             }
             guard let nonce = Self.nonceClaim(token).flatMap({ nonces[$0] }) else {
-                authError = "登入憑證與這次登入要求不符，請再試一次"
+                authError = L("登入憑證與這次登入要求不符，請再試一次")
                 return
             }
             nonces = [:]

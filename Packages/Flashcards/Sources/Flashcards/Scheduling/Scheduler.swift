@@ -46,7 +46,7 @@ public struct Preset: Codable, Equatable, Sendable {
         case retrievability
     }
 
-    public var name = "預設"
+    public var name = "預設" // l10n:fixed 寫進 .config.json，預設 preset 的名稱各裝置要一致
     /// 每日上限（母牌組的上限涵蓋子牌組）
     public var newPerDay = 20
     public var reviewsPerDay = 200

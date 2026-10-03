@@ -11,6 +11,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorSelection, EditorState } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
+import { t } from "../shared/i18n";
 import { post } from "./bridge";
 import { cards } from "./cards";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
@@ -272,7 +273,12 @@ const api = {
       case "bullet": setPrefix((current) => (current === "- " ? "" : "- ")); break;
       case "link": wrap("[[", "]]"); break;
       case "insertText": if (arg) insertBlock(arg); break;
-      case "table": insertBlock("| 欄位 1 | 欄位 2 | 欄位 3 |\n| --- | --- | --- |\n|  |  |  |", [2, 6]); break;
+      case "table": {
+        // 建立當下依介面語言產生；選取第一個欄名，打字即可取代
+        const columns = [1, 2, 3].map((n) => t("欄位 {n}", { n }));
+        insertBlock(`| ${columns.join(" | ")} |\n| --- | --- | --- |\n|  |  |  |`, [2, 2 + columns[0].length]);
+        break;
+      }
     }
     view.focus();
   },
@@ -281,6 +287,7 @@ const api = {
   benchmark(lines: number) {
     const parts: string[] = [];
     for (let i = 0; i < lines; i++) {
+      // l10n:fixed 效能量測用的測試資料，不是介面文字
       parts.push(i % 20 === 0 ? `## 段落 ${i}` : `第 ${i} 行，含 **粗體**、*斜體*、\`code\` 與 [[連結 ${i}]]。`);
     }
     api.load(`benchmark-${lines}`, parts.join("\n"));

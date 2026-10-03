@@ -5,7 +5,8 @@
 import { syntaxTree } from "@codemirror/language";
 import { EditorState, Extension, Range, StateEffect, StateField } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { el, embedURL, onPress, post, relativeTime, vaultURL, withVerb } from "./bridge";
+import { t as tr } from "../shared/i18n"; // 這個檔案的區域變數 `t` 是連結目標
+import { el, embedURL, onPress, post, updatedLabel, vaultURL } from "./bridge";
 
 // Swift 推送的連結目標（App 從索引與 PluginRegistry 組出來，編輯器不認識其他外掛）
 export interface LinkTarget {
@@ -95,7 +96,7 @@ class CardsWidget extends WidgetType {
       icon.append(glyph);
       const text = el("span", "cm-lp-card-text");
       text.append(el("span", "cm-lp-card-title", card.label));
-      const sub = t ? [t.summary, withVerb(relativeTime(t.modified), "更新")].filter(Boolean).join(" · ") : "點一下建立新筆記";
+      const sub = t ? [t.summary, updatedLabel(t.modified)].filter(Boolean).join(" · ") : tr("點一下建立新筆記");
       text.append(el("span", "cm-lp-card-sub", sub));
       const chevron = el("span", "cm-lp-card-chevron");
       chevron.innerHTML = CHEVRON;
@@ -248,8 +249,9 @@ function build(state: EditorState, active: Set<number>): DecorationSet {
     flush();
     const image = IMAGE.exec(line.text);
     if (image) {
-      // 沒有資料夾的檔名視為在附件資料夾
-      const path = image[1].includes("/") ? image[1] : `附件/${image[1]}`;
+      // 沒有資料夾的檔名視為在附件資料夾；要與 Swift 的 `Attachments.folder` 一致，不隨語言改變。
+      // 舊版的 `附件/` 由 Swift 的 vault:// 在 `Attachments/` 找不到時接手，這裡不必知道
+      const path = image[1].includes("/") ? image[1] : `Attachments/${image[1]}`;
       decos.push(Decoration.replace({ widget: new ImageWidget(path), block: true }).range(line.from, line.to));
       continue;
     }

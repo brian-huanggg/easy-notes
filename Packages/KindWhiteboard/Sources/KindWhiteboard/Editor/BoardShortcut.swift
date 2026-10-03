@@ -1,7 +1,8 @@
 import CoreGraphics
+import ExcalidrawKit
 import Foundation
 
-/// 白板的鍵盤快捷鍵（見 Architecture「4c：macOS 宿主、快捷鍵、LOD」）。平台無關：
+/// 白板的鍵盤快捷鍵（見 architecture/whiteboard.md「4c：macOS 宿主、快捷鍵、LOD」）。平台無關：
 /// Mac 的 `keyDown` 與 iPad 外接鍵盤的 `UIKeyCommand` 都把按鍵換成 `BoardShortcut` 再交給 `BoardEditor.perform`。
 enum BoardShortcut: Equatable {
     case tool(BoardTool)

@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import EasyNotesCore
+@testable import ExcalidrawKit
 @testable import KindWhiteboard
 
 #if canImport(PencilKit)

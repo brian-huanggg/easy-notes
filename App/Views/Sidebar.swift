@@ -17,7 +17,7 @@ struct Sidebar: View {
                 VStack(alignment: .leading, spacing: 0) {
                     VaultHeader(name: store.vaultName, account: sync.accountEmail, icon: Image("AppLogo"))
                         .padding(.bottom, 10)
-                    SearchFieldButton("搜尋", shortcut: "⌘K") { shell.showQuickOpen = true }
+                    SearchFieldButton(L("搜尋"), shortcut: "⌘K") { shell.showQuickOpen = true }
                         .padding(.bottom, 12)
                     navigation
                     spaces.padding(.top, 18)
@@ -36,12 +36,12 @@ struct Sidebar: View {
 
     private var navigation: some View {
         VStack(spacing: 1) {
-            item(.all, "所有文件", symbol: "doc.text", count: store.files.count)
+            item(.all, L("所有文件"), symbol: "doc.text", count: store.files.count)
             ForEach(store.plugins.panels) { panel in
                 item(.panel(panel.id), panel.title, symbol: panel.symbol, count: panel.badge(), countTint: panel.badgeTint)
             }
-            item(.recents, "最近", symbol: "clock.arrow.circlepath")
-            item(.pinned, "釘選", symbol: "pin", count: pinnedCount)
+            item(.recents, L("最近"), symbol: "clock.arrow.circlepath")
+            item(.pinned, L("釘選"), symbol: "pin", count: pinnedCount)
         }
     }
 
@@ -62,7 +62,7 @@ struct Sidebar: View {
 
     private var spaces: some View {
         VStack(alignment: .leading, spacing: 1) {
-            SidebarGroupLabel("空間", actionSymbol: "plus", actionHelp: "新增空間") { store.createSpace() }
+            SidebarGroupLabel(L("空間"), actionSymbol: "plus", actionHelp: L("新增空間")) { store.createSpace() }
             ForEach(store.tree.filter(\.isFolder)) { folder in
                 node(folder, depth: 0)
             }
@@ -120,7 +120,7 @@ struct Sidebar: View {
 
     private var tags: some View {
         VStack(alignment: .leading, spacing: 1) {
-            SidebarGroupLabel("標籤")
+            SidebarGroupLabel(L("標籤"))
             ForEach(store.tags) { tag in
                 item(.tag(tag.tag), tag.tag, symbol: "number", count: tag.count)
             }
@@ -132,7 +132,7 @@ struct Sidebar: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 1) {
             Button { shell.showRecentlyDeleted = true } label: {
-                StatusRow("最近刪除", detail: "保留 \(SyncEngine.retentionDays) 天", symbol: "trash")
+                StatusRow(L("最近刪除"), detail: L("保留 \(SyncEngine.retentionDays) 天"), symbol: "trash")
             }
             .buttonStyle(.plain)
             SyncStatusRow()
@@ -156,7 +156,7 @@ private struct SettingsButton: View {
     }
 
     private var label: some View {
-        SidebarItem("設定", symbol: "gearshape")
+        SidebarItem(L("設定"), symbol: "gearshape")
     }
 }
 
@@ -168,17 +168,17 @@ struct NodeMenu: View {
     let isFolder: Bool
 
     var body: some View {
-        Button("重新命名", systemImage: "pencil") {
+        Button(L("重新命名"), systemImage: "pencil") {
             shell.rename(path, current: isFolder ? (path as NSString).lastPathComponent : store.displayName(path))
         }
         if !isFolder, let file = store.file(at: path), store.fs.kinds.kind(for: path)?.supportsPinning == true {
-            Button(file.pinned ? "取消釘選" : "釘選", systemImage: file.pinned ? "pin.slash" : "pin") {
+            Button(file.pinned ? L("取消釘選") : L("釘選"), systemImage: file.pinned ? "pin.slash" : "pin") {
                 Task { await store.setPinned(path, !file.pinned) }
             }
         }
         Button(revealTitle, systemImage: "folder") { reveal(store.fs.url(for: path)) }
         Divider()
-        Button("移到垃圾桶", systemImage: "trash", role: .destructive) {
+        Button(L("移到垃圾桶"), systemImage: "trash", role: .destructive) {
             Task { await store.delete(path) }
         }
     }

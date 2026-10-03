@@ -17,17 +17,17 @@ struct PhoneShell: View {
     var body: some View {
         TabView(selection: $tab) {
             stack($docsPath) { PhoneDocs(push: push) }.tag(Tab.docs)
-            stack($searchPath) { QuickOpen(open: { push(.file($0)) }).navigationTitle("搜尋") }.tag(Tab.search)
+            stack($searchPath) { QuickOpen(open: { push(.file($0)) }).navigationTitle(L("搜尋")) }.tag(Tab.search)
             stack($spacesPath) { PhoneSpaces(push: push) }.tag(Tab.spaces)
             NavigationStack { MeView() }.tag(Tab.me).toolbar(.hidden, for: .tabBar)
         }
         .safeAreaInset(edge: .bottom) {
             if currentPath.isEmpty {
                 TabBar(selection: $tab, items: [
-                    .init(.docs, title: "文件", symbol: "doc.text"),
-                    .init(.search, title: "搜尋", symbol: "magnifyingglass"),
-                    .init(.spaces, title: "空間", symbol: "square.stack.3d.up"),
-                    .init(.me, title: "我", symbol: "person.crop.circle"),
+                    .init(.docs, title: L("文件"), symbol: "doc.text"),
+                    .init(.search, title: L("搜尋"), symbol: "magnifyingglass"),
+                    .init(.spaces, title: L("空間"), symbol: "square.stack.3d.up"),
+                    .init(.me, title: L("我"), symbol: "person.crop.circle"),
                 ])
                 .padding(.horizontal, 16)
                 .padding(.bottom, 4)
@@ -90,7 +90,7 @@ private struct PhoneDestination: View {
         case .file(let path):
             Group {
                 if let editor = store.plugins.editor(for: store.kindID(path), path: path) { editor }
-                else { ContentUnavailableView("不支援的檔案類型", systemImage: "doc.questionmark") }
+                else { ContentUnavailableView(L("不支援的檔案類型"), systemImage: "doc.questionmark") }
             }
             .navigationTitle(store.displayName(path))
             .navigationBarTitleDisplayMode(.inline)
@@ -99,7 +99,7 @@ private struct PhoneDestination: View {
                 ToolbarItem(placement: .principal) { DocumentStatusPill(path: path) }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     PinButton(path: path)
-                    ShareLink(item: store.fs.url(for: path)) { Label("分享", systemImage: "square.and.arrow.up") }
+                    ShareLink(item: store.fs.url(for: path)) { Label(L("分享"), systemImage: "square.and.arrow.up") }
                     DocumentMoreMenu(path: path)
                 }
             }
@@ -141,14 +141,14 @@ private struct PhoneSpaces: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("空間").textStyle(.largeTitle).foregroundStyle(Palette.textPrimary)
+                    Text(L("空間")).textStyle(.largeTitle).foregroundStyle(Palette.textPrimary)
                     Spacer()
-                    IconButton("plus", help: "新增空間", size: 34) { store.createSpace() }
+                    IconButton("plus", help: L("新增空間"), size: 34) { store.createSpace() }
                 }
                 HStack(spacing: 10) {
-                    tile(.all, detail: "\(store.files.count) 份文件")
-                    tile(.recents, detail: "依修改時間")
-                    tile(.pinned, detail: "釘選的文件")
+                    tile(.all, detail: L("\(store.files.count) 份文件"))
+                    tile(.recents, detail: L("依修改時間"))
+                    tile(.pinned, detail: L("釘選的文件"))
                 }
                 ForEach(store.plugins.panels) { panel in
                     Button { push(.panel(panel.id)) } label: {
@@ -157,11 +157,11 @@ private struct PhoneSpaces: View {
                     .buttonStyle(.plain)
                 }
                 let spaces = store.tree.filter(\.isFolder)
-                SectionHeader("空間", symbol: "square.stack.3d.up", detail: "\(spaces.count)", size: .mobile)
+                SectionHeader(L("空間"), symbol: "square.stack.3d.up", detail: "\(spaces.count)", size: .mobile)
                 VStack(spacing: 4) {
                     ForEach(spaces) { folder in
                         Button { push(.folder(folder.path)) } label: {
-                            DocRow(folder.name, symbol: "folder", tint: .neutral, meta: "\(store.fileCount(in: folder.path)) 份文件")
+                            DocRow(folder.name, symbol: "folder", tint: .neutral, meta: L("\(store.fileCount(in: folder.path)) 份文件"))
                         }
                         .buttonStyle(.plain)
                         .contextMenu { NodeMenu(path: folder.path, isFolder: true) }
@@ -202,7 +202,7 @@ private struct PhoneNewMenu: View {
     @Environment(ShellState.self) private var shell
 
     var body: some View {
-        Menu("新增文件", systemImage: "plus") { NewDocumentItems(store: store, shell: shell) }
+        Menu(L("新增文件"), systemImage: "plus") { NewDocumentItems(store: store, shell: shell) }
     }
 }
 #endif

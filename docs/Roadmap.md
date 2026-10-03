@@ -1,6 +1,23 @@
 # Roadmap 與 Todo
 
-每個 Phase 列出目標、工作項目與驗收測試。驗收測試全部通過才進入下一個 Phase。進度以本節勾選狀態為準。
+進度與驗收：每個 Phase 列出目標、工作項目與驗收測試，進度以勾選狀態為準；驗收測試全部通過才進入下一個 Phase。
+
+**本文件只放**：目標、勾選清單、驗收測試、尚未驗證的事項、Bug 與風險。**不放**設計與決定的理由（寫在 [Architecture](./architecture/README.md) 與其下各功能檔）和版本變更（寫在 [Changelog](./Changelog.md)）。下表的「設計」欄是該 Phase 對應的 Architecture 檔案，整份讀即可。
+
+## 狀態總覽
+
+| Phase | 狀態 | 設計（`docs/architecture/`） |
+| --- | --- | --- |
+| 0 Spike + Prototype | 完成 | [README](./architecture/README.md)「技術選型決策」 |
+| 1 本地筆記 MVP | 完成 | [markdown.md](./architecture/markdown.md) |
+| 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
+| 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
+| 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
+| 5 PDF 手寫與標註 | S4、5a 完成；5b 實作完成（匯入、iPad 實機放大清晰度、伴隨檔流程尚未驗證）；5c 起未開始 | [pdf.md](./architecture/pdf.md) |
+| 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
+| i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
 
@@ -29,7 +46,7 @@
 - [ ] 編輯器保留的 `EditorState` 改為 LRU（最近 20 篇），收到記憶體警告時清掉不在畫面上的
 - [ ] 建立 Release build 的大小、記憶體、耗電基準線（見「非功能預算」）
 
-2026-10-01：結構重構完成，進入 Phase 2。VaultWatcher 增量重掃移到 Phase 2（hash 與改名推斷的前置）；Vault 的 CLAUDE.md、EditorState LRU、Release 基準線延後到 Phase 2 之後，對應的驗收測試一併延後。
+延後項目：VaultWatcher 增量重掃已移到 Phase 2；`EditorState` LRU、Release 基準線與對應的驗收測試延後到 Phase 2 之後。
 
 驗收測試：
 
@@ -86,27 +103,7 @@
 | Mobile | 首頁、編輯器、Spaces | `CIaUn`、`sk74A`、`sulbD` |
 | 元件 | 側邊欄（附說明 `c3JKt`）、Sidebar Item、Icon Button、Doc Card、Thumb CSV / Board / PDF、M Doc Row、M Pin Card、M Tab Bar、Format Bar | `YXFMc`、`WYNg6`、`QOPWl`、`KdLwJ`、`otUrV` / `r2BDR`（`Rr1po`）/ `CGJEp`、`i08TyX`、`xiCip`、`oPziA`、`n2KUAm` |
 
-字型：Pen 不支援蘋果字型，設計稿以 Inter 代替（`font-ui`、`font-doc`、`font-cjk` 三個變數）。實作一律用系統字型：拉丁字 SF Pro、中文蘋方-繁（SwiftUI 預設字型；CM6 用 `-apple-system`），不打包 Inter。字級、字重、行高照設計稿。
-
-設計稿與 EasyNotes 模型的對應：
-
-| 設計稿 | EasyNotes 對應 |
-| --- | --- |
-| 側邊欄 Vault 標頭（名稱 + 帳號） | 單一 Vault，不可切換；帳號來自 Supabase Auth |
-| Spaces | Vault 根目錄的第一層資料夾；`+` = 新增第一層資料夾 |
-| All Documents / Recents | 索引的 `files` 表，依 `mtime` 排序 |
-| Pinned（側邊欄與列表頁同一概念） | frontmatter `pinned: true`（跟著檔案同步、Claude Code 可讀寫） |
-| Tags | 現有標籤索引 |
-| 篩選 All / Notes / Boards / PDFs / Sheets | 依 Registry 中已註冊的 Kind 產生；尚未實作的外掛不顯示 |
-| 類型顏色 `type-doc` / `type-board` / `type-pdf` / `type-csv` | 外掛註冊 Kind 時一併提供顏色，App 不寫死 |
-| 卡片縮圖與副標（「CSV · 86 rows」「PDF · 18 pages」） | 各外掛的 DocumentPreviewProvider 產生縮圖與一行摘要 |
-| New Document 選單（⌘N、⇧⌘N、匯入 PDF / CSV、新資料夾） | `addNewFile` 加上 `addImport`（把外部檔案複製進 Vault） |
-| 文件 icon、封面、標籤 | frontmatter `icon`、`cover`（Vault 內圖片路徑）、`tags` |
-| Review | Flashcards 外掛以 `addPanel` 註冊；Phase 3 前不顯示 |
-| Recently Deleted（保留 30 天） | 現有「最近刪除」 |
-| Synced · 2 min ago | 現有同步狀態（已同步 / 待上傳 / 衝突） |
-| 資料夾圖示（`folder-open`） | 在 Finder 中顯示（iOS：在「檔案」App 中顯示） |
-| Me（Mobile 分頁） | 帳號、同步面板、設定 |
+設計稿與 EasyNotes 模型的對應、字型（系統字型取代 Pen 的 Inter）、介面語言等決定見 [ui.md](./architecture/ui.md)。
 
 ### 2.5-0 設計稿待補
 
@@ -130,8 +127,6 @@
 - [x] 字型：SwiftUI 用系統字型 + 設計稿字級；CM6 用 `-apple-system`，中文 fallback 蘋方-繁
 - [x] 共用元件：Sidebar Item、Icon Button、Doc Card、Doc Row、Pin Card、Tab Bar、空狀態
 
-2026-10-02：設計系統放在 `EasyNotesUI/DesignSystem/`（`Palette`、`KindTint`、`TextStyle`、`Metrics`、`ThemeCSS` 與共用元件），`DesignSystemGallery` 可在 Xcode Preview 或 `EASYNOTES_SNAPSHOT_DIR=… swift test` 輸出截圖比對設計稿。CSS variables 由 `ThemeCSS.stylesheet()` 產生，2.5d 起由 WebEditorHost 注入 CM6。
-
 ### 2.5b 外殼與導覽
 
 - [x] Desktop / iPad 側邊欄：Vault 標頭、搜尋（⌘K）、All Documents、Recents、Pinned、Spaces（可展開的檔案樹，檔案用類型圖示）、Tags、Recently Deleted、同步狀態、Settings
@@ -142,14 +137,6 @@
 - [x] iPhone：底部分頁（Docs / Search / Spaces / Me），取代 `NavigationSplitView` 的摺疊行為
 - [x] ~~反向連結：保留 inspector，套用新樣式~~ → 2026-10-02 決定移除反向連結 inspector（索引仍保留反向連結資料）
 
-2026-10-02：外殼改為 `Route`（所有文件 / 最近 / 釘選 / 資料夾 / 標籤 / 檔案 / 外掛面板）＋上一頁 / 下一頁歷史（⌘[ / ⌘]），App 啟動時顯示所有文件。列表頁目前是 2.5c 的骨架（標題 + 統計、子資料夾、網格 / 列表、依修改時間或名稱排序，縮圖用佔位）。補充決定：
-
-- 介面語言統一為繁體中文：App 宣告 `zh-Hant` 在地化，系統選單（檔案、編輯、顯示方式、視窗、輔助說明）也是中文；側邊欄的 Spaces / Tags 顯示為「空間」「標籤」。
-- ⌘K 給快速開啟，Markdown 的「[[連結]]」改為 ⇧⌘K；新資料夾 ⇧⌘F。
-- 移除 Markdown 編輯器工具列上 Spike S1 的載入時間（benchmark）顯示。
-- 側邊欄的「釘選」已有入口，但釘選資料要等下方待決事項（frontmatter 或 `pins.json`）決定後在 2.5c 接上，目前顯示空狀態。
-- 匯入的目的地為目前所在的資料夾：資料夾頁 = 該資料夾、編輯器 = 文件所在的資料夾、其他列表頁 = Vault 根目錄（見 2.5d 待決事項）。
-
 ### 2.5c 文件列表
 
 - [x] All Documents / 資料夾頁：標題 + 統計（文件數、資料夾數）、類型篩選、Pinned 區（Pin Card）、Recent 區（Desktop 網格、Mobile 列表）
@@ -158,17 +145,6 @@
 - [x] 卡片副標：外掛提供一行摘要（字數、列數、頁數）＋相對時間
 - [x] 預覽快取：依 hash 存在 `.easynotes/cache/preview/`，檔案未變就不重算
 - [x] 索引補欄位：frontmatter 的 `icon`、`pinned`、字數（`IndexEntry` 新增欄位，Core 只存不解讀）
-
-2026-10-02 實作決定：
-
-- 釘選存 frontmatter `pinned: true`（見待決事項）。`DocumentKind.setPinned(_:in:)` 預設回傳 nil = 不支援，列表的「釘選」選單只對支援的類型顯示。App 寫入後把 mtime 還原，釘選不會讓文件跑到「最近」最上面。白板之後改存 `customData`，PDF 等外掛完成再處理。
-- `IndexEntry` 新增 `icon`、`pinned`、`summary`（外掛提供的一行摘要，例如「1,240 字」「32 筆畫」），Core 不認識「字數」；索引另存內容 `hash` 作為預覽快取的 key。
-- `addKind(..., name:)` 提供篩選 chip 的名稱（筆記、白板），App 不寫死。
-- Mobile 的篩選與 Desktop 相同（全部 + 已註冊的類型）；Pen 的 Mobile 首頁 chips 與 `C/M Doc Row` 的「blocks」一併改掉。
-- 封面（frontmatter `cover`）的卡片縮圖留到 2.5d。
-- 預覽協定命名為 `DocumentPreviewProvider`（避開 SwiftUI 的 `PreviewProvider`）。
-- 列表的文件與資料夾有 hover 狀態（卡片加深邊框並浮起、列加 `bg-hover`、游標變手指；iPad 指標用系統 highlight）。
-- 釘選會替原本沒有 frontmatter 的 md 加上 frontmatter，所以 CM6 先做最小的處理：游標不在區塊內時收合成一行屬性（📌 已釘選、icon、標籤），點一下才顯示 YAML；2.5d 換成完整的文件頭。
 
 ### 2.5d 編輯器
 
@@ -179,17 +155,6 @@
 - [x] 浮動格式工具列（Desktop 右下）與 iOS 鍵盤工具列（`Format Bar`）：原生 SwiftUI，按下時送 `exec`，不在打字路徑上
 - [x] 工具列：麵包屑、同步狀態、釘選、更多選單（在 Finder 中顯示、複製路徑、用其他 App 開啟）
 - [x] Mobile 編輯器：返回所在資料夾、同步狀態、釘選、分享（系統 Share Sheet 分享檔案）、更多
-
-2026-10-02 實作決定（開工前）：
-
-- 設計稿重新對齊 2.5-0：刪除 Presence、分享、✨；連結卡片副標改用外掛摘要（「320 個字」「CSV · 24 列」）；meta 列只有標籤 + 「N 分鐘前編輯」（不顯示閱讀時間）；工具列右側為釘選 + 更多；Mobile 編輯器 `sk74A` 改為中文內容。
-- 文件頭是 CM6 decorations：封面 + icon 為檔案開頭的 block widget；標題就是第一行 `#`（一般文字，組字不受影響，索引規則不變）；meta 列為標題行之後的 block widget。游標進入 frontmatter 才顯示原始 YAML。
-- 封面存 frontmatter `cover: 附件/xxx.jpg`（Vault 內路徑）；從 Vault 外選的圖片複製到 Vault 根目錄的 `附件/`，重名加序號。更換封面 / icon 走一般寫檔路徑（會更新 mtime、進同步），與釘選不同。
-- 圖片經 `vault://<相對路徑>`（`WKURLSchemeHandler`，在 EasyNotesUI 的 WebEditorHost）讀取，只允許 Vault 內路徑。
-- 主題：`ThemeCSS.stylesheet()` 以 user script 在頁面載入前注入，WebView 自己跟隨系統深淺色，不經 Bridge。類型顏色不進全域 CSS，由連結目標資料帶入。
-- 連結卡片需要目標的類型、摘要、時間：`EditorController.linkTargetsChanged` 改傳 `LinkTarget`（名稱、kind、摘要、mtime、tint、圖示 PNG）。WebView 沒有 SF Symbols，圖示由 Swift 依 Registry 的 symbol 畫成 PNG。
-- 文件 icon 支援 Emoji 與 SF Symbols（不打包 Lucide）：frontmatter `icon: 🗺` 或 `icon: sf:map`，Core 只存字串。選單為「圖示 | 表情符號」；Apple 沒有列出所有 SF Symbols 的 API，所以內建常用清單，搜尋框也接受完整名稱。名稱不存在時顯示類型的預設圖示。列表卡片：emoji 接在標題前、SF Symbol 取代類型圖示；編輯器文件頭經 `symbol:///<名稱>`（`WKURLSchemeHandler`）顯示。在 App 外（例如 Obsidian）只會看到 `sf:` 文字。
-- 浮動格式工具列與 iOS Format Bar 共用 `FormatBar`（T 選單、核取清單、插入圖片、插入表格）；編輯器工具列（儲存狀態、釘選、更多）放在 App，所有檔案類型共用。
 
 待決事項：
 
@@ -213,7 +178,7 @@
 
 目標：在 md 內寫卡片，用與 Anki 相同的 FSRS 排程複習；多裝置紀錄自動合併。
 
-2026-10-02 決定（設計見 Architecture「Flashcards」）：排程用 swift-fsrs 的 FSRS-6（以 `revision:` 固定 commit，明確傳入 21 個參數），優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選學習；設定以 preset 管理（`.easynotes/srs/<deviceId>.config.json`，3c 改為各裝置各寫），預設值與 Anki 相同；重播時到期日採用紀錄的 `ivl`，只重算記憶狀態。
+設計見 [flashcards.md](./architecture/flashcards.md)。
 
 分四個子階段，依序進行；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
 
@@ -236,7 +201,7 @@
 - [ ] Claude Code 寫入 50 行 `::` 卡片 → 數秒內全部補上 `^id`，其餘內容逐位元組相同
 - [ ] 注音輸入：在卡片行內組字正常；開啟中的檔案不會被補 `^id`，切到別篇後才補上
 
-2026-10-02：3a 程式完成，單元測試通過（Core 的 `IndexContributorTests`、Flashcards 的 `CardSyntaxTests` / `CardIDsTests` / `CardIndexTests`，後者以 App 相同的流程模擬 50 張卡片補 id）。Vault 的 `CLAUDE.md` 由 Markdown 與 Flashcards 外掛各提供一節，App 加上 Vault 慣例的開頭。尚未在實機驗證：語法標示的外觀、注音組字、FSEvents 觸發後數秒內補上 id。
+尚未在實機驗證：語法標示的外觀、注音組字、FSEvents 觸發後數秒內補上 id。
 
 ### 3b 排程、紀錄與重播
 
@@ -259,10 +224,6 @@
 - [x] 換日時間：凌晨 4 點前後的複習分屬不同天；台灣時間早上 8 點（UTC 午夜）前後屬於同一天
 - [x] 同步：`.easynotes/srs/*.jsonl` 在兩台裝置間同步；`.easynotes/cache/`、`device-id` 不上傳（假 backend 單元測試）
 
-2026-10-02 開工前決定（設計見 Architecture「複習紀錄與重播」與「擴充點」）：紀錄欄位對齊 Anki revlog，另加 `op`（`suspend` / `unsuspend` / `reset`）；`.easynotes/srs/` 以外掛註冊的白名單參與同步；deviceId 由 Core 的 `.easynotes/device-id` 提供；swift-fsrs 固定在 `4fbaf20`（2026-05-25），以 UTC 換日，包裝層平移時間對齊 Anki 的換日時間；參考向量由 `scripts/` 的 Python 腳本（fsrs-rs-python、py-fsrs）產生成 JSON fixture。
-
-2026-10-02：3b 程式完成，單元測試通過（Core 的 `SyncMetaFolderTests`；Flashcards 的 `FSRSVectorTests`、`ReplayTests`）。實作中的補充決定（見 Architecture「複習紀錄與重播」）：learning / relearning steps 依 Anki 的規則由包裝層處理（swift-fsrs 在第二步以後按 Hard 的行為與 Anki 不同）；py-fsrs 的向量另外套上 Anki 的 Hard ≤ Good < Easy 限制再比對；重播時記憶狀態一律走 swift-fsrs 的 learning 路徑以避開它對複習卡的四重計算（10 萬筆 release 約 1.3 秒），結果先只放記憶體。尚未接上 App：作答、背景重播、其他裝置紀錄變動時重新重播都在 3c 與複習介面一起做。
-
 ### 3c 牌組、設定與複習介面
 
 目標：可以日常使用的複習流程。
@@ -284,19 +245,9 @@
 - [ ] 多裝置：Mac 與 iPad 各自複習後同步，到期日正確
 - [ ] 手動：Mac、iPad、iPhone 完成一輪複習，畫面與設計稿比對（淺色 / 深色）
 
-2026-10-02：3c 程式完成，macOS 與 iOS Simulator 建置成功，單元測試通過（Flashcards 的 `SettingsTests`、`StudyTests`、`UndoTests`；Core 的 `fileTags`）。尚未驗證：復原的卡片狀態回復只測了紀錄檔層（`ReviewStore` 沒有單元測試）、多裝置同步、實機畫面與設計稿比對（含淺色、iPhone 版面）、「編輯筆記」捲到該行。
+尚未驗證：復原的卡片狀態回復只測了紀錄檔層（`ReviewStore` 沒有單元測試）、多裝置同步、實機畫面與設計稿比對（含淺色、iPhone 版面）、「編輯筆記」捲到該行。
 
-2026-10-02 設計稿（深色）：
-
-| 畫面 | 節點 | 內容 |
-| --- | --- | --- |
-| 牌組列表 | `rHTaT` | 牌組樹（`C/Deck Row` `MKsOj` 加上縮排、展開箭頭、選項按鈕）；母牌組數字已套用上限（日文 new 30 < 子牌組 24 + 12）；Vault 根目錄的筆記顯示為「未分類」；篩選 chip「Filter by tag」= 標籤篩選學習；工具列右側為設定 |
-| 複習 | `b2AjRQ` | 卡片只顯示正反面、來源檔案與行號、標籤、lapses |
-| 牌組選項 | `AYlad` | Sheet：preset 選單（繼承上層 / 切換 / 新增 / 複製 / 重新命名 / 刪除）、preset 的所有欄位（兩欄）、全域設定（換日時間、按鈕顯示間隔、最佳化提醒）；「最佳化…」在 3d 前為停用狀態 |
-
-2026-10-02 開工前決定（設計見 Architecture「設定」「每日上限與佇列」「複習介面」）：統計區塊移出 3c；設定改為每台裝置各寫 `<deviceId>.config.json`，讀取時欄位 LWW 合成（避免單一檔案在同步時變成衝突副本）；復原 = 刪掉本機紀錄檔的最後一行；Leech 的「加標籤」是由 lapses 算出的虛擬標籤，不改 md；標籤篩選不受每日上限限制；Flashcards 以 `EditorController` 接收 Vault 變動通知。
-
-刪除：Share、Add Cards、columns 切換、排序按鈕（牌組依資料夾順序）、Suspended / Leeches chips（3c 沒有卡片瀏覽器；Leech 以標籤處理，可用標籤篩選）、「Open statistics」與所有統計區塊（連續天數、retention、到期預測圖、複習熱力圖、牌組列的 7 天預測；統計不在範圍內，今日橫幅只留進度環與剩餘張數）、複習卡片的例句框與提示行（一行語法沒有這些欄位）。新增文字以繁體中文撰寫，原有的英文介面文字尚未翻譯。
+設計稿節點（深色）：牌組列表 `rHTaT`、複習 `b2AjRQ`、牌組選項 `AYlad`。範圍與取捨見 [flashcards.md](./architecture/flashcards.md)。
 
 ### 3d 互通與參數優化
 
@@ -317,13 +268,11 @@
 
 目標：用原生白板取代 Excalidraw，檔案仍是標準 `.excalidraw`。
 
-2026-10-02 決定（設計見 Architecture「Whiteboard」與「擴充點」）：維持原生、不用 Excalidraw Web runtime；結構層用 `CAShapeLayer` / `CATextLayer`（不用 SwiftUI Canvas），放在 `PKCanvasView` 底下；編輯器中手寫疊在圖形之上，存檔保留檔案順序；可顯示所有標準元素、可建立 6 種；依 fractional `index` 排序；箭頭綁定含 `fixedPoint`；圖片縮到 2048px 後內嵌 `dataURL`；Core 的 `DocumentPreview` 新增 `image`；WebEditorHost 新增 `embed://`。
-
 分 Spike 與四個子階段，依序進行：S3 先驗證最有風險的畫布架構；4a 不需要介面，全部可用單元測試驗證；4b 完成後白板可在縮圖、嵌入與 Mac 檢視；4c 完成後可日常使用；4d 選做。
 
 ### S3 Spike：畫布架構（iPad 實機）
 
-目標：在寫正式程式前，確認「layer 結構層 + `PKCanvasView` 手寫層」的組合可行。不通過就先改 Architecture 的設計再進 4c。
+目標：在寫正式程式前，確認「layer 結構層 + `PKCanvasView` 手寫層」的組合可行。不通過就先改 [whiteboard.md](./architecture/whiteboard.md) 的設計再進 4c。
 
 - [x] 原型（外掛內的 `Spike/CanvasSpike.swift`，側邊欄「畫布 Spike」面板）：`PKCanvasView` 底下一個 layer 結構層，畫 1,000 個隨機矩形 / 橢圓 / 箭頭 / 文字
 - [x] 結構層跟著 `PKCanvasView` 的 `contentOffset` / `zoomScale` 移動；縮放結束時重設 `contentsScale`
@@ -337,49 +286,9 @@
 - [x] 縮放到 4× 後線條與文字清晰（不是點陣放大）
 - [x] 手寫筆畫與結構層在平移、縮放中始終對齊（無位移、無延遲一幀）
 - [x] 手指捲動時不會畫出筆畫；Pencil 書寫延遲與現有手寫畫面相同
-- [x] 記錄結論與數據到本節，必要時修改 Architecture「Whiteboard」
+- [x] 記錄結論與數據到本節，必要時修改 [whiteboard.md](./architecture/whiteboard.md)
 
-2026-10-02：原型完成，macOS 與 iOS Simulator 建置成功，尚未在 iPad 實機量測。用法：
-
-- 面板只在 DEBUG 或啟動參數 `-WhiteboardSpike YES` 時出現（Xcode：Edit Scheme → Run → Arguments；Build Configuration 改 Release 量測幀率）。不讀寫 Vault。
-- 左上 HUD：FPS、一秒內最長的一幀、目前的 layer 數 / 元素數、縮放倍率、點陣倍率、選取的元素。
-- 工具列：筆（Pencil 書寫、手指捲動縮放、手指拖曳元素）/ 選取（Pencil 與手指都拖曳元素）；選項選單可切換元素數（100 / 1,000 / 3,000 / 10,000）、視窗裁切、縮放後重設 `contentsScale`，用來 A/B 比較。
-- 元素分布固定（固定種子），每次結果可比較。
-
-2026-10-02 第一輪實機結果：
-
-| 項目 | 結果 |
-| --- | --- |
-| 100–3,000 個元素 | 61 FPS，最長一幀 22.5 ms（待確認機型是否 ProMotion、是否開低耗電模式；ProMotion 應接近 120） |
-| 10,000 個元素 | 30 FPS（超出目標 1,000；縮小時全部 layer 都在畫面內） |
-| 4× 清晰度 | 清晰（縮放後重設 `contentsScale` 有效） |
-| 快速縮放 | 每個元素的殘影閃現又消失 |
-| 手指捲動 | 不會誤畫筆畫，但會誤抓到圖形 |
-
-第一輪後的修改（待第二輪驗證）：
-
-- 殘影：推測是點陣倍率只在縮放結束才更新，從 4× 快速縮小時舊 layer 與途中新建的 layer 都以 8 倍像素點陣化，上千個同時在畫面內撐爆記憶體。改為縮小途中倍率降到一半以下就立即降低點陣倍率，放大仍等結束；點陣倍率 = 縮放倍率（0.25…4）。
-- 誤抓圖形：筆模式下手指以捲動為主，點一下 = 選取（空白處取消選取），長按 0.35 秒才拖曳圖形；選取模式維持碰到就拖曳。
-- HUD 改為每秒更新一次（原本每一幀觸發 SwiftUI 重繪，會干擾量測）。
-- 10,000 個元素：不在 S3 目標內。正式版的做法（4c）：縮放倍率低且畫面內 layer 超過門檻時，改畫一張點陣快照（LOD），停止縮放後再換回個別 layer。
-
-2026-10-02 第二輪實機結果（iPad Air M1，60Hz、無低耗電模式）：
-
-- FPS 約 60 = 該機型上限，符合目標；ProMotion 機型之後有機會再量。
-- 筆模式手勢符合預期：手指捲動不會抓到圖形，長按才拖曳。
-- 殘影只剩文字，圖形沒有；關閉「縮放後重設 contentsScale」就消失（但 4× 變模糊）。原因：`CAShapeLayer` 是向量、在渲染程序繪製；`CATextLayer` 是點陣 `contents`，改 `contentsScale` 後的重畫發生在下一個 display 週期，不在關閉動畫的 transaction 內，預設 0.25 秒淡入淡出，舊點陣以新倍率顯示 → 放大時出現縮小的殘影、縮小時出現放大的殘影。修正：文字 layer 關閉 `contents` 動作，並在同一個 transaction 內 `displayIfNeeded()`（第三輪確認殘影消失）。
-
-2026-10-02 第三輪實機結果：文字殘影消失；筆畫與圖形在平移、縮放中對齊；Pencil 延遲與現有手寫畫面相同。新問題：手指**縮小**畫布時，所有筆刷的筆畫都會先出現一個更小的狀態，再回彈到正確尺寸；放大沒有。筆畫完全由 `PKCanvasView` 繪製，結構層沒有改它的縮放，所以先 A/B 判斷來源：選項新增「隱藏結構層（只剩 PencilKit）」（移除結構層、停止同步與手勢），並與現有手寫畫面（`InkEditorView`，純 `PKCanvasView`）比較。
-
-2026-10-02 A/B 結果：開著結構層才有回彈，隱藏結構層（只剩 PencilKit）沒有 → 是結構層造成的。推測原因是縮放 callback 中的主執行緒工作讓那一幀延遲，PencilKit 的點陣與 scroll view 的 transform 短暫對不上：(1) 縮小途中降低點陣倍率時，同步重畫所有文字（第一輪為了殘影加入；後來證實殘影來自 `contents` 淡入淡出，不需要這一步）；(2) 縮小時可見範圍變大，同一個 callback 一次建立大量 layer。修改（待第四輪驗證）：
-
-- 縮放中不再重新點陣化既有的 layer；新建的 layer 用 min(目前倍率, 縮放倍率)。縮放結束後才排入佇列重新點陣化。
-- 建立 layer 與重新點陣化都分批：每幀最多 120 個，剩下的由 display link 在之後的幀處理（關閉裁切時仍一次建完，供比較）。
-- HUD 新增「callback 最長」（一秒內 scroll / zoom callback 與分批工作的最長主執行緒時間）與「待處理」數量。
-
-2026-10-02 修正判斷：回彈的真正原因是**縮放回彈**（rubber band），不是主執行緒。手指縮到最小值 0.25 以下時，scroll view 讓內容跟著縮得更小，放手後以 Core Animation 動畫彈回 0.25；動畫期間不會每幀呼叫 `scrollViewDidZoom`，所以結構層直接跳到 0.25，筆畫還在動畫中 → 看起來筆畫縮小又回彈。隱藏結構層時筆畫同樣回彈，只是沒有對照物，看起來是正常手感，與 A/B 結果一致；最大值 4× 以上同理。處理：`bouncesZoom = false`（選項「縮放回彈」，預設關閉），不去追 PencilKit 私有的縮放 view。上一段的分批與不在縮放中重新點陣化仍保留，作為避免主執行緒卡頓的做法（待第五輪驗證）。
-
-2026-10-02 第五輪：關閉縮放回彈後筆畫不再回彈，確認原因。已驗證的結論寫入 Architecture「Whiteboard」。
+結論（iPad Air M1、60Hz，五輪實機）：驗收全部通過。1,000 個元素維持 60 FPS（該機型上限），10,000 個元素約 30 FPS（由 4c 的 LOD 處理）。實作規則（transform 同步、關閉縮放回彈、點陣倍率、文字 layer 關閉 `contents` 動作）已寫入 [whiteboard.md](./architecture/whiteboard.md)。原型用法：側邊欄「畫布 Spike」面板只在 DEBUG 或啟動參數 `-WhiteboardSpike YES` 時出現（Release build 量測幀率），不讀寫 Vault。
 
 ### 4a 模型與序列化
 
@@ -405,20 +314,10 @@
 - [x] 外部變動：開啟中的場景收到加了元素的 `externalChange` 後再存檔，該元素仍在
 - [ ] 連結改名：白板中 `[[舊名]]` 的 `link` 跟著改名；反向連結出現白板
 
-2026-10-02：4a 程式完成，`KindWhiteboard` 單元測試 39 個通過（`ModelSerializationTests`、`ModelEditingTests`、`BoardDocumentTests`；原有的 `InkRoundTripTests`、`InkMergeTests` 不變），macOS 與 iOS Simulator 建置成功。模型放在 `KindWhiteboard/Model/`（`Element`、`SceneEditor`、`Binding`、`TextLayout`、`FractionalIndex`、`Scene+Edit` / `+Image` / `+Links`）；開啟中的白板為 `BoardDocument`，由 `WhiteboardController`（`EditorController`）管理。
-
 未勾的兩項：
 
 - 序列化：fixture（`Tests/KindWhiteboardTests/Fixtures/excalidraw-export.excalidraw`）是依 Excalidraw 0.18 格式**手寫**的，涵蓋 6 種可建立的元素、diamond、line、elbow 箭頭、embeddable、未知類型與欄位、墓碑，來回測試通過。還要換成（或補上）excalidraw.com 實際匯出的檔案再驗一次才勾選。
 - 連結改名：`renameLinks` 與 `index().links` 的單元測試通過；「反向連結出現白板」要在 App 內（VaultIndex 實際建立反向連結）驗證。
-
-實作中的補充決定（見 Architecture「Whiteboard」）：
-
-- `gap` = 端點到形狀輪廓的距離（射線與「輪廓向外擴 gap」的交點），不是沿射線往回退 gap。
-- 沒有 `index` 的舊檔案不補 index（補了每個元素都要遞增 version）；新元素也不加 index，維持陣列順序。兩台裝置在同一處插入會得到相同 index，排序以 id 決定；之後再插入時跳過這串相同的 index。
-- elbow 箭頭的端點不隨形狀重算（轉折路徑要重新走線，4c 以後再處理），綁定保留。
-- 有透明度的圖片存 PNG，其他轉 JPEG（JPEG 沒有 alpha，透明處會變黑）。
-- 箭頭單獨移動、但綁定的形狀沒一起移動 → 解除該端綁定（與 Excalidraw 相同）。
 
 ### 4b 渲染器、縮圖與嵌入
 
@@ -438,44 +337,28 @@
 - [ ] 打字時不因嵌入圖片而經過 Bridge（`embed://` 由 WebView 自行載入）
 - [ ] 手動：Mac 打開 excalidraw.com 畫的檔案，與網頁上的版面一致（除手繪風格與字型）
 
-2026-10-02：`SceneRenderer` 完成（`KindWhiteboard/Render/`）。幾何（輪廓、Catmull-Rom 曲線、箭頭頭部、範圍）放在 `ElementGeometry`，4c 的 layer 樹共用同一份路徑；渲染器只負責上色、文字、圖片與 frame 裁切。快照測試（`RendererTests`）：基準圖在 `Tests/KindWhiteboardTests/Snapshots/`，`EASYNOTES_SNAPSHOT_RECORD=1` 重新錄製、`EASYNOTES_SNAPSHOT_DIR` 輸出這次的結果；容許 0.5% 像素差（字型抗鋸齒）。1,000 個元素的 PNG（1600px）在 M 系列 Mac 約 80 ms（Release）。快照驗收項目等 excalidraw.com 實際匯出的 fixture 補上再勾。
-
-實作中的補充決定：
-
-- 數值照 Excalidraw：圓角（`roundness.type` 3 固定 32、小形狀 25%；其他 25%）、箭頭頭部大小與角度、虛線 `[8, 8+w]`、點線 `[1.5, 6+w]`、首尾距離 ≤ 8 的 line 可填色。
-- `fillStyle` 一律畫實心；frame 外框與標題用固定樣式（`#bbb` / `#999`），不看 `strokeColor`；`magicframe` 等未知類型畫佔位框。
-- 手寫寬度：EasyNotes（PencilKit）筆畫用 `customData` 的點大小；excalidraw.com 的筆畫照 perfect-freehand（strokeWidth × 4.25、thinning 0.6）。半透明元素整個合成後才套用透明度。
-- 文字直接用檔案中已換行的 `text`（Excalidraw 存檔時就換好行），不重新排版，避免字型寬度不同時跟網頁的換行不一樣。
-- 圖片依顯示像素解碼（2 的冪次分級快取），支援 `crop`、`scale` 翻轉與圓角。
-
-2026-10-02：預覽圖完成。`DocumentPreview.image` 不進 JSON（base64 會膨脹 33%），`PreviewCache` 另存 `<hash>.png`，JSON 只記 `hasImage`；先寫 PNG 再寫 JSON，PNG 被刪就重新產生。記憶體只留 JSON 部分，PNG 另有 32 MB 上限的快取。`BoardPreview`（v2）：最長邊 1600px、倍率 ≤ 2；白色（預設）背景畫成透明，自訂背景色保留；`lines` 為前 8 個文字元素。卡片依顯示大小在背景解碼 PNG，深色模式用 Excalidraw 深色主題的做法（反相 + 色相轉 180°；圖片也會被反相，之後需要再處理）。
-
-2026-10-02：`embed://` 完成。`EmbedSchemeHandler`（EasyNotesUI）經 `DocumentSession.embedImageReader` 取圖：VaultStore 依路徑找到檔案的 hash，向 `PreviewCache` 要 `image`（沒有快取就在背景產生）；沒有圖回 HTTP 404。URL 寫法與 `vault://` 相同：`embed:///` + 每段 `encodeURIComponent`（放在 host 位置的中文會被當成網域轉成 punycode）。`h` 只讓內容改變時 URL 改變，handler 不讀它。Markdown 在 `attach` 時設定 `host.readEmbed`。
-
-2026-10-02：`![[x.excalidraw]]` 嵌入的程式完成，待 App 內手動驗證後勾選。`LinkTarget` 新增 `hash`（跟著 `setLinkTargets` 推送，只在索引變動時送出，不在打字路徑上）；CM6 的 `EmbedWidget` 依完整路徑或「檔名.副檔名」找到目標，放 `<img src="embed:///…?h=<hash>">`。圖片副檔名仍走 `vault://`；`.md` 不嵌入（transclusion 另外做）；找不到目標時顯示原始語法。hash 改變時 `updateDOM` 只換 `src`，舊圖留到新圖載入完成。點一下開啟白板，⌘ / ⌥ 點擊顯示原始 md。深色模式用 CSS `invert(93%) hue-rotate(180deg)`。
+待驗證：快照驗收項目等 excalidraw.com 實際匯出的 fixture 補上再勾（基準圖在 `Tests/KindWhiteboardTests/Snapshots/`，`EASYNOTES_SNAPSHOT_RECORD=1` 重新錄製、`EASYNOTES_SNAPSHOT_DIR` 輸出這次結果）；`![[x.excalidraw]]` 嵌入程式已完成，待 App 內手動驗證後勾選。
 
 ### 4c 編輯器
 
 目標：可以日常使用的白板編輯。
 
-2026-10-02 開工決定（見 Architecture「Whiteboard」4c 開工前）：獨立 SwiftUI 工具列；編輯核心不依賴平台（可單元測試）；無限畫布以 origin 偏移對應 `PKCanvasView` 內容座標；Undo 復原時 version 仍遞增。實作順序：layer 樹 → iOS 畫布 → 編輯核心 → iOS 手勢與工具列 → 文字 → 圖片 → macOS → 快捷鍵與 LOD。
-
 - [x] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
 - [x] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
 - [x] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
-- [x] 工具列（Freeform 式，見 Architecture「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
+- [x] 工具列（Freeform 式，見 [whiteboard.md](./architecture/whiteboard.md)「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
 - [x] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
 - [x] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
 - [x] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
 - [x] 箭頭：拖到形狀上自動綁定；移動形狀時箭頭跟著走
-- [x] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 Architecture「4c：箭頭連接點吸附」；不做轉折線與曲線）
+- [x] 箭頭連接點：形狀上下左右 4 個連接點，拖曳端點靠近時吸附並寫入 `fixedPoint`（見 [whiteboard.md](./architecture/whiteboard.md)「4c：箭頭連接點吸附」；不做轉折線與曲線）
 - [x] 文字：原生 `UITextView` / `NSTextView` 疊在元素上編輯，結束時寫回；雙擊形狀在其中加文字（`containerId`）
 - [x] 圖片：從照片、檔案、貼上插入
 - [x] Undo / Redo：結構操作註冊在 `PKCanvasView` 的 `undoManager`，與筆畫共用
 - [x] 存檔：停止操作 500 ms 後或離開時寫入；只遞增有變的元素
 - [x] macOS：同一個結構層加上滑鼠 / 觸控板互動（結構元素可編輯，手寫只能看）
 - [x] 鍵盤快捷鍵（Mac / iPad）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame、Delete、⌘D 再製
-- [x] 樣式面板（見 Architecture「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
+- [x] 樣式面板（見 [whiteboard.md](./architecture/whiteboard.md)「4c：樣式面板」）：填色、外框顏色 / 粗細 / 線型、圓角、箭頭端點、文字顏色 / 大小 / 對齊、透明度；只用預設色盤；新元素沿用上次的樣式
 
 驗收測試：
 
@@ -490,7 +373,7 @@
 
 ### 4d 選做：筆記卡片
 
-- [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 Architecture「筆記卡片放進白板」）
+- [ ] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file`，見 [whiteboard.md](./architecture/whiteboard.md)「筆記卡片放進白板」）
 - [ ] 卡片內容向 Registry 要 `.md` 的預覽（不 import KindMarkdown）
 - [ ] 點卡片在側邊面板開啟完整編輯器
 
@@ -502,39 +385,50 @@
 
 目標：在上課 PDF 上用基本工具手寫，原始 PDF 不被修改。
 
-2026-10-02 決定（設計見 Architecture「PDF 手寫與標註」與「依賴規則」）：抽出共用函式庫 `ExcalidrawKit`（不是外掛）；旁檔 = 依頁分組的 Excalidraw elements（未旋轉的頁面座標）；便利貼 = 白板便條紙組合，直接顯示方塊；Undo 記在模型而不是 `PKCanvasView`；Core 新增伴隨檔案擴充點（`companionOf`）；Mac 顯示 + 便利貼可編輯，手寫只能看；匯出全部壓平。
-
 分 Spike 與四個子階段，依序進行：S4 先驗證疊層架構；5a 不需要介面，全部可用單元測試驗證；5b 完成後 PDF 可在列表與兩個平台檢視；5c 完成後 iPad 可日常標註；5d 匯出。
 
 ### S4 Spike：PDF 疊層（iPad 實機）
 
-目標：確認「`PDFView` + 每頁 overlay `PKCanvasView`」可行，不通過就先改 Architecture 再進 5c。
+目標：確認「`PDFView` + 每頁 overlay `PKCanvasView`」可行，不通過就先改 [pdf.md](./architecture/pdf.md) 再進 5c。
 
-- [ ] `PDFView` + `PDFPageOverlayViewProvider` + `PKCanvasView`（`isInMarkupMode`）
-- [ ] 縮放後筆畫清晰、與頁面對齊；Pencil 書寫、手指捲動縮放
-- [ ] 所有頁面共用一個 `PKToolPicker`
-- [ ] 私有 `undoManager` 吞掉 PencilKit 的 undo，改在模型註冊，overlay 回收後仍可跨頁復原
-- [ ] 200 頁快速捲動，記憶體穩定
+- [x] `PDFView` + `PDFPageOverlayViewProvider` + `PKCanvasView`（`isInMarkupMode`）
+- [x] 縮放後筆畫清晰、與頁面對齊；Pencil 書寫、手指捲動縮放
+- [x] 所有頁面共用一個 `PKToolPicker`
+- [x] 私有 `undoManager` 吞掉 PencilKit 的 undo，改在模型註冊，overlay 回收後仍可跨頁復原
+- [x] 200 頁快速捲動，記憶體穩定
 
 ### 5a 模型與格式（無 UI，單元測試）
 
-- [ ] 抽出 `ExcalidrawKit`（元素模型、merge、`InkStroke`、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer`），KindWhiteboard 測試全部通過
-- [ ] `.pdf.ink` 讀寫、頁面座標換算（含 `rotation`、cropBox）
-- [ ] `PDFKind`（不透明）+ `PDFInkKind`（依頁 + 元素合併）
-- [ ] Core 伴隨檔案：檔案樹 / 列表 / 搜尋隱藏；App 內改名、搬移、刪除、還原一起處理；孤兒旁檔以 `pdfHash` 認領
+- [x] 抽出 `ExcalidrawKit`（元素模型、merge、`InkStroke`、`ElementGeometry`、`TextLayout`、`ElementPainter`、`SceneRenderer`），KindWhiteboard 測試全部通過
+- [x] `.pdf.ink` 讀寫、頁面座標換算（含 `rotation`、cropBox）
+- [x] `PDFKind`（不透明）+ `PDFInkKind`（依頁 + 元素合併）
+- [x] Core 伴隨檔案：檔案樹 / 列表 / 搜尋隱藏；App 內改名、搬移、刪除、還原一起處理；孤兒旁檔以 `pdfHash` 認領
+  - 單元測試涵蓋 VaultFS、VaultIndex、SyncEngine 與 `PDFInk.claimOrphan`；`VaultStore` 的串接（改名 / 刪除通知同步與編輯器、伴隨檔的 `externalChange`）只確認建置成功，尚未驗證。Kind 在 5b 才註冊，App 內目前看不到 PDF。
 
 ### 5b 檢視、縮圖與 Mac
 
 - [ ] 唯讀 PDF + 標註（兩個平台）、列表縮圖（第 1 頁）、「匯入 PDF…」
-- [ ] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
-- [ ] Mac：便利貼新增、移動、編輯（`NSTextView`）
+  - iPad Simulator 已驗證：標註與頁面對齊（直式、橫式、`rotation` 90）、螢光筆透明度、便利貼文字；列表縮圖、頁數、PDF 篩選 chip、`.pdf.ink` 不出現在列表。
+  - Mac App 已驗證：列表縮圖正常、關閉重開後標註仍保存、放大後便利貼與筆畫清晰。
+  - 尚未驗證：iPad 實機放大後的清晰度（Simulator 無法縮放）、「匯入 PDF…」實際匯入、孤兒旁檔認領後的同步通知（`fileMoved`）。
+- [x] `pdfHash` 不符時提示「PDF 已變更，標註可能錯位」
+  - iPad Simulator 顯示提示列；「保留標註」只由單元測試驗證（`PDFInkDocumentTests`），尚未在 App 內按過。
+- [x] Mac：便利貼新增、移動、縮放、編輯（`NSTextView`）
+  - Mac App 已驗證：新增並以注音輸入（組字中 Esc 只取消選字）、拖曳（預覽完整、放開不閃回原位）、滑過顯示外框與縮放點、縮放（文字重新換行、最小 40 pt）、右鍵編輯與刪除。
 
 ### 5c iPad 編輯器
 
-- [ ] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
+- [x] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
+  - iPad 實機已驗證：書寫、縮放流暢且筆畫清晰、Undo / Redo、關閉重開後筆畫保存。
 - [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
+  - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加，匯出按鈕隨 5d。
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
+  - 實作完成（含工具列的「便利貼」按鈕、選取選單的編輯 / 刪除、模型 Undo）。
+  - iPad 第一輪回報：手指與 Pencil 無法移動、縮放；書寫或打字時看到便利貼底下的文字；書寫時明顯延遲、掉幀。已修正（手勢改裝在 PDFView 外層、筆畫改變不再重畫標註層、文字框不透明且延後移除），iPad 實機已驗證：移動、縮放、不再露出底下文字、延遲明顯改善。
+  - iPad 實機已驗證：手寫模式中 Pencil 可以寫在便利貼上；筆畫不會跟著便利貼移動（見「待決事項」）。iPad 便利貼內注音輸入尚未驗證。已知：鍵盤可能蓋住頁面下方的便利貼（PDFView 不會自動捲動）；旋轉頁上的編輯框不跟著旋轉。
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
+  - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；iPad 實機已驗證關閉重開後筆畫保存；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
+- [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）
 
 ### 5d 匯出
 
@@ -542,7 +436,7 @@
 
 驗收測試：
 
-- [ ] 縮放、捲動後筆畫位置正確；關閉重開後完整還原
+- [x] 縮放、捲動後筆畫位置正確；關閉重開後完整還原
 - [ ] 旋轉頁面上的筆畫位置正確（App 內與匯出）
 - [ ] 200 頁 PDF 快速捲動，記憶體穩定（Instruments 觀察）
 - [ ] 跨頁交錯書寫後連按 ⌘Z，依時間順序復原（含已捲出畫面的頁）
@@ -550,25 +444,24 @@
 - [ ] App 內改名、搬移、刪除再還原 PDF，旁檔跟著走
 - [ ] 多裝置：兩台在不同頁同時標註 → 同步後兩邊都保留
 - [ ] 便利貼內注音輸入正常（iPad、Mac）
+  - Mac 已驗證（5b）；iPad 待 5c。
 - [ ] 手動：匯出的 PDF 在「預覽程式」中正確顯示筆畫、螢光筆與便利貼
 
 ## Phase 6 — Sheets
 
 目標：用 RevoGrid 編輯 CSV / TSV，不影響其他工具讀取。
 
-2026-10-02 決定（設計見 Architecture「Sheets」）：新增 `Packages/KindSheet`；支援 `.csv` 與 `.tsv`；最大風險是注音，以 S5 Spike 最先驗證；記錄保留原始位元組，未修改的逐位元組寫回；以記錄為單位的 diff3 + 儲存格層級補救；排序與篩選只影響畫面；`.csv.meta.json` 用 Phase 5 的 `companionOf`。依 Phase 順序，Phase 5 完成後才開工。
-
 分 Spike 與四個子階段，依序進行：S5 先驗證注音與效能；6a 不需要介面，全部可用單元測試驗證；6b 完成後可日常編輯；6c 顯示設定；6d 預覽、嵌入與新增匯入。
 
 ### S5 Spike：RevoGrid 注音與效能（iPad 實機 + Mac）
 
-目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 Architecture（自寫 TS 虛擬表格或原生表格）再進 6b。
+目標：確認 RevoGrid 在 WKWebView 中可用，不通過就先改 [sheets.md](./architecture/sheets.md)（自寫 TS 虛擬表格或原生表格）再進 6b。
 
-- [ ] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
-- [ ] 組字中按 Enter 不結束編輯（`isComposing`）
-- [ ] 1 萬列捲動流暢（iPad、Mac）
-- [ ] bundle 大小在預算內（約 0.5–1 MB）
-- [ ] 關閉表格後 WebContent process 釋放
+- [x] 選取儲存格後直接以注音打字：第一個字不吃字、不重複（隱藏 `textarea` 常駐焦點）
+- [x] 組字中按 Enter 不結束編輯（`isComposing`）
+- [x] 1 萬列捲動流暢（iPad、Mac）
+- [x] bundle 大小在預算內（約 0.5–1 MB）
+- [x] 關閉表格後 WebContent process 釋放
 
 ### 6a 模型與格式（無 UI，單元測試）
 
@@ -611,6 +504,47 @@
 - [ ] Big5 檔案開啟不損壞
 - [ ] 關閉表格後 WebContent process 結束（記憶體預算）
 
+## i18n — 多語言（English (US)）
+
+目標：介面支援 zh-Hant 與 English (US)；預設跟隨系統，系統語言不在清單時用 English；Mac 可在設定（⌘,）選語言。
+
+分三段：i0 基礎建設先做，做完後新程式碼不再增加寫死的中文；i1 是 Phase 5、6 開發期間要遵守的規則；i2 等功能穩定（Phase 6 完成）後一次補英文，只翻一次。i0 在獨立分支進行，不影響 Phase 5 的分支；合併前先確認 `swift test` 與兩個平台建置通過。
+
+### i0 基礎建設（不改變任何畫面：zh-Hant 輸出與遷移前逐字相同）
+
+- [x] 設計：[translation.md](./architecture/translation.md)、README 的導覽列、CLAUDE.md 的規則
+- [x] 每個有中文的模組加 `Localizable.xcstrings`、`Package.swift` 的 `defaultLocalization` 與 `resources`、`Localization.swift`（`L(_:)`）：App、EasyNotesCore、EasyNotesUI、ExcalidrawKit、KindMarkdown、KindWhiteboard、KindPDF、Flashcards（catalog 目前是空的：key 就是中文原文，查不到回傳 key；補 `en` 在 i2。每個模組有 `LocalizationTests` 確認 `#bundle` 可用）
+- [x] 既有 Swift 中文字面值（415 個）改走 `L(…)`；Spike 面板不翻
+- [x] 固定字串標 `// l10n:fixed`：`Attachments` 與舊版 `附件`、衝突副本命名（`SyncEngine.conflictMarker` / `isConflictCopy`，`DocumentToolbar` 改用它辨識）、Vault 的 `CLAUDE.md` 與各外掛 `guide`、預設 preset 名稱「預設」、Seed 範例內容（整檔標 `l10n:fixed-file`，依語言產生留到 i2）
+- [x] 沒有手拼的中文：「N 字」用目前語言的數字格式（原本固定 `zh-Hant`）
+- [x] Web：中文收進 `web/src/shared/i18n.ts`（`t()`、`Intl`）；Swift 建立 WebView 時注入 `window.__locale`；「N 分鐘前編輯」改成整句 key；`tsc` 與 `npm run build` 通過。WebView 內的實際畫面尚未驗證
+- [x] `scripts/check-l10n.py`：Swift 與 Web 沒有違規
+- [x] 驗證：各 package `swift test` 全過；macOS 與 iOS Simulator 以 `xcodebuild` 建置成功；iOS Simulator（iPhone 17）啟動、文件列表顯示正常的繁體中文
+- [ ] 驗證：逐畫面與遷移前比對 zh-Hant（Mac、iPad、編輯器 WebView、白板、複習）；Mac 版尚未啟動過（尚未驗證）
+
+### i1 開發期規則（Phase 5、6 期間）
+
+- [ ] 新功能的文字一律走 `L(…)` / `t(…)`，`check-l10n.py` 沒有新增違規
+
+### i2 英文翻譯（Phase 6 完成後）
+
+- [ ] 各模組 catalog 補 `en`（含複數 variations）；`CFBundleDevelopmentRegion` 改 `en`、`CFBundleLocalizations` 加 `en`；系統選單跟著變英文
+- [ ] 索引記錄產生時的語言，語言改變時整份重建（`summary` 是顯示文字）
+- [ ] Mac 設定（⌘,）的語言選項（寫入 `AppleLanguages`，提示重新啟動）；iOS 以系統設定切換
+- [ ] Web 端 `en` 字典
+- [ ] 首次啟動的範例內容（`Seed`）依介面語言產生
+
+驗收測試：
+
+- [ ] zh-Hant 系統：畫面與 i0 之前逐字相同
+- [ ] English 系統：所有畫面沒有殘留中文（含 WebView、系統選單、錯誤訊息、空狀態）
+- [ ] 系統語言為 fr 等不支援的語言：顯示 English
+- [ ] Double-Length Pseudolanguage：iPhone、iPad、Mac 沒有截斷或破版
+- [ ] 複數：1 與多個（卡片數、文件數、頁數）
+- [ ] 切換語言後索引重建，列表摘要的語言正確
+- [ ] 兩台不同語言的裝置同步同一個 Vault：不會因語言產生衝突副本
+- [ ] English 介面下注音輸入正常（iPad、Mac）
+
 ## Bug Reports
 
 ### Mobiles
@@ -636,12 +570,13 @@
 - [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
 - [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
 - [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
+- [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置
 
 ## 其餘功能清單
 
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
-- [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言
+- [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言（見上方「i18n」）
 - [ ] Settings > 支援Light/Dark Theme
 - [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
@@ -665,5 +600,9 @@
 - [x] Sheets 是否需要公式？→ 不需要。CSV 只存資料，需要公式時用外部 App 開啟。
 - [x] 是否需要 Android / Web 版？→ 不需要。個人使用，只支援 Apple 平台。
 - [ ] Sheets 的排序與篩選狀態要不要記住？（建議：只存在這台裝置，不同步；Phase 6 開工時決定）
+- [x] 附件資料夾名稱 → `Attachments/`（固定英文，不隨介面語言）。舊版的 `附件/` 不搬動、不改寫連結，`vault://` 在 `Attachments/` 找不到時改找 `附件/`（單元測試涵蓋路徑對應；實機開啟舊筆記的圖片與封面尚未驗證）
+- [x] Vault 的 `CLAUDE.md` 要固定哪一種語言？→ 英文。只在檔案不存在時建立，所以既有 Vault 裡的中文版不會被改寫，要換自己刪掉重建（尚未驗證）
+- [ ] PDF 便利貼上的手寫要不要跟著便利貼移動？目前筆畫與便利貼是各自獨立的元素，移動便利貼時筆畫留在原處（GoodNotes 的做法是跟著走，需要記錄筆畫屬於哪張便利貼）
+- [ ] `DocumentKind.index()` 的 `summary` 長期是否改成不含語言的結構化資料，取代 i2 的「語言改變就重建索引」
 
 Vault 位置已決定：macOS 用可見資料夾 `~/Documents/EasyNotes`，不開沙盒。
