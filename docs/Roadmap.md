@@ -479,12 +479,17 @@
 
 ### 6b 編輯器（WebView）
 
-- [ ] `web/src/sheet` entry，打包進 KindSheet 的 Resources
-- [ ] 每次開檔建立自己的 `WebEditorHost`、關閉後釋放
-- [ ] Bridge：`load({rows, meta})`（穩定 row id）、`edit({ops})` 只在儲存格編輯結束時送、延遲 300 ms 寫檔
-- [ ] `EditorController`：`externalChange` → `applyRemote`（保留選取）、`flush`
-- [ ] 增刪列欄、JS 端 Undo、TSV 剪貼簿、`addMenu("表格")`
-- [ ] 排序與篩選只影響畫面；「依此欄排序並寫入」
+- [x] `web/src/sheet` entry，打包進 KindSheet 的 Resources（`sheet.js` 約 336 KB）
+- [x] 每次開檔建立自己的 `WebEditorHost`、關閉後釋放
+- [x] Bridge：`load({rows, meta})`（穩定 row id）、`edit({ops})` 只在儲存格編輯結束時送、延遲 300 ms 寫檔
+- [x] `EditorController`：`externalChange` → `applyRemote`（保留選取）、`flush`
+- [x] 增刪列欄、JS 端 Undo、TSV 剪貼簿、`addMenu("表格")`
+- [x] 排序與篩選只影響畫面；「依此欄排序並寫入」
+- [x] `addKind`（CSV、TSV）先在 6b 註冊，否則無法開檔；App 的 `project.yml`、`EasyNotes.xcodeproj` 與外掛清單加入 KindSheet
+- [ ] 驗證：macOS 與 iOS 建置、實機開啟與編輯 CSV（含注音、TSV 剪貼簿、⌘Z、外部修改即時更新、關閉後 WebContent process 結束）
+  - 目前只在 Linux 的 Chromium（Playwright）驗證 JS 端：打字、插入 / 刪除列欄、復原 / 重做、數值排序並寫入、Delete 清除、外部變動保留選取與編輯中延後套用、1 萬列載入約 0.1 秒。Swift 端（`SheetSession`、`SheetEditorView`、`SheetPlugin`）未編譯過。
+  - `EasyNotes.xcodeproj` 是手動加入 KindSheet 的（沒有跑 `xcodegen generate`），下次 `xcodegen generate` 會重新產生。
+  - 已知限制：標題列（固定在上方的第一列）要按 Enter 或雙擊才能編輯，不能選取後直接打字。
 
 ### 6c 顯示設定
 
@@ -495,7 +500,7 @@
 
 - [ ] 列表縮圖（CoreGraphics PNG，Thumb CSV `otUrV`）
 - [ ] md 內 `![[x.csv]]` 嵌入預覽（`embed://`，深色模式反相）
-- [ ] `addKind`、`addNewFile("新表格")`、`addImport("匯入 CSV…")`
+- [ ] `addNewFile("新表格")`、`addImport("匯入 CSV…")`（`addKind` 已在 6b 完成）
 - [ ] `addVaultGuide`：CSV 慣例
 
 驗收測試：
