@@ -49,7 +49,9 @@
 - **程式結構**：`KindPDF/Model/`：`PDFInk`（旁檔讀寫、依頁合併；`scene(page:)` 把一頁當成 `ExcalidrawScene`，筆畫轉換、渲染、便利貼都沿用 `ExcalidrawKit`）、`PDFPageGeometry`（未旋轉頁面座標 ⇄ 顯示座標、`displayTransform`、PDF 使用者空間）。`pdfHash` 與同步層的內容 hash 同格式（SHA-256 小寫 hex）。
 - **索引與預覽**：`PDFKind.index` 只有標題與摘要（「N 頁」）；便利貼文字暫不索引。列表縮圖 = 第 1 頁（不含標註，依 PDF hash 快取；旁檔變動不會讓縮圖失效）：背景以 CoreGraphics 的 `CGPDFPage` 畫成白底 PNG（最長邊 800 px，套用頁面 `rotation`），深色模式不反相（紙張保持白色）；卡片上是灰底中的一張紙，左上類型標記、右上頁數，與設計稿 `C/Thumb PDF` 相同。
 - **匯入**：`addImport("匯入 PDF…")` 複製到目前資料夾；Vault 裡既有的 PDF（例如 `Attachments/`）因為註冊了 `.pdf` 也會出現在列表。
-- **匯出：全部壓平**：用 `CGPDFContext` 逐頁畫原頁面（`PDFPage.draw(with: .cropBox, to:)`），再套用頁面旋轉、以 `SceneRenderer` 用向量畫上筆畫與便利貼；螢光筆的透明度由 CG alpha 保留。產出新檔（分享，或存成 Vault 內的 `<檔名>（標註）.pdf`），原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
+- **匯出：全部壓平**：`PDFExporter`（`KindPDF/Model/`，只用 CoreGraphics）以 `CGPDFContext` 逐頁畫原頁面：`CGPDFPage.getDrawingTransform(.cropBox, …)` 套用 cropBox 與 `rotation`，輸出頁的尺寸是旋轉後的 cropBox、本身不再帶 `rotation`。再以 `SceneRenderer`（便利貼的排版是同一個 `TextLayout`，與畫面一致）用向量畫上筆畫與便利貼，座標經 `displayTransform` 換算；螢光筆的透明度由 CG alpha 保留，便利貼文字是向量文字，其他閱讀器可以選取與搜尋。原始 PDF 不動。匯出後在其他 App 不能再編輯標註，換來任何閱讀器與列印都一致。
+  - **流程**：入口是 iOS 工具列與 Mac 右下角的「匯出」，打開匯出表單。先 `flush`，把標註以旁檔格式（`PDFInk` 不是 `Sendable`）交給背景工作，用 `CGPDFDocument` 延遲讀頁、逐頁畫、逐頁釋放（教科書大小的檔案也不必整份讀進記憶體），表單顯示「第 N / M 頁」進度並可取消；取消或失敗不留半成品。完成後輸出在暫存資料夾，表單提供「分享…」（`ShareLink`）與「存到 PDF 所在資料夾」；關閉表單時刪掉暫存檔。
+  - **檔名**：分享的檔名是 `<檔名>（標註）.pdf`。存進 Vault 時永不覆蓋，同名就自動編號 `（標註 2）`、`（標註 3）`…（與 `VaultFS.importFile` 的編號規則一致）。存進去的是一份普通 PDF：會出現在列表、照常索引與同步，沒有旁檔。
 
 ## Spike (S4) 測試結果
 
