@@ -7,16 +7,6 @@
     "%lld 頁" : {
 
     },
-    "FPS %lld　最長一幀 %@ ms" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "FPS %1$lld　最長一幀 %2$@ ms"
-          }
-        }
-      }
-    },
     "overlay %@　cropBox %@　旋轉 %lld°" : {
       "localizations" : {
         "zh-Hant" : {
@@ -52,6 +42,9 @@
     "保留標註" : {
 
     },
+    "分享…" : {
+
+    },
     "刪除" : {
 
     },
@@ -61,10 +54,34 @@
     "匯入 PDF…" : {
 
     },
+    "匯出" : {
+
+    },
+    "匯出含標註的 PDF" : {
+
+    },
+    "取消" : {
+
+    },
+    "在目前頁新增便利貼" : {
+
+    },
+    "存到 PDF 所在資料夾" : {
+
+    },
+    "完成" : {
+
+    },
+    "已存成「%@」" : {
+
+    },
     "復原" : {
 
     },
     "手指也能書寫（Simulator）" : {
+
+    },
+    "標註已壓平：在其他 App 中無法再編輯，但任何閱讀器與列印都會一致。" : {
 
     },
     "模型 Undo（關閉 = PencilKit 原生）" : {
@@ -76,24 +93,30 @@
     "清除所有筆畫" : {
 
     },
+    "準備中…" : {
+
+    },
+    "無法匯出這份 PDF。" : {
+
+    },
     "畫筆" : {
 
+    },
+    "第 %lld / %lld 頁" : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "第 %1$lld / %2$lld 頁"
+          }
+        }
+      }
     },
     "結束手寫" : {
 
     },
     "編輯" : {
 
-    },
-    "縮放 %@×　螢幕上 %@×　raster %@　重新載入 %lld" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "縮放 %1$@×　螢幕上 %2$@×　raster %3$@　重新載入 %4$lld"
-          }
-        }
-      }
     },
     "縮放後重設 contentScaleFactor" : {
 
@@ -133,6 +156,9 @@
 
     },
     "開啟 PDF…" : {
+
+    },
+    "關閉" : {
 
     },
     "頁 %lld / %lld　overlay %lld（累計 %lld）　有筆畫 %lld 頁" : {

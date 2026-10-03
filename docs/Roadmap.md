@@ -15,7 +15,7 @@
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
-| 5 PDF 手寫與標註 | S4、5a 完成；5b 實作完成（匯入、iPad 實機放大清晰度、伴隨檔流程尚未驗證）；5c 實作中（手寫、便利貼 iPad 實機已驗證）；5d 實作完成，尚未在 App 內驗證 | [pdf.md](./architecture/pdf.md) |
+| 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | 規劃完成，Phase 5 之後開工 | [sheets.md](./architecture/sheets.md) |
 | i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -420,8 +420,8 @@
 
 - [x] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
   - iPad 實機已驗證：書寫、縮放流暢且筆畫清晰、Undo / Redo、關閉重開後筆畫保存。
-- [ ] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
-  - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加。匯出按鈕已加（5d），尚未在 iPad 上驗證。
+- [x] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
+  - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加；匯出按鈕（5d）實測可用。
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
   - 實作完成（含工具列的「便利貼」按鈕、選取選單的編輯 / 刪除、模型 Undo）。
   - iPad 第一輪回報：手指與 Pencil 無法移動、縮放；書寫或打字時看到便利貼底下的文字；書寫時明顯延遲、掉幀。已修正（手勢改裝在 PDFView 外層、筆畫改變不再重畫標註層、文字框不透明且延後移除），iPad 實機已驗證：移動、縮放、不再露出底下文字、延遲明顯改善。
@@ -432,9 +432,10 @@
 
 ### 5d 匯出
 
-- [ ] `CGPDFContext` 逐頁畫原頁面 + 向量標註，分享或存成 `<檔名>（標註）.pdf`
-  - 實作完成：`PDFExporter` 由單元測試驗證（`PDFExporterTests`：旋轉頁的輸出尺寸與筆畫位置、便利貼是可搜尋的向量文字、原始 PDF 不變、取消不留檔、檔名自動編號）；iOS / macOS 建置成功。
-  - 尚未驗證：App 內的匯出表單（進度、取消、分享、存到資料夾）、在「預覽程式」中檢視、200 頁以上的大檔的速度與記憶體。
+- [x] `CGPDFContext` 逐頁畫原頁面 + 向量標註，分享或存成 `<檔名>（標註）.pdf`
+  - `PDFExporter` 由單元測試驗證（`PDFExporterTests`：旋轉頁的輸出尺寸與筆畫位置、便利貼是可搜尋的向量文字、原始 PDF 不變、取消不留檔、檔名自動編號）；App 內實測匯出成功。
+  - 尚未逐項驗證：匯出中取消、200 頁以上大檔的速度與記憶體。
+- [x] 移除 S4 Spike 面板（`PDFOverlaySpike`），結論已寫入 [pdf.md](./architecture/pdf.md)
 
 驗收測試：
 
