@@ -14,7 +14,12 @@ public enum Diff3 {
     }
 
     /// 經典 diff3：以「base 中兩邊都沒動的行」為同步點，切出不穩定區塊逐一判斷。
-    public static func merge<Line: Hashable>(base: [Line], local: [Line], remote: [Line]) -> [Line]? {
+    /// 兩邊改了同一段且結果不同時交給 `resolve`（base、local、remote 的該段）；它回傳 nil 代表衝突。
+    /// 外掛用它在自己的單位內做更細的合併（例如 Sheets 逐儲存格），Core 仍不認識檔案類型。
+    public static func merge<Line: Hashable>(
+        base: [Line], local: [Line], remote: [Line],
+        resolve: (_ base: ArraySlice<Line>, _ local: ArraySlice<Line>, _ remote: ArraySlice<Line>) -> [Line]? = { _, _, _ in nil }
+    ) -> [Line]? {
         let toLocal = matching(from: base, to: local)
         let toRemote = matching(from: base, to: remote)
         var result: [Line] = []
@@ -35,6 +40,8 @@ public enum Diff3 {
                 result += r
             } else if r.elementsEqual(o) || l.elementsEqual(r) {
                 result += l
+            } else if let resolved = resolve(o, l, r) {
+                result += resolved
             } else {
                 return nil
             }
