@@ -16,7 +16,7 @@
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
-| 6 Sheets | S5、6a–6d 實作完成（Swift 端未在 macOS / iOS 編譯與實機驗證）；驗收測試未勾 | [sheets.md](./architecture/sheets.md) |
+| 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
 | i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -475,7 +475,7 @@
 - [x] `index()`：儲存格文字（設上限）、摘要「N 列 · M 欄」、`[[連結]]` 與 `renameLinks`
 - [x] 以記錄為單位的 diff3 + 同一記錄的儲存格三方合併（Core 的 `Diff3.merge` 加上 `resolve`）
 - [ ] 驗證：macOS 上 `(cd Packages/KindSheet && swift test)` 與 Core 的 `swift test` 全過（含 Big5 測試，CP950 只在 Apple 平台可用）
-  - 目前在 Linux（Swift 6.2）以 Core 的 `Diff3` / `DocumentKind` 加 KindSheet 原始碼組成的測試環境驗證：60 個測試通過，Big5 測試略過。
+  - macOS 上 KindSheet 69 個測試、Core 51 個測試通過（`SheetMetaTests`、`SheetPreviewTests` 含在內）。尚未驗證：Big5 測試是否確實執行（未逐項確認輸出）。
 
 ### 6b 編輯器（WebView）
 
@@ -487,7 +487,7 @@
 - [x] 排序與篩選只影響畫面；「依此欄排序並寫入」
 - [x] `addKind`（CSV、TSV）先在 6b 註冊，否則無法開檔；App 的 `project.yml`、`EasyNotes.xcodeproj` 與外掛清單加入 KindSheet
 - [ ] 驗證：macOS 與 iOS 建置、實機開啟與編輯 CSV（含注音、TSV 剪貼簿、⌘Z、外部修改即時更新、關閉後 WebContent process 結束）
-  - 目前只在 Linux 的 Chromium（Playwright）驗證 JS 端：打字、插入 / 刪除列欄、復原 / 重做、數值排序並寫入、Delete 清除、外部變動保留選取與編輯中延後套用、1 萬列載入約 0.1 秒。Swift 端（`SheetSession`、`SheetEditorView`、`SheetPlugin`）未編譯過。
+  - macOS 與 iOS（generic）建置通過，`xcodegen generate` 已重新產生 `EasyNotes.xcodeproj`；實機項目尚未逐項確認。JS 端在 Linux 的 Chromium（Playwright）驗證：打字、插入 / 刪除列欄、復原 / 重做、數值排序並寫入、Delete 清除、外部變動保留選取與編輯中延後套用、1 萬列載入約 0.1 秒。Swift 端（`SheetSession`、`SheetEditorView`、`SheetPlugin`）未編譯過。
   - `EasyNotes.xcodeproj` 是手動加入 KindSheet 的（沒有跑 `xcodegen generate`），下次 `xcodegen generate` 會重新產生。
   - 已知限制：標題列（固定在上方的第一列）要按 Enter 或雙擊才能編輯，不能選取後直接打字。
 
