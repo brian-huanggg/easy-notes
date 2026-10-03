@@ -38,6 +38,7 @@ extension PDFReaderCanvas {
             overlay.setNeedsLayout()
         }
         updateToolPicker()
+        applyStickyInking()
     }
 
     /// 工具盤綁在 first responder 上：便利貼文字框拿走之後要搶回來，⌘Z 與工具盤才找得到這裡
@@ -61,7 +62,6 @@ extension PDFReaderCanvas {
         overlay.canvas.isUserInteractionEnabled = inking
         overlay.canvas.drawingPolicy = Self.drawingPolicy
         overlay.canvas.drawingGestureRecognizer.isEnabled = inking
-        overlay.applyInking(inking)
     }
 
     /// 新的 overlay：畫布跟著共用工具盤

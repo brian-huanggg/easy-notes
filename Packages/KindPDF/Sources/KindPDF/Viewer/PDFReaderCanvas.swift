@@ -31,6 +31,8 @@ final class PDFReaderCanvas: PlatformView {
     var rasterTask: Task<Void, Never>?
     /// 正在把這一頁畫布的筆畫寫回模型：不必再把筆畫載回畫布
     var syncingPage: Int?
+    /// 拖曳中的便利貼所在的頁
+    weak var dragOverlay: PageOverlayView?
     #endif
 
     init(document: PDFInkDocument) {
@@ -142,15 +144,18 @@ final class PageOverlayView: PlatformView {
     private weak var page: PDFPage?
     weak var host: PDFReaderCanvas?
     private(set) var scene = ExcalidrawScene()
-    /// 暫時不畫在標註層的元素（拖曳中的便利貼、編輯中的文字）
+    /// 標註層畫的部分：iOS 的筆畫由畫布顯示，不進標註層，所以筆畫改變時標註層不重畫
+    /// （分塊在背景重畫完之前是空的，會露出便利貼底下的 PDF 文字）
+    private var layerScene = ExcalidrawScene()
+    /// 暫時不畫在標註層的元素（拖曳中的便利貼）
     var hiddenElements: Set<String> = [] {
         didSet {
             guard hiddenElements != oldValue else { return }
             // 只重畫這些元素的範圍：整層重畫時分塊會暫時清空
             let changed = hiddenElements.symmetricDifference(oldValue)
-            let area = scene.liveElements.filter { changed.contains($0.id) }.map(Self.paintedBounds)
+            let area = layerScene.liveElements.filter { changed.contains($0.id) }.map(Self.paintedBounds)
                 .reduce(CGRect.null) { $0.union($1) }
-            inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
+            inkLayer.show(layerScene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
         }
     }
     var drag: StickyDrag?
@@ -181,7 +186,7 @@ final class PageOverlayView: PlatformView {
         canvas.isScrollEnabled = false
         canvas.delegate = self
         addSubview(canvas)
-        setUpStickyGestures()
+        addInteraction(UIEditMenuInteraction(delegate: self))
         #else
         wantsLayer = true
         layer?.addSublayer(inkLayer)
@@ -192,10 +197,11 @@ final class PageOverlayView: PlatformView {
 
     /// `updatesCanvas`：iOS 是否把筆畫載入畫布（筆畫就是從畫布寫回來的時候不必）
     func show(_ scene: ExcalidrawScene, updatesCanvas: Bool = true) {
-        let old = self.scene
+        let old = layerScene
         self.scene = scene
-        let area = Self.changedArea(from: old, to: scene)
-        inkLayer.show(scene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
+        layerScene = Self.forLayer(scene)
+        let area = Self.changedArea(from: old, to: layerScene)
+        inkLayer.show(layerScene.without(hiddenElements), dirty: area.isNull ? .null : area.applying(pageToView))
         #if os(iOS)
         if updatesCanvas, laidOut { loadDrawing() }
         refreshSelection()
@@ -210,6 +216,16 @@ final class PageOverlayView: PlatformView {
         loadingDrawing = false
     }
     #endif
+
+    private static func forLayer(_ scene: ExcalidrawScene) -> ExcalidrawScene {
+        #if os(iOS)
+        var layer = scene
+        layer.raw["elements"] = scene.elements.filter { $0["type"] as? String != "freedraw" }
+        return layer
+        #else
+        scene
+        #endif
+    }
 
     /// 改變的元素（新增、刪除、`version` 不同）前後範圍的聯集（頁面座標）；沒有改變為 `.null`
     static func changedArea(from old: ExcalidrawScene, to new: ExcalidrawScene) -> CGRect {
@@ -283,12 +299,12 @@ final class PageOverlayView: PlatformView {
         setNeedsLayout()
     }
 
-    /// 非手寫模式只在便利貼（或編輯中的文字框）上接收觸控，其餘交給 PDFView（捲動、選取文字）
+    /// overlay 自己不攔觸控：便利貼的手勢裝在 `PDFReaderCanvas`（PDFKit 不一定把觸控交給 overlay）。
+    /// 只有手寫模式的畫布與編輯中的文字框接收觸控，其餘交給 PDFView（捲動、選取文字）
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let hit = super.hitTest(point, with: event) else { return nil }
-        if host?.inking == true { return hit }
+        guard let hit = super.hitTest(point, with: event), hit !== self else { return nil }
         if let textView = host?.editing?.textView, hit.isDescendant(of: textView) { return hit }
-        return sticky(at: point) != nil ? self : nil
+        return host?.inking == true && hit.isDescendant(of: canvas) ? hit : nil
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
