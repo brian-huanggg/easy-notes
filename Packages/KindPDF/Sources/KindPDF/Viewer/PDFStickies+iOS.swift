@@ -1,6 +1,5 @@
 #if os(iOS)
 import ExcalidrawKit
-import PencilKit
 import UIKit
 
 /// iPad / iPhone 便利貼（見 architecture/pdf.md「iOS 便利貼」）：
@@ -86,10 +85,12 @@ extension PDFReaderCanvas: UIGestureRecognizerDelegate, UITextViewDelegate {
         }
     }
 
-    /// PDFView 的捲動、文字選取等便利貼的點選與拖曳先失敗（縮放不等、長按不擋捲動、畫布與文字框不受影響）
+    /// 非手寫模式：PDFView 的捲動、文字選取等便利貼的點選與拖曳先失敗（縮放不等、文字框不受影響）。
+    /// 手寫模式不設：PencilKit 的書寫手勢掛在畫布內部的 view 上，等便利貼的點選失敗會讓 Pencil 在便利貼上寫不出來
     func gestureRecognizer(_ g: UIGestureRecognizer, shouldBeRequiredToFailBy other: UIGestureRecognizer) -> Bool {
-        guard g.name == Gesture.tap || g.name == Gesture.pan, other.view !== self,
-              !(other is UIPinchGestureRecognizer), let view = other.view, !(view is PKCanvasView),
+        guard !inking, g.name == Gesture.tap || g.name == Gesture.pan, other.view !== self,
+              !(other is UIPinchGestureRecognizer), let view = other.view,
+              !overlays.values.contains(where: { view.isDescendant(of: $0.canvas) }),
               !(editing.map { view.isDescendant(of: $0.textView) } ?? false) else { return false }
         return view.isDescendant(of: pdfView)
     }
