@@ -468,12 +468,14 @@
 
 ### 6a 模型與格式（無 UI，單元測試）
 
-- [ ] 新增 `Packages/KindSheet`（只依賴 EasyNotesCore / EasyNotesUI）
-- [ ] RFC 4180 解析與序列化，`.csv` / `.tsv` 共用；記錄保留原始位元組
-- [ ] 風格偵測：換行符、引號風格、BOM、檔尾換行；欄數不一的列原樣保留
-- [ ] 編碼：UTF-8 可編輯；Big5 唯讀 + 「轉成 UTF-8」
-- [ ] `index()`：儲存格文字（設上限）、摘要「N 列 · M 欄」、`[[連結]]` 與 `renameLinks`
-- [ ] 以記錄為單位的 diff3 + 同一記錄的儲存格三方合併
+- [x] 新增 `Packages/KindSheet`（只依賴 EasyNotesCore / EasyNotesUI；App 的 `project.yml` 在 6b 註冊外掛時再加）
+- [x] RFC 4180 解析與序列化，`.csv` / `.tsv` 共用；記錄保留原始位元組
+- [x] 風格偵測：換行符、引號風格、BOM、檔尾換行；欄數不一的列原樣保留
+- [x] 編碼：UTF-8 可編輯；Big5 唯讀 + 「轉成 UTF-8」
+- [x] `index()`：儲存格文字（設上限）、摘要「N 列 · M 欄」、`[[連結]]` 與 `renameLinks`
+- [x] 以記錄為單位的 diff3 + 同一記錄的儲存格三方合併（Core 的 `Diff3.merge` 加上 `resolve`）
+- [ ] 驗證：macOS 上 `(cd Packages/KindSheet && swift test)` 與 Core 的 `swift test` 全過（含 Big5 測試，CP950 只在 Apple 平台可用）
+  - 目前在 Linux（Swift 6.2）以 Core 的 `Diff3` / `DocumentKind` 加 KindSheet 原始碼組成的測試環境驗證：60 個測試通過，Big5 測試略過。
 
 ### 6b 編輯器（WebView）
 

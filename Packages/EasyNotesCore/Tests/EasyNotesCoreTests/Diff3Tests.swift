@@ -65,6 +65,24 @@ struct Diff3Tests {
         #expect(merge(base, local, remote) == "---\ntags: [a, b]\n---\n\n# 筆記\n\n內容\n\n新段落\n")
     }
 
+    @Test func resolveSettlesConflictingBlocks() {
+        let base = ["a", "b", "c"]
+        // 預設沒有 resolve：同一行兩邊改成不同值 → 衝突
+        #expect(Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) == nil)
+        // resolve 拿到的是衝突區塊本身，回傳值取代該區塊
+        var seen: [[String]] = []
+        let merged = Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) { o, l, r in
+            seen = [Array(o), Array(l), Array(r)]
+            return [l.first! + "+" + r.first!]
+        }
+        #expect(merged == ["a", "B1+B2", "c"])
+        #expect(seen == [["b"], ["B1"], ["B2"]])
+        // resolve 回傳 nil 仍是衝突；不衝突的區塊不經過 resolve
+        #expect(Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) { _, _, _ in nil } == nil)
+        #expect(Diff3.merge(base: base, local: ["A", "b", "c"], remote: ["a", "b", "C"]) { _, _, _ in Issue.record(); return nil }
+                == ["A", "b", "C"])
+    }
+
     @Test func emptyBase() {
         #expect(merge("", "a\n", "a\n") == "a\n")
         #expect(merge("", "a\n", "b\n") == nil)
