@@ -4,6 +4,7 @@ import * as esbuild from "esbuild";
 
 const entries = [
   { in: "src/markdown/main.ts", out: "../Packages/KindMarkdown/Sources/KindMarkdown/Resources/Editor/editor.js" },
+  { in: "src/sheet/main.ts", out: "../Packages/KindSheet/Sources/KindSheet/Resources/Sheet/sheet.js" },
 ];
 
 const watch = process.argv.includes("--watch");

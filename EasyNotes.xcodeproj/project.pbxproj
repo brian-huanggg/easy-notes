@@ -21,6 +21,7 @@
 		7B39F0C84A82CBE036935CFD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */; };
 		810508B94A5967474123D458 /* QuickOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2458B612293008933144BC /* QuickOpen.swift */; };
 		89A25B0B136CCD5053459038 /* KindPDF in Frameworks */ = {isa = PBXBuildFile; productRef = 5AE66D168F0693ED64D33821 /* KindPDF */; };
+		7C30D879E393E35176CC8451 /* KindSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 7935127C421FA96A42557002 /* KindSheet */; };
 		9ABE5F25F2FD7C89AF3E6C6B /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C1AA5C478ED64BDD2C28AB55 /* Supabase */; };
 		9E895F42899E4023B412BB5B /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */; };
 		9F7F874263CA5DF02B065C52 /* EasyNotesCore in Frameworks */ = {isa = PBXBuildFile; productRef = B9C6D86826182F8A6B0C1A75 /* EasyNotesCore */; };
@@ -40,6 +41,7 @@
 /* Begin PBXFileReference section */
 		0C06943C1E3B03FBB43D2F18 /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
 		131D57F2B13446461773B699 /* KindPDF */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindPDF; path = Packages/KindPDF; sourceTree = SOURCE_ROOT; };
+		74EB1999CF7BF34A5CB627ED /* KindSheet */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindSheet; path = Packages/KindSheet; sourceTree = SOURCE_ROOT; };
 		1959DEF5F7FF257FF7420913 /* KindMarkdown */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindMarkdown; path = Packages/KindMarkdown; sourceTree = SOURCE_ROOT; };
 		2024AECF50DE93B1BFB3D1B3 /* VaultWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultWatcher.swift; sourceTree = "<group>"; };
 		2C161B996879933835F5809A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -79,6 +81,7 @@
 				5053C674585C371A9FF065B5 /* KindMarkdown in Frameworks */,
 				F7C896CC5E14D34A847A7F5F /* KindWhiteboard in Frameworks */,
 				89A25B0B136CCD5053459038 /* KindPDF in Frameworks */,
+				7C30D879E393E35176CC8451 /* KindSheet in Frameworks */,
 				F4B2C11CE46963F42C1001FE /* Flashcards in Frameworks */,
 				661B52D1596DA264E6C7FD18 /* SupabaseSync in Frameworks */,
 				9ABE5F25F2FD7C89AF3E6C6B /* Supabase in Frameworks */,
@@ -173,6 +176,7 @@
 				2D85937F8C8590D67D738942 /* Flashcards */,
 				1959DEF5F7FF257FF7420913 /* KindMarkdown */,
 				131D57F2B13446461773B699 /* KindPDF */,
+				74EB1999CF7BF34A5CB627ED /* KindSheet */,
 				4349B0177C6608D882AA5873 /* KindWhiteboard */,
 				6EFDC3012F2B7775D1A82DB8 /* SupabaseSync */,
 			);
@@ -201,6 +205,7 @@
 				5F513C491EF263012ADAAAA5 /* KindMarkdown */,
 				376C0F5FD94C5941AA73AA60 /* KindWhiteboard */,
 				5AE66D168F0693ED64D33821 /* KindPDF */,
+				7935127C421FA96A42557002 /* KindSheet */,
 				BC21D5F4A99FEA9B0F34414C /* Flashcards */,
 				9D5B39998C83E05A037ADDFB /* SupabaseSync */,
 				C1AA5C478ED64BDD2C28AB55 /* Supabase */,
@@ -239,6 +244,7 @@
 				5D8073A2CCCF43FD55DA742B /* XCLocalSwiftPackageReference "Packages/Flashcards" */,
 				DB31D807D8C8A13A17C3E40C /* XCLocalSwiftPackageReference "Packages/KindMarkdown" */,
 				630C687C49D077C9BE804129 /* XCLocalSwiftPackageReference "Packages/KindPDF" */,
+				6114940F676DBC45A136393C /* XCLocalSwiftPackageReference "Packages/KindSheet" */,
 				D095AA571B3BF157F27170B9 /* XCLocalSwiftPackageReference "Packages/KindWhiteboard" */,
 				FF7ABDF6926B2C3628FF0FB6 /* XCLocalSwiftPackageReference "Packages/SupabaseSync" */,
 			);
@@ -506,6 +512,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/KindPDF;
 		};
+		6114940F676DBC45A136393C /* XCLocalSwiftPackageReference "Packages/KindSheet" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/KindSheet;
+		};
 		D095AA571B3BF157F27170B9 /* XCLocalSwiftPackageReference "Packages/KindWhiteboard" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/KindWhiteboard;
@@ -539,6 +549,10 @@
 		5AE66D168F0693ED64D33821 /* KindPDF */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = KindPDF;
+		};
+		7935127C421FA96A42557002 /* KindSheet */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = KindSheet;
 		};
 		5F513C491EF263012ADAAAA5 /* KindMarkdown */ = {
 			isa = XCSwiftPackageProductDependency;

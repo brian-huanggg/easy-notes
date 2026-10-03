@@ -53,6 +53,7 @@ public struct SheetDocument: Sendable {
     public enum EditError: Error, Equatable {
         case readOnly
         case unknownRow(Int)
+        case duplicateRow(Int)
     }
 
     public private(set) var records: [Record]
@@ -128,17 +129,25 @@ public struct SheetDocument: Sendable {
         update(i, fields: fields)
     }
 
-    /// 在 `index` 插入列；`values` 的每一列不足目前欄數時補空字串。回傳新列的 id
+    /// 在 `index` 插入列；`values` 的每一列不足目前欄數時補空字串。回傳新列的 id。
+    /// `ids`：由呼叫端指定（編輯器在 JS 端新增列時自己配 id，Undo 不必等 Swift 回覆）
     @discardableResult
-    public mutating func insertRows(_ values: [[String]], at index: Int) throws(EditError) -> [Int] {
+    public mutating func insertRows(_ values: [[String]], at index: Int, ids: [Int]? = nil) throws(EditError) -> [Int] {
         try requireEditable()
         guard !values.isEmpty else { return [] }
+        if let ids {
+            precondition(ids.count == values.count, "ids 與列數不同")
+            let existing = Set(records.map(\.id))
+            var seen = Set<Int>()
+            if let dup = ids.first(where: { existing.contains($0) || !seen.insert($0).inserted }) { throw .duplicateRow(dup) }
+        }
         let width = columnCount
         let ending = style.lineEnding.bytes
         let atEnd = index >= records.count
-        var new = values.map { row in
-            defer { nextID += 1 }
-            return Record(id: nextID, fields: row + Array(repeating: "", count: max(0, width - row.count)),
+        var new = values.enumerated().map { k, row in
+            let id = ids?[k] ?? nextID
+            nextID = max(nextID, id + 1)
+            return Record(id: id, fields: row + Array(repeating: "", count: max(0, width - row.count)),
                           raw: nil, terminator: ending)
         }
         // 附加在沒有檔尾換行的最後一筆之後：原本的最後一筆補上換行，新的最後一筆保持沒有換行
@@ -160,6 +169,60 @@ public struct SheetDocument: Sendable {
         if lastHadNoNewline, let last = records.indices.last {
             records[last].terminator = Data()
         }
+    }
+
+    /// 依 `ids` 的順序重排所有列（「依此欄排序並寫入」）；`ids` 必須剛好是目前所有列。
+    /// 列的內容不變，只調整換行：檔尾沒有換行的檔案，新的最後一筆仍然沒有換行
+    public mutating func reorderRows(_ ids: [Int]) throws(EditError) {
+        try requireEditable()
+        let byID = Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        var seen = Set<Int>()
+        for id in ids where byID[id] == nil || !seen.insert(id).inserted { throw .unknownRow(id) }
+        if let missing = records.first(where: { !seen.contains($0.id) }) { throw .unknownRow(missing.id) }
+        let noTrailingNewline = records.last?.terminator.isEmpty == true
+        records = ids.map { byID[$0]! }
+        for i in records.indices {
+            let isLast = i == records.count - 1
+            if isLast, noTrailingNewline {
+                records[i].terminator = Data()
+            } else if records[i].terminator.isEmpty {
+                records[i].terminator = style.lineEnding.bytes
+            }
+        }
+    }
+
+    /// 檔案被外部修改：換成新內容，內容沒變（或同一位置被改掉）的列沿用原本的 id，
+    /// 讓編輯器的選取與 Undo 仍能對回同一列
+    public mutating func replaceContent(with data: Data) {
+        let new = SheetDocument(data: data, delimiter: style.delimiter)
+        let oldKeys = records.map { ($0.raw ?? Self.encode($0.fields, style: style)) }
+        let newKeys = new.records.map { $0.raw ?? Data() }
+        var removed = Set<Int>(), inserted = Set<Int>()
+        for change in newKeys.difference(from: oldKeys) {
+            switch change {
+            case .remove(let offset, _, _): removed.insert(offset)
+            case .insert(let offset, _, _): inserted.insert(offset)
+            }
+        }
+        var ids: [Int] = []
+        var i = 0, next = nextID
+        for j in new.records.indices {
+            // 跳過被刪掉、且沒有對應新列的舊列
+            while i < records.count, removed.contains(i), !inserted.contains(j) { i += 1 }
+            if i < records.count, removed.contains(i) == inserted.contains(j) {
+                ids.append(records[i].id) // 沒變，或同一位置被改掉
+                i += 1
+            } else {
+                ids.append(next)
+                next += 1
+            }
+        }
+        var result = new
+        result.records = zip(new.records, ids).map { record, id in
+            Record(id: id, fields: record.fields, raw: record.raw, terminator: record.terminator)
+        }
+        result.nextID = next
+        self = result
     }
 
     /// 在第 `column` 欄之前插入空欄。最寬的列一定插入（含附加在最後）；

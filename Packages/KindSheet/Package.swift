@@ -18,7 +18,8 @@ let package = Package(
                 .product(name: "EasyNotesCore", package: "EasyNotesCore"),
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
             ],
-            resources: [.process("Localizable.xcstrings")]
+            // RevoGrid bundle：由 web/ 的 `npm run build` 產生 sheet.js
+            resources: [.copy("Resources/Sheet"), .process("Localizable.xcstrings")]
         ),
         .testTarget(name: "KindSheetTests", dependencies: [
             "KindSheet", .product(name: "EasyNotesCore", package: "EasyNotesCore"),
