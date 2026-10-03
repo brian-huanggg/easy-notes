@@ -16,7 +16,7 @@
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
-| 6 Sheets | S5、6a–6c 實作完成（Swift 端未在 macOS / iOS 編譯與實機驗證）；6d 未開始 | [sheets.md](./architecture/sheets.md) |
+| 6 Sheets | S5、6a–6d 實作完成（Swift 端未在 macOS / iOS 編譯與實機驗證）；驗收測試未勾 | [sheets.md](./architecture/sheets.md) |
 | i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -500,10 +500,12 @@
 
 ### 6d 預覽、嵌入、新增與匯入
 
-- [ ] 列表縮圖（CoreGraphics PNG，Thumb CSV `otUrV`）
-- [ ] md 內 `![[x.csv]]` 嵌入預覽（`embed://`，深色模式反相）
-- [ ] `addNewFile("新表格")`、`addImport("匯入 CSV…")`（`addKind` 已在 6b 完成）
-- [ ] `addVaultGuide`：CSV 慣例
+- [x] 列表縮圖（CoreGraphics PNG，Thumb CSV `otUrV`）
+- [x] md 內 `![[x.csv]]` 嵌入預覽（`embed://`，深色模式反相）
+- [x] `addNewFile("新表格")`、`addImport("匯入 CSV…")`（`addKind` 已在 6b 完成）
+- [x] `addVaultGuide`：CSV 慣例
+- [ ] 驗證：macOS 與 iOS 建置、`swift test`（`SheetPreviewTests`）、列表縮圖與 `![[x.csv]]` 嵌入在淺色 / 深色模式的樣子、「新表格」與「匯入 CSV…」、新 Vault 的 `CLAUDE.md` 含表格一節
+  - 這個環境沒有 Swift 工具鏈也沒有 CoreGraphics，`SheetPreview` 未編譯、PNG 未實際畫過；`embed://` 與 Markdown 的嵌入沿用白板的機制，沒有改動。
 
 驗收測試：
 
