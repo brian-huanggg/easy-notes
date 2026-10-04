@@ -53,7 +53,7 @@ test("套用遠端變更：CRLF 檔案只改變動的那段", () => {
     ["一\r\n", "一\r\n\r\n二\r\n"],
   ]) {
     const state = open(before);
-    assert.equal(state.update({ changes: replaceChange(state, after) }).state.sliceDoc(), after);
+    assert.equal(state.update({ changes: replaceChange(state.doc, after) }).state.sliceDoc(), after);
   }
 });
 

@@ -8,7 +8,7 @@ import { autocompletion, CompletionContext, CompletionResult, completionKeymap }
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
-import { EditorSelection, EditorState } from "@codemirror/state";
+import { Annotation, ChangeSet, EditorSelection, EditorState, Text } from "@codemirror/state";
 import { drawSelection, EditorView, keymap } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
 import { t } from "../shared/i18n";
@@ -16,8 +16,9 @@ import { post } from "./bridge";
 import { cards } from "./cards";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
 import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
-import { lineBreakExtension, lineBreakOf, lines, normalized, replaceChange } from "./lineBreak";
+import { lineBreakExtension, lineBreakOf, lines, normalized } from "./lineBreak";
 import { livePreview } from "./livePreview";
+import { rebase } from "./rebase";
 
 declare global {
   interface Window {
@@ -91,7 +92,13 @@ const extensions = [
     indentWithTab,
   ]),
   EditorView.updateListener.of((u) => {
-    if (u.docChanged) scheduleFlush();
+    let local = false;
+    for (const tr of u.transactions) {
+      if (!tr.docChanged || tr.annotation(fromDisk)) continue;
+      unsaved = unsaved.compose(tr.changes);
+      local = true;
+    }
+    if (local) scheduleFlush();
     if (u.focusChanged && !u.view.hasFocus) flush();
   }),
   EditorView.domEventHandlers({
@@ -116,6 +123,16 @@ const states = new Map<string, EditorState>();
 let currentId: string | null = null;
 let dirty = false;
 let timer: number | undefined;
+// 從磁碟來的變更（load 以外的 applyRemote）：不算本地修改
+const fromDisk = Annotation.define<boolean>();
+// 上次與磁碟一致的內容，以及之後還沒存檔的本地修改；外部修改進來時據此合併（rebase.ts）
+let saved = Text.empty;
+let unsaved = ChangeSet.empty(0);
+
+function markSaved() {
+  saved = view.state.doc;
+  unsaved = ChangeSet.empty(saved.length);
+}
 
 const view = new EditorView({
   parent: document.getElementById("editor")!,
@@ -138,6 +155,7 @@ function flush() {
     return;
   }
   post({ type: "changed", id: currentId, text: view.state.sliceDoc() });
+  markSaved();
   view.dispatch({ effects: setModified.of(Date.now()) });
 }
 
@@ -155,29 +173,44 @@ const api = {
     }
     currentId = id;
     view.setState(state);
+    markSaved();
     view.dispatch({ effects: [setModified.of(meta.modified ?? null), targetsChanged.of(null)] });
     view.scrollDOM.scrollTop = 0;
     post({ type: "metric", name: "load", ms: performance.now() - t0 });
   },
 
-  // 同步拉到遠端版本：以最小差異套用，保留游標與 undo
+  // 同步或外部工具的新版本：以最小差異套用，保留游標、undo 與還沒存檔的本地修改
   applyRemote(id: string, text: string) {
     if (id !== currentId) {
       states.delete(id);
       return;
     }
-    if (view.state.sliceDoc() === text) return;
+    if (view.state.sliceDoc() === text) {
+      markSaved();
+      dirty = false;
+      return;
+    }
     // 換行符改變（例如外部工具轉成 CRLF）：重建 state，游標留在原位置附近
     if (lineBreakOf(text) !== view.state.lineBreak) {
       const head = view.state.selection.main.head;
       const state = EditorState.create({ doc: text, extensions: [extensions, lineBreakExtension(text)] });
       view.setState(state.update({ selection: EditorSelection.cursor(Math.min(head, state.doc.length)) }).state);
       view.dispatch({ effects: targetsChanged.of(null) });
+      markSaved();
       dirty = false;
       return;
     }
-    view.dispatch({ changes: replaceChange(view.state, text) });
-    dirty = false;
+    // 還沒存檔的本地修改轉換到新內容上保留；有的話照常在停止輸入後寫回合併後的內容
+    const result = rebase(saved, unsaved, text);
+    view.dispatch({ changes: result.changes, annotations: fromDisk.of(true) });
+    saved = result.saved;
+    unsaved = result.unsaved;
+    if (unsaved.empty) {
+      clearTimeout(timer);
+      dirty = false;
+    } else {
+      scheduleFlush();
+    }
   },
 
   // App 進入背景或重新命名、刪除檔案前呼叫，確保變更已寫回

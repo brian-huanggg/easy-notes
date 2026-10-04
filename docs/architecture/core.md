@@ -188,6 +188,7 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 
 - **Vault 根目錄的 `CLAUDE.md`**：說明 frontmatter 規範、卡片語法、資料夾慣例，以及不要手動修改的檔案（`.easynotes/srs/*.jsonl`、`.easynotes/srs/*.config.json`、`.easynotes/cache/`、`sync.sqlite`）。
 - **外部修改是一等公民**：Claude Code 寫檔與 App 內編輯走同一條路徑（監看 → 索引 → 上傳）。
+- **存檔不覆蓋外部修改**：檔案監看有延遲（FSEvents 約 0.3 秒），外部工具剛寫入時 App 可能還沒收到通知就存檔。App 存檔一律經過 `VaultFS.write(_:to:expecting:deviceName:)`：`expecting` 是 App 上次寫入或開檔時讀到的內容，磁碟已經不同就以它為 base 交給 `DocumentKind.merge`，寫入合併結果並推回編輯器（`externalChange`）；無法合併時外部的版本留在原處，App 的版本另存成衝突副本（命名與同步相同，`VaultFS.conflictPath`）。
 - **產生卡片只需要寫 md**：Claude 寫入 `::` 語法即可，`^id` 由 App 補上。
 - **手寫不為 Claude 做辨識**：手寫是 brainstorming，不是知識庫的主體。
 
