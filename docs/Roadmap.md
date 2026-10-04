@@ -17,6 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
+| E2E 測試 | 測試掛鉤、identifier、XCUITest（smoke / sync / perf）、資料夾 backend 已寫好；尚未在 Mac / iPad 模擬器執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
@@ -565,6 +566,29 @@
 - [ ] 切換語言後索引重建，列表摘要的語言正確
 - [ ] 兩台不同語言的裝置同步同一個 Vault：不會因語言產生衝突副本
 - [ ] English 介面下注音輸入正常（iPad、Mac）
+
+## E2E 測試
+
+目標：從外部操作 App，以磁碟上的檔案驗證「檔案即真相」；測試在 `Tests/E2E`，跑法 `./scripts/test-e2e.sh [smoke|sync|perf|all] [mac|ipad]`。
+
+- [x] 測試掛鉤（DEBUG）：`-EasyNotesVaultRoot`、`-EasyNotesSync off`、`-EasyNotesSyncFolder`、`-EasyNotesUITest`；Release 忽略
+- [x] `UITestContract.swift`（`LaunchKey`、`A11yID`）與外殼的 accessibility identifier
+- [x] `EasyNotesTestSupport.FolderSyncBackend` 與單元測試（`FolderSyncBackendTests`，尚未在 Mac 執行）
+- [x] `project.yml` 的 `EasyNotesE2ETests`（iOS + macOS）、`scripts/test-e2e.sh`、手動觸發的 GitHub Actions（`.github/workflows/e2e.yml`）
+- [ ] `xcodegen generate` 後建置通過（macOS、iPad 模擬器）（尚未驗證：開發環境沒有 Xcode）
+- [ ] smoke 在 macOS 全綠：開啟 Vault、新增筆記並打字存檔、改名改寫連結、釘選寫 frontmatter、刪除、拖曳搬移、外部新增 / 刪除 / 修改開著的筆記、卡片補 `^id`、各類型開啟不改寫檔案、複習面板、⌘K、上一頁 / 下一頁、資料夾頁、類型篩選、刪索引後重建（尚未驗證）
+- [ ] smoke 在 iPad 模擬器全綠（尚未驗證；模擬器 App 能否讀寫 `SIMULATOR_SHARED_RESOURCES_DIRECTORY` 下的 Vault 也待確認）
+- [ ] sync 全綠：App 新增 → 另一台、遠端修改 → 開著的編輯器、不同行的修改合併、App 刪除 → 另一台（尚未驗證）
+- [ ] perf 建立基準線：啟動、1,000 元素白板開啟、打字記憶體 / CPU、外部一次改 50 個檔案（尚未驗證）
+- [ ] GitHub Actions 的 `--ci`（ad-hoc 簽署、拿掉 Sign in with Apple entitlement）可以跑（尚未驗證）
+
+注音組字 XCUITest 測不到（`typeText` 不經過輸入法），每次改到編輯器或同步時在實機跑：
+
+- [ ] Mac：筆記連續輸入「知識管理系統」，無吃字、無重複；選字視窗跟著游標
+- [ ] iPad：同上（螢幕鍵盤與外接鍵盤各一次）
+- [ ] 組字中（「ㄓㄨㄥ」尚未選字）收到同步或外部修改：注音符號不進檔案、選好的字不遺失
+- [ ] 組字中按 ⌘S / 切換筆記：存進檔案的是選好的字
+- [ ] 表格儲存格、白板文字、PDF 便利貼各輸入一次注音
 
 ## Bug Reports
 

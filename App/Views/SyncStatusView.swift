@@ -53,6 +53,7 @@ struct SyncStatusRow: View {
             StatusRow(sync.statusTitle, detail: sync.statusDetail, symbol: sync.statusSymbol, tint: sync.statusTint)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(A11yID.Sidebar.sync)
         .help(sync.statusTitle)
         .popover(isPresented: $showPanel) {
             SyncPanel(close: { showPanel = false })

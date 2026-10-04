@@ -24,6 +24,7 @@ struct Sidebar: View {
                     VaultHeader(name: store.vaultName, account: sync.accountEmail, icon: Image("AppLogo"))
                         .padding(.bottom, 10)
                     SearchFieldButton(L("搜尋"), shortcut: "⌘K") { shell.showQuickOpen = true }
+                        .accessibilityIdentifier(A11yID.Sidebar.search)
                         .padding(.bottom, 12)
                     navigation
                     spaces.padding(.top, 18)
@@ -43,11 +44,15 @@ struct Sidebar: View {
     private var navigation: some View {
         VStack(spacing: 1) {
             item(.all, L("所有文件"), symbol: "doc.text", count: store.files.count)
+                .accessibilityIdentifier(A11yID.Sidebar.all)
             ForEach(store.plugins.panels) { panel in
                 item(.panel(panel.id), panel.title, symbol: panel.symbol, count: panel.badge(), countTint: panel.badgeTint)
+                    .accessibilityIdentifier(A11yID.Sidebar.panel(panel.id))
             }
             item(.recents, L("最近"), symbol: "clock.arrow.circlepath")
+                .accessibilityIdentifier(A11yID.Sidebar.recents)
             item(.pinned, L("釘選"), symbol: "pin", count: pinnedCount)
+                .accessibilityIdentifier(A11yID.Sidebar.pinned)
         }
     }
 
@@ -109,6 +114,7 @@ struct Sidebar: View {
                                 indent: depth)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(A11yID.Sidebar.node(node.path))
                 .draggable(node.path)
             }
         }
@@ -229,6 +235,7 @@ struct Sidebar: View {
                 StatusRow(L("最近刪除"), detail: L("保留 \(SyncEngine.retentionDays) 天"), symbol: "trash")
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(A11yID.Sidebar.recentlyDeleted)
             SyncStatusRow()
             SettingsButton()
         }
@@ -265,15 +272,19 @@ struct NodeMenu: View {
         Button(L("重新命名"), systemImage: "pencil") {
             shell.rename(path, current: isFolder ? (path as NSString).lastPathComponent : store.displayName(path))
         }
+        .accessibilityIdentifier(A11yID.Menu.rename)
         if !isFolder, let file = store.file(at: path), store.fs.kinds.kind(for: path)?.supportsPinning == true {
             Button(file.pinned ? L("取消釘選") : L("釘選"), systemImage: file.pinned ? "pin.slash" : "pin") {
                 Task { await store.setPinned(path, !file.pinned) }
             }
+            .accessibilityIdentifier(A11yID.Menu.pin)
         }
         Button(revealTitle, systemImage: "folder") { reveal(store.fs.url(for: path)) }
+            .accessibilityIdentifier(A11yID.Menu.reveal)
         Divider()
         Button(L("移到垃圾桶"), systemImage: "trash", role: .destructive) {
             Task { await store.delete(path) }
         }
+        .accessibilityIdentifier(A11yID.Menu.trash)
     }
 }

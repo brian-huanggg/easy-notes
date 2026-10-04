@@ -19,6 +19,7 @@ struct QuickOpen: View {
             HStack(spacing: 9) {
                 Image(systemName: "magnifyingglass").font(.system(size: 15)).foregroundStyle(Palette.textTertiary)
                 TextField(L("搜尋內容，或 #標籤"), text: $store.searchText)
+                    .accessibilityIdentifier(A11yID.QuickOpen.field)
                     .textFieldStyle(.plain)
                     .textStyle(TextStyle(15))
                     .focused($focused)
@@ -49,6 +50,7 @@ struct QuickOpen: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier(A11yID.QuickOpen.hit(hit.path))
                             .id(index)
                         }
                     }

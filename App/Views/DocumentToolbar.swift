@@ -14,6 +14,8 @@ struct DocumentStatusPill: View {
         let (title, symbol) = status
         Pill(title, symbol: symbol)
             .help(sync.statusTitle)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier(A11yID.Toolbar.status)
     }
 
     /// 編輯內容由編輯器自動存檔，所以本地一律是「已儲存」；登入後再區分同步中與衝突
@@ -41,6 +43,7 @@ struct PinButton: View {
             }
             .tint(pinned ? Palette.yellow.color : nil)
             .help(pinned ? L("取消釘選") : L("釘選"))
+            .accessibilityIdentifier(A11yID.Toolbar.pin)
         }
     }
 }
@@ -56,16 +59,20 @@ struct DocumentMoreMenu: View {
             let url = store.fs.url(for: path)
             Button(revealTitle, systemImage: "folder") { reveal(url) }
             Button(L("複製路徑"), systemImage: "doc.on.doc") { copyToPasteboard(url.path(percentEncoded: false)) }
+                .accessibilityIdentifier(A11yID.Menu.copyPath)
             #if os(macOS)
             OpenWithMenu(url: url)
             #endif
             Divider()
             Button(L("重新命名"), systemImage: "pencil") { shell.rename(path, current: store.displayName(path)) }
+                .accessibilityIdentifier(A11yID.Menu.rename)
             Button(L("移到垃圾桶"), systemImage: "trash", role: .destructive) {
                 Task { await store.delete(path) }
             }
+            .accessibilityIdentifier(A11yID.Menu.trash)
         }
         .help(L("更多"))
+        .accessibilityIdentifier(A11yID.Toolbar.more)
     }
 
     private func copyToPasteboard(_ text: String) {

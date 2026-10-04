@@ -31,6 +31,8 @@
 
 ## 外殼與導覽
 
+- **Accessibility identifier**：外殼中 E2E 會操作或檢查的元素（側邊欄項目與檔案樹、列表的文件與篩選、工具列、選單項目、⌘K、編輯器容器）掛 `A11yID` 的 identifier（`App/Support/UITestContract.swift`）。容器用 `.accessibilityElement(children: .contain)` 再掛 identifier，才不會蓋掉子元素的 identifier。新增這類元素時一併加上。
+
 - 導覽 = `Route`（所有文件 / 最近 / 釘選 / 資料夾 / 標籤 / 檔案 / 外掛面板）＋上一頁 / 下一頁歷史（⌘[ / ⌘]）；App 啟動時顯示所有文件。iPhone 用底部分頁（Docs / Search / Spaces / Me），不用 `NavigationSplitView` 的摺疊。
 - 外掛以 `addPanel` 加側邊欄項目，App 不寫死。反向連結 inspector 已移除（索引仍保留反向連結資料）。
 - 介面語言統一繁體中文：App 宣告 `zh-Hant` 在地化，系統選單也是中文；側邊欄顯示「空間」「標籤」。

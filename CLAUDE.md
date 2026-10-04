@@ -32,6 +32,7 @@
 xcodegen generate                           # 修改 project.yml 後
 (cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
+./scripts/test-e2e.sh [smoke|sync|perf|all] [mac|ipad]  # E2E（XCUITest，Tests/E2E）；結果在 build/E2E-*.xcresult
 supabase db push                            # 把 supabase/migrations 套到雲端專案
 ./scripts/check-l10n.py                     # 找出沒有經過 L("…") 的中文字面值（提交前）
 ./scripts/fsrs-vectors.py                   # 重新產生 FSRS 參考向量（升級 swift-fsrs 後，需要 uv）

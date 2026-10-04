@@ -5,6 +5,9 @@ import Foundation
 import Observation
 import Supabase
 import SupabaseSync
+#if DEBUG
+import EasyNotesTestSupport
+#endif
 #if os(iOS)
 import UIKit
 #endif
@@ -27,12 +30,15 @@ final class SyncCoordinator {
     private(set) var authError: String?
 
     @ObservationIgnored private let store: VaultStore
+    @ObservationIgnored private let mode: TestHooks.Sync
     @ObservationIgnored private var engine: SyncEngine?
-    @ObservationIgnored private var userID: UUID?
+    @ObservationIgnored private var userID: String?
     @ObservationIgnored private var deviceID: String?
     @ObservationIgnored private var scheduled: Task<Void, Never>?
     @ObservationIgnored private var pendingSince: Date?
     @ObservationIgnored private var channel: RealtimeChannelV2?
+    /// E2E 的資料夾 backend：取代 Realtime 的資料夾監看
+    @ObservationIgnored private var folderWatch: AnyObject?
     @ObservationIgnored private var isActive = true
     /// 只記最後一個會和 Apple 實際送出的 token 對不上（首次登入 nonce mismatch），所以全部記下，完成時依 token 反查。
     @ObservationIgnored private var nonces: [String: String] = [:]
@@ -40,14 +46,34 @@ final class SyncCoordinator {
     static let idleDelay: Duration = .seconds(3)
     static let maxDelay: TimeInterval = 30
 
-    init(store: VaultStore) {
+    init(store: VaultStore, mode: TestHooks.Sync = TestHooks.sync) {
         self.store = store
+        self.mode = mode
         store.onLocalChange = { [weak self] in self?.schedule(after: Self.idleDelay) }
         store.onMove = { [weak self] from, to in
             guard let engine = self?.engine else { return }
             Task { try? await engine.moved(from: from, to: to) }
         }
-        Task { await observeAuth() }
+        switch mode {
+        case .supabase:
+            Task { await observeAuth() }
+        case .off:
+            account = .signedOut
+        case .folder(let url):
+            #if DEBUG
+            // E2E：固定帳號，不經 Sign in with Apple；遠端是測試程序也能讀寫的資料夾
+            Task {
+                do {
+                    let backend = try FolderSyncBackend(root: url)
+                    await start(userID: "e2e", email: "e2e@easynotes.local", backend: backend)
+                } catch {
+                    status.lastError = error.localizedDescription
+                }
+            }
+            #else
+            _ = url
+            #endif
+        }
     }
 
     // MARK: 登入
@@ -113,17 +139,22 @@ final class SyncCoordinator {
     func signOut() async {
         await store.flushEditors()
         if let engine { await engine.sync() } // 登出前把待傳的變更送出
+        guard mode == .supabase else { return }
         try? await supabase.auth.signOut()
     }
 
     private func start(_ user: User) async {
-        account = .signedIn(email: user.email)
-        guard userID != user.id else { return }
+        await start(userID: user.id.uuidString, email: user.email, backend: SupabaseBackend(client: supabase))
+    }
+
+    private func start(userID id: String, email: String?, backend: any SyncBackend) async {
+        account = .signedIn(email: email)
+        guard userID != id else { return }
         await stop(keepAccount: true)
         do {
             let engine = try SyncEngine(
-                fs: store.fs, backend: SupabaseBackend(client: supabase),
-                userID: user.id.uuidString, deviceName: Self.deviceName,
+                fs: store.fs, backend: backend,
+                userID: id, deviceName: Self.deviceName,
                 syncedMetaFolders: store.plugins.syncedMetaFolders,
                 hooks: .init(
                     willChange: { [weak store] path in await store?.prepareForSync(path) },
@@ -132,7 +163,7 @@ final class SyncCoordinator {
                     },
                     statusChanged: { [weak self] status in await self?.update(status) }))
             self.engine = engine
-            userID = user.id
+            userID = id
             deviceID = await engine.deviceID
             await connectRealtime()
             schedule(after: .zero)
@@ -215,7 +246,17 @@ final class SyncCoordinator {
     // MARK: Realtime（只在前景）
 
     private func connectRealtime() async {
-        guard channel == nil, engine != nil, isActive else { return }
+        guard engine != nil, isActive else { return }
+        if case .folder(let url) = mode {
+            #if DEBUG
+            guard folderWatch == nil else { return }
+            folderWatch = FolderSyncBackend.watch(url) { [weak self] in
+                Task { @MainActor in self?.schedule(after: .milliseconds(300)) }
+            }
+            #endif
+            return
+        }
+        guard channel == nil, mode == .supabase else { return }
         let channel = supabase.channel("files")
         let changes = channel.postgresChange(AnyAction.self, schema: "public", table: "files")
         self.channel = channel
@@ -231,6 +272,7 @@ final class SyncCoordinator {
     }
 
     private func disconnectRealtime() async {
+        folderWatch = nil
         guard let channel else { return }
         self.channel = nil
         await supabase.removeChannel(channel)

@@ -31,6 +31,7 @@ struct ContentView: View {
             .alert(L("重新命名"), isPresented: Binding(get: { shell.renaming != nil },
                                                 set: { if !$0 { shell.renaming = nil } })) {
                 TextField(L("名稱"), text: $shell.newName)
+                    .accessibilityIdentifier(A11yID.Rename.field)
                 Button(L("取消"), role: .cancel) { shell.renaming = nil }
                 Button(L("確定")) {
                     if let path = shell.renaming {
@@ -39,6 +40,7 @@ struct ContentView: View {
                     }
                     shell.renaming = nil
                 }
+                .accessibilityIdentifier(A11yID.Rename.confirm)
             } message: {
                 Text(L("其他筆記中指向它的 [[連結]] 會一併更新。"))
             }
@@ -95,8 +97,15 @@ struct ShellDetail: View {
         switch route {
         case .file(let path):
             editor(for: path)
+                // 容器本身成為一個元素（不覆蓋子元素的 identifier），E2E 用它確認編輯器已開啟
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier(A11yID.Editor.container(store.kindID(path) ?? "none"))
         case .panel(let id):
-            if let panel = store.plugins.panel(id: id) { panel.content() }
+            if let panel = store.plugins.panel(id: id) {
+                panel.content()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier(A11yID.panel(id))
+            }
         default:
             DocumentList(route: route)
         }
@@ -109,6 +118,7 @@ struct ShellDetail: View {
             editor
         } else {
             ContentUnavailableView(L("不支援的檔案類型"), systemImage: "doc.questionmark")
+                .accessibilityIdentifier(A11yID.Editor.unsupported)
         }
     }
 }
@@ -125,9 +135,11 @@ struct ShellToolbar: ToolbarContent {
             Button(L("上一頁"), systemImage: "chevron.left") { store.goBack() }
                 .disabled(store.backStack.isEmpty)
                 .help(L("上一頁（⌘[）"))
+                .accessibilityIdentifier(A11yID.Toolbar.back)
             Button(L("下一頁"), systemImage: "chevron.right") { store.goForward() }
                 .disabled(store.forwardStack.isEmpty)
                 .help(L("下一頁（⌘]）"))
+                .accessibilityIdentifier(A11yID.Toolbar.forward)
         }
         ToolbarItem(placement: .navigation) {
             HStack(spacing: 4) {
@@ -224,6 +236,7 @@ struct NewDocumentMenu: View {
             }
         }
         .help(L("新增文件"))
+        .accessibilityIdentifier(A11yID.Toolbar.newDocument)
     }
 }
 

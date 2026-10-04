@@ -125,6 +125,7 @@ vaultFS.deviceID() -> String
 
 - **同步引擎在 Core，網路在 App**：`SyncEngine`、`sync.sqlite`、上傳佇列放 EasyNotesCore，只依賴 `SyncBackend` 協定；獨立套件 `Packages/SupabaseSync` 的 `SupabaseBackend` 實作它（依賴 Core + supabase-swift，含對本地 Supabase 的 RPC 併發與 RLS 整合測試），App 只負責組裝。Core 不 import supabase-swift，同步引擎用記憶體內的假 backend 做單元測試。
 - **diff3 是 Core 的通用工具**：以行為單位的三方文字合併，不認識檔案類型。Markdown 與 Sheets 的 `merge` 都呼叫它；外掛不能互相 import，所以放 Core。泛型版本 `Diff3.merge(base:local:remote:resolve:)` 的單位由外掛決定（Sheets 以記錄為單位）；兩邊改了同一段時先交給 `resolve`（預設回傳 nil = 衝突），讓外掛在不認識檔案類型的 Core 之外做更細的合併（Sheets 逐儲存格）。
+- **E2E 用的資料夾 backend**：`EasyNotesCore` package 的 `EasyNotesTestSupport` target 提供 `FolderSyncBackend`（不是 Core 本身，Core 仍只有 `SyncBackend` 協定）。App 只在 DEBUG 的測試模式使用它，見 README「測試」。
 - **登入用 Sign in with Apple**：Supabase Auth 的 Apple provider，原生 ID token 流程（AuthenticationServices），不需要網頁轉址。
 - **Migration 放 repo 的 `supabase/migrations/`**：RPC 併發與 RLS 測試在本地 Supabase（CLI + Docker）跑，通過後用 `supabase db push` 套到雲端專案。
 

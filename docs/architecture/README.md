@@ -165,3 +165,25 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 - 每個 `DocumentKind` 的 `index()` 抽出純文字與連結，所以白板內的文字元素也能搜尋、也會出現在反向連結（手寫筆畫不索引）。
 - App 設定放 `.easynotes/`（類似 `.obsidian/`），跟著 Vault 同步。
 - 介面語言（zh-Hant、English (US)）：每個模組自帶字串檔，Vault 內的路徑、檔名慣例與同步協定的字串不隨語言改變，見 [translation.md](./translation.md)。
+
+## 測試
+
+分層：越下層越多、越快；E2E 只驗證「接起來」的部分，不重測下層已經測過的邏輯。
+
+| 層 | 內容 | 指令 |
+| --- | --- | --- |
+| 單元 | 各 Package 的 `swift test`（Core 的 Vault、索引、同步引擎用假 backend；外掛的格式、合併） | `swift test` |
+| Web | CM6 的 rebase、換行、注音組字（Chromium 模擬輸入法） | `npm test`、`node test/ime.e2e.mjs` |
+| 整合 | SupabaseSync 對本地 Supabase 的 RPC 併發與 RLS | `scripts/test-sync.sh` |
+| E2E | XCUITest 從外部操作 App（macOS、iPad 模擬器） | `scripts/test-e2e.sh` |
+| 實機 | 注音（WebKit）、Apple Pencil、耗電與記憶體 | Roadmap 的手動清單 |
+
+E2E 的設計：
+
+- **斷言看檔案，不看畫面**：每個測試建立自己的暫存 Vault，App 以 DEBUG 啟動參數 `-EasyNotesVaultRoot` 開啟它；測試直接讀寫磁碟上的檔案，扮演 Finder / Claude Code，並以檔案內容驗證 App 的操作。iOS 模擬器的 Vault 放在 `SIMULATOR_SHARED_RESOURCES_DIRECTORY`（模擬器內的 App 都能讀寫）。
+- **測試約定只有一份**：啟動參數名稱（`LaunchKey`）與 accessibility identifier（`A11yID`）寫在 `App/Support/UITestContract.swift`，App 與測試 target 編譯同一份檔案。測試只用 identifier 找元素，不依賴介面文字（翻譯不會讓測試壞掉）；含路徑的 identifier 直接帶 Vault 相對路徑。
+- **測試掛鉤只在 DEBUG**（`App/Support/TestHooks.swift`）：Release 忽略所有啟動參數，Vault 位置與同步都是正常行為。
+- **同步 E2E 不需要網路**：`EasyNotesTestSupport` 的 `FolderSyncBackend` 以資料夾當遠端（`commit` 語意與 `commit_file` 相同、`flock` 跨程序互斥），App 以 `-EasyNotesSyncFolder` 使用它、以監看資料夾取代 Realtime；測試程序用同一個資料夾跑自己的 `SyncEngine`，扮演另一台裝置。Supabase 本身由整合測試負責。
+- **只輸入 ASCII**：XCUITest 的 `typeText` 不經過輸入法，測不到注音組字；注音由 Web 層的 Chromium 模擬與實機清單負責。
+- **WebView 只測接線**：編輯器邏輯在 Web 層測；E2E 只確認打字經 Bridge 存檔、外部修改出現在開著的編輯器。
+- **範圍**：Mac 與 iPad（側邊欄版面）。iPhone 的底部分頁另有一套畫面，目前不在 E2E 範圍。
