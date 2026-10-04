@@ -171,7 +171,7 @@
 - [x] 只註冊 Markdown 與白板時，篩選只出現 Notes / Boards，新增選單沒有匯入 PDF / CSV
 - [x] 刪掉 `.easynotes/cache/preview/` 後重新產生，畫面相同
 - [x] Claude Code 修改 frontmatter 的 `icon`、`pinned` → 數秒內反映在列表與側邊欄
-- [ ] 更換封面 / icon 後，md 只多出 frontmatter 欄位，其餘內容逐位元組相同
+- [x] 更換封面 / icon 後，md 只多出 frontmatter 欄位，其餘內容逐位元組相同（`web/test/lineBreak.test.ts`，含 CRLF；`cd web && npm test`）
 - [ ] 注音輸入：在文件頭附近、callout、核取清單內組字正常
 - [ ] 切換筆記仍 < 50 ms；文件列表 1,000 篇捲動流暢（預覽不在主執行緒產生）
 - [ ] 手動：Mac、iPad、iPhone 截圖與 Pen 設計稿並排比對，淺色 / 深色都檢查（字型差異除外）
@@ -310,6 +310,7 @@
 驗收測試：
 
 - [ ] 序列化：excalidraw.com 匯出的 fixture（含 6 種可建立的元素、diamond、line、elbow 箭頭、embeddable）讀入再寫出，元素與欄位不變；未知元素與欄位原樣保留
+  - 由 `ModelSerializationTests.excalidrawExportRoundTripsUnchanged`、`typedWrapperKeepsUnknownTypesAndFields` 涵蓋（fixture 含上述類型與未知的 `magicframe`）；尚未驗證：執行結果未確認。
 - [x] 修改一個元素只改變它的 `version` / `versionNonce` / `updated` 與被修改的欄位
 - [x] fractional index：在兩元素之間插入 100 次，順序正確且 index 合法；兩邊各插入後合併，順序確定（兩台裝置結果相同）
 - [x] 綁定：移動 / 縮放形狀後，綁定箭頭的端點落在形狀邊上（`gap` 正確）；刪除形狀後箭頭的 binding 清除；`boundElements` 與箭頭兩邊一致
@@ -446,6 +447,7 @@
 - [ ] 200 頁 PDF 快速捲動，記憶體穩定（Instruments 觀察）
 - [ ] 跨頁交錯書寫後連按 ⌘Z，依時間順序復原（含已捲出畫面的頁）
 - [ ] 標註前後原始 PDF 的 hash 不變
+  - 程式只寫 `.pdf.ink` 與匯出檔（`exportedPath` 不會等於原檔）；`PDFExporterTests.flattensStrokesOnRotatedPages` 檢查匯出後原檔不變。尚未驗證：App 內標註後實際比對 hash。
 - [ ] App 內改名、搬移、刪除再還原 PDF，旁檔跟著走
 - [ ] 多裝置：兩台在不同頁同時標註 → 同步後兩邊都保留
 - [ ] 便利貼內注音輸入正常（iPad、Mac）
@@ -512,8 +514,8 @@
 
 驗收測試：
 
-- [ ] 未修改的 CSV / TSV 寫回後逐位元組相同（含 CRLF、BOM、全部加引號的檔案）
-- [ ] 含引號、逗號、換行、中文、emoji 的欄位來回不變
+- [x] 未修改的 CSV / TSV 寫回後逐位元組相同（含 CRLF、BOM、全部加引號的檔案）（`SheetFormatTests.unmodifiedFilesAreByteIdentical`，6a 的 macOS `swift test`）
+- [x] 含引號、逗號、換行、中文、emoji 的欄位來回不變（同上）
 - [ ] 儲存格內注音輸入正常（iPad、Mac），含選取後直接打字
 - [ ] 1 萬列捲動流暢
 - [ ] 開著表格時 Claude Code 修改檔案，畫面即時更新且不被舊內容覆蓋
@@ -578,6 +580,7 @@
 
 ### Editor
 
+- [x] CRLF 換行的筆記在 App 內編輯後，整份檔案的換行被改成 LF（CM6 預設統一成 `\n`；改為全部是 CRLF 時保留，`web/test/lineBreak.test.ts`。實機尚未驗證）
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）
 
 ### Desktop

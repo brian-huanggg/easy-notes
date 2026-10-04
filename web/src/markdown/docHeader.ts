@@ -2,10 +2,11 @@
 // 標題下方是 meta 列（標籤、最後編輯時間）。游標進入 frontmatter 時才顯示原始 YAML。
 // frontmatter 的判斷與寫入規則與 Swift 端 KindMarkdown/Frontmatter.swift 一致：
 // 第一行是 `---`，之後第一個獨占一行的 `---` 結束；寫入只改動目標那一行，其餘位元組不變。
-import { EditorState, Extension, Range, StateEffect, StateField } from "@codemirror/state";
+import { EditorState, Extension, Range, StateEffect, StateField, Text } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
 import { t } from "../shared/i18n";
 import { editedLabel, el, onPress, post, vaultURL } from "./bridge";
+import { lines as textLines } from "./lineBreak";
 
 // frontmatter 的範圍：第一行開頭到結尾 `---` 那一行的行尾；沒有時回傳 null
 export function frontmatterRange(state: EditorState): { from: number; to: number } | null {
@@ -87,7 +88,7 @@ function yamlScalar(value: string): string {
 
 // 設定（value 非 null）或移除頂層欄位的變更。沒有 frontmatter 時新增一個；移除後 frontmatter 變空就整個刪掉，
 // 讓「設定再移除」回到原本的位元組。沒有要改的時候回傳 null。
-export function frontmatterChange(state: EditorState, key: string, value: string | null): { from: number; to: number; insert: string } | null {
+export function frontmatterChange(state: EditorState, key: string, value: string | null): { from: number; to: number; insert: Text } | null {
   const range = frontmatterRange(state);
   const lines = range ? yamlLines(state, range) : [];
   const i = lineIndex(lines, key);
@@ -100,7 +101,7 @@ export function frontmatterChange(state: EditorState, key: string, value: string
     return null;
   }
   const to = range ? Math.min(range.to + 1, state.doc.length) : 0;
-  const insert = lines.length ? `---\n${lines.join("\n")}\n---\n` : "";
+  const insert = textLines(lines.length ? `---\n${lines.join("\n")}\n---\n` : "");
   return { from: 0, to, insert };
 }
 
