@@ -25,6 +25,14 @@ public struct VaultFS: Sendable {
         self.kinds = kinds
     }
 
+    /// Vault 內的相對路徑是否安全：非空、不是絕對路徑、沒有 `.` / `..` 段、沒有 NUL 與反斜線。
+    /// 來自遠端（同步）與 Bridge 的路徑在寫入或讀取前都要先通過這個檢查，避免離開 Vault。
+    public static func isSafe(path: String) -> Bool {
+        guard !path.isEmpty, !path.hasPrefix("/"), !path.contains("\0"), !path.contains("\\") else { return false }
+        return !path.split(separator: "/", omittingEmptySubsequences: false)
+            .contains { $0 == ".." || $0 == "." || $0.isEmpty }
+    }
+
     public func url(for path: String) -> URL {
         root.appending(path: path, directoryHint: .notDirectory)
     }

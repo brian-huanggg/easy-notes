@@ -17,6 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
+| 資安審查 | 第一輪靜態檢查完成，5 項缺口已修 3 項（路徑驗證、hash 驗證、Release 不可檢查）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -615,6 +616,32 @@
 - [ ] 切換語言後索引重建，列表摘要的語言正確
 - [ ] 兩台不同語言的裝置同步同一個 Vault：不會因語言產生衝突副本
 - [ ] English 介面下注音輸入正常（iPad、Mac）
+
+## 資安審查
+
+設計與不變條件見 [security.md](./architecture/security.md)。以下是第一輪對 repo 的靜態檢查結果（讀程式與設定，尚未做動態測試、模糊測試與工具掃描）；每項修好並驗證後才勾。
+
+**已確認的缺口**
+
+- [x] 遠端路徑未驗證 → `VaultFS.isSafe(path:)`；`pull` 跳過不安全的列、`restore` 拒絕（單元測試通過；symlink 離開 Vault 的情況尚未處理，Bridge 與 `vault://` 以外的入口尚未逐一檢查）
+- [x] 下載的 blob 未驗證 hash → `content(hash:)` 比對 SHA-256，不符丟 `HashMismatchError`、不套用不快取（單元測試通過；尚未對真實 Supabase 驗證）
+- [x] `WebEditorHost` 的 `isInspectable` 只在 DEBUG 開啟（尚未以 Release 建置驗證）
+- [ ] WebView 沒有 `WKNavigationDelegate`（不擋頁面內導覽）、頁面沒有 CSP（不變條件 4）
+- [ ] macOS 未啟用 Hardened Runtime（不影響個人使用；給他人安裝前必須處理）
+
+**待驗證**
+
+- [ ] Bridge 各 `type` 的欄位驗證：逐一檢查 `KindMarkdown`、`KindSheet` 的 `onMessage`（路徑、URL、長度）
+- [ ] `openLink` 與外部 URL：只允許 `http(s)`，交給系統瀏覽器
+- [ ] 日誌：DEBUG 以外不印筆記內容；`print` 與 `os_log` 全數檢視
+- [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
+- [ ] 跨使用者 RLS 實測：用第二個帳號讀、寫、覆寫第一個帳號的列與 blob（擴充 `scripts/test-sync.sh`）
+- [ ] Storage 上傳大小限制與配額
+- [ ] 解析器模糊測試：Markdown、Excalidraw JSON、`.pdf.ink`、CSV / TSV、Anki 匯入、PDF
+- [ ] 依賴審計：`npm audit`、SPM 套件的已知漏洞、`Package.resolved` 與 `package-lock.json` 已提交
+- [ ] 機密掃描（gitleaks）：repo 歷史與 App bundle
+- [ ] 建置產物檢查：`codesign -dvvv --entitlements -`、`otool -L`、App bundle 內沒有多餘檔案
+- [ ] 加進 CI：依賴審計、機密掃描、Semgrep
 
 ## E2E 測試
 

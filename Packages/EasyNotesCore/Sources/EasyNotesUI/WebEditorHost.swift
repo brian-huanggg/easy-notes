@@ -58,7 +58,9 @@ public final class WebEditorHost {
         webView = WKWebView(frame: .zero, configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
         #endif
-        webView.isInspectable = true // Safari → 開發 → 可檢查 WebView
+        #if DEBUG
+        webView.isInspectable = true // Safari → 開發 → 可檢查 WebView；Release 不開，避免外部程式附加到 WebView
+        #endif
         messageProxy.host = self
 
         if let page {
