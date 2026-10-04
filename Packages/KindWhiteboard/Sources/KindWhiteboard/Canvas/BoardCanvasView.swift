@@ -97,6 +97,7 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
         toolPicker.addObserver(canvas)
         // 「用手指繪圖」由 drawingPolicy 固定，不讓使用者在工具盤切換
         toolPicker.showsDrawingPolicyControls = false
+        tree.cardPreview = { [weak document] in document?.cardPreviews[$0] }
         tree.setScene(document.scene)
         setUpGestures()
         editor.onChange = { [weak self] change in self?.editorDidChange(change) }

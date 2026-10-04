@@ -54,10 +54,34 @@ extension ExcalidrawScene {
         var card = Element.rectangle(x: box.minX, y: box.minY, width: box.width, height: box.height)
         card.raw["backgroundColor"] = "#ffffff"
         card.link = "[[\(name)]]"
-        card.raw["customData"] = [Self.customKey: ["file": path]]
+        // fit：卡片依內容自動調整後的高度；之後使用者手動改了高度（≠ fit）就不再自動調整
+        card.raw["customData"] = [Self.customKey: ["file": path, "fit": box.height]]
         insert(card)
         addBoundText(name, to: card.id)
         return card.id
+    }
+
+    /// 卡片高度跟著內容：高度還等於上次自動調整的結果（`fit`，沒有記錄視為自動）才調整，
+    /// 使用者手動改過高度就不動。標題文字重新置中、綁定的箭頭重算。有改變回傳 true
+    @discardableResult
+    public mutating func fitNoteCard(_ id: String, toHeight height: Double) -> Bool {
+        guard let el = element(id), !el.isDeleted, noteCardPath(id) != nil else { return false }
+        let mine = el.customData?[Self.customKey] as? [String: Any]
+        let fit = (mine?["fit"] as? NSNumber)?.doubleValue ?? el.height
+        guard abs(el.height - fit) < 1, abs(height - el.height) >= 1 else { return false }
+        edit { editor in
+            _ = editor.update(id) { e in
+                e.height = height
+                var custom = e.customData ?? [:]
+                var inner = custom[Self.customKey] as? [String: Any] ?? [:]
+                inner["fit"] = height
+                custom[Self.customKey] = inner
+                e.raw["customData"] = custom
+            }
+            editor.layoutBoundText(in: id)
+            editor.rebindArrows(movedIDs: [id])
+        }
+        return true
     }
 
     static func cardFile(in customData: [String: Any]?) -> String? {

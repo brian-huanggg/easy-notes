@@ -1,4 +1,5 @@
 import CoreGraphics
+import EasyNotesUI
 import ExcalidrawKit
 import Foundation
 import QuartzCore
@@ -45,6 +46,11 @@ final class BoardLayerTree {
         var stamp: String
     }
 
+    /// 筆記卡片依路徑向文件取預覽（標題 + 前幾行）；有預覽的卡片由這裡畫內容，綁定的標題文字隱藏
+    var cardPreview: (String) -> DocumentPreview? = { _ in nil }
+    /// 卡片元素 id → 檔案路徑（`setScene` 時重建）
+    private var cardPaths: [String: String] = [:]
+
     private var items: [Item] = []
     private var position: [String: Int] = [:]
     private var layers: [String: ElementLayer] = [:]
@@ -79,11 +85,15 @@ final class BoardLayerTree {
         }
 
         let live = scene.liveElements.filter { drawsFreedraw || $0.type != .freedraw }
+        cardPaths = [:]
+        for el in live where el.customData != nil {
+            if let path = scene.noteCardPath(el.id) { cardPaths[el.id] = path }
+        }
         var newItems: [Item] = []
         newItems.reserveCapacity(live.count)
         var changed: Set<String> = []
         for (order, el) in live.enumerated() {
-            let stamp = "\(el.version)-\(el.versionNonce)"
+            let stamp = "\(el.version)-\(el.versionNonce)" + cardKey(el)
             if let i = position[el.id], items[i].stamp != stamp { changed.insert(el.id) }
             newItems.append(Item(element: el, bounds: ElementGeometry.bounds(el), order: order, stamp: stamp))
         }
@@ -148,6 +158,14 @@ final class BoardLayerTree {
         }
         // 移進或移出可見範圍
         if !visibleRect.isNull { updateVisible(visibleRect) }
+    }
+
+    /// 卡片（或卡片的標題文字）目前預覽的指紋：預覽到了或改了，layer 就要重建
+    private func cardKey(_ el: Element) -> String {
+        guard !cardPaths.isEmpty, let path = cardPaths[el.id] ?? el.containerId.flatMap({ cardPaths[$0] }),
+              let preview = cardPreview(path)
+        else { return "" }
+        return "-c\(preview.hashValue)"
     }
 
     // MARK: 可見範圍
@@ -249,6 +267,13 @@ final class BoardLayerTree {
         switch el.type {
         case .rectangle, .diamond, .ellipse:
             addShape(ElementGeometry.outline(el), el, to: layer, fill: true, join: .miter)
+            if let path = cardPaths[el.id], let preview = cardPreview(path) {
+                let name = ((path as NSString).lastPathComponent as NSString).deletingPathExtension
+                let rect = el.rect.standardized
+                addPainted(el, to: layer) { _, _, ctx, _ in
+                    NoteCardPainter.draw(name: name, preview: preview, in: rect, ctx: ctx)
+                }
+            }
         case .line, .arrow:
             addShape(ElementGeometry.linePath(el), el, to: layer, fill: ElementGeometry.isClosedLine(el), join: .round)
             addArrowheads(el, to: layer)
@@ -264,6 +289,10 @@ final class BoardLayerTree {
             addPainted(el, to: layer) { painter, el, ctx, _ in painter.drawFrameTitle(el, in: ctx) }
         case .text, .image, .freedraw, .unknown:
             addPainted(el, to: layer) { painter, el, ctx, scale in painter.drawContent(el, in: ctx, pixelScale: scale) }
+            // 卡片的標題文字留在檔案裡給 excalidraw.com，App 內由卡片自己畫
+            if let container = el.containerId, let path = cardPaths[container], cardPreview(path) != nil {
+                layer.isHidden = true
+            }
         }
         layer.mask = frameMask(for: el, bounds: item.bounds, box: box)
         return layer

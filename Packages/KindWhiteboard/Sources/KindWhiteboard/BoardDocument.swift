@@ -11,6 +11,8 @@ final class BoardDocument {
     private(set) var scene: ExcalidrawScene
     /// 外部變動併入場景之後呼叫（編輯器據此更新畫面）
     @ObservationIgnored var onExternalChange: (() -> Void)?
+    /// 筆記卡片指向的檔案預覽（路徑 → 預覽）；`refreshCardPreviews` 更新
+    private(set) var cardPreviews: [String: DocumentPreview] = [:]
     /// 把編輯器裡尚未寫回的內容併進場景並存檔（例如 `PKCanvasView` 的筆畫）
     @ObservationIgnored var flushHandler: (() -> Void)?
     @ObservationIgnored private let session: any DocumentSession
@@ -61,6 +63,32 @@ final class BoardDocument {
             lastData = data
         }
         onExternalChange?()
+        Task { await refreshCardPreviews() }
+    }
+
+    /// 向 App 取卡片指向的檔案預覽（`paths` = 只更新這些檔案；nil = 全部），有變就依內容調整卡片高度、
+    /// 存檔並通知畫面更新。預覽讀不到（檔案被刪、沒有預覽）時保留舊的。
+    func refreshCardPreviews(only paths: Set<String>? = nil) async {
+        let all = Set(scene.liveElements.compactMap { scene.noteCardPath($0.id) })
+        let wanted = paths.map { all.intersection($0) } ?? all
+        guard !wanted.isEmpty else { return }
+        let reader = session.previewReader
+        var changed = false
+        for path in wanted {
+            guard let preview = await reader(path), cardPreviews[path] != preview else { continue }
+            cardPreviews[path] = preview
+            changed = true
+        }
+        guard changed else { return }
+        flush()
+        commit { scene in
+            for el in scene.liveElements {
+                if let path = scene.noteCardPath(el.id), let preview = self.cardPreviews[path] {
+                    scene.fitNoteCard(el.id, toHeight: NoteCardPainter.height(for: preview))
+                }
+            }
+        }
+        onExternalChange?()
     }
 
     private func write(_ data: Data) {
@@ -96,6 +124,11 @@ final class WhiteboardController: EditorController {
 
     func externalChange(path: String, data: Data) {
         documents[path]?.externalChange(data)
+    }
+
+    /// 卡片指向的檔案改了：重取預覽
+    func vaultChanged(_ paths: Set<String>) {
+        for doc in documents.values { Task { await doc.refreshCardPreviews(only: paths) } }
     }
 
     func close(path: String) {

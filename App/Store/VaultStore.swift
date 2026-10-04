@@ -565,6 +565,13 @@ final class VaultStore: DocumentSession {
         }
     }
 
+    var previewReader: @Sendable (String) async -> DocumentPreview? {
+        { [weak self] path in
+            guard let self, let file = await file(at: path) else { return nil }
+            return await preview(for: file)
+        }
+    }
+
     func isFolder(_ path: String) -> Bool {
         var isDir: ObjCBool = false
         return FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false), isDirectory: &isDir)
