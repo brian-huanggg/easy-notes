@@ -34,6 +34,11 @@
 - **Accessibility identifier**：外殼中 E2E 會操作或檢查的元素（側邊欄項目與檔案樹、列表的文件與篩選、工具列、選單項目、⌘K、編輯器容器）掛 `A11yID` 的 identifier（`App/Support/UITestContract.swift`）。容器用 `.accessibilityElement(children: .contain)` 再掛 identifier，才不會蓋掉子元素的 identifier。新增這類元素時一併加上。
 
 - 導覽 = `Route`（所有文件 / 最近 / 釘選 / 資料夾 / 標籤 / 檔案 / 外掛面板）＋上一頁 / 下一頁歷史（⌘[ / ⌘]）；App 啟動時顯示所有文件。iPhone 用底部分頁（Docs / Search / Spaces / Me），不用 `NavigationSplitView` 的摺疊。
+- **分頁（Mac / iPad，iPhone 不做）**：內容區上方的分頁列（`DocumentTabBar`，多於一個分頁才顯示）。`TabSet<State>`（EasyNotesUI，泛型、純邏輯）只管分頁清單與目前分頁；`VaultStore` 的 `TabState` = 位置 + 該分頁自己的上一頁 / 下一頁，目前分頁的值與 `route`、`backStack`、`forwardStack` 同步（didSet）。**背景分頁不持有編輯器**：切換 = 載入該分頁的 `Route`，沿用原本的編輯器生命週期（Markdown 換 `EditorState`、其他外掛重建），所以分頁數不影響記憶體。
+  - 開啟檔案（側邊欄、列表、⌘K、`[[連結]]`、新增、匯入）預設開在新分頁（目前分頁右邊）；檔案已在某個分頁開著就切過去，不重複。資料夾、標籤、列表、外掛面板在目前分頁內導覽，歷史照常。
+  - 改名 / 搬移更新所有分頁；刪除檔案或資料夾時，指向它的背景分頁直接關閉，目前分頁回到上一層。關閉最後一個分頁 = 換成「所有文件」。關閉檔案分頁後，若沒有別處開著它，通知編輯器丟掉保留的狀態。
+  - 分頁清單存在 `UserDefaults`（跟著裝置，不進 Vault、不同步），只存位置不存歷史；下次啟動第一次顯示 SplitShell 時還原，檔案已不存在的略過。E2E（`-EasyNotesVaultRoot`、`-EasyNotesOpen`）不還原也不保留。
+  - 快捷鍵：⌘T 新分頁、⌘W 關閉、⇧⌘] / ⇧⌘[ 下一個 / 上一個分頁。
 - 外掛以 `addPanel` 加側邊欄項目，App 不寫死。反向連結 inspector 已移除（索引仍保留反向連結資料）。
 - 介面語言統一繁體中文：App 宣告 `zh-Hant` 在地化，系統選單也是中文；側邊欄顯示「空間」「標籤」。
 - 快捷鍵：⌘K 快速開啟（重用 FTS5 搜尋）、Markdown 的「[[連結]]」⇧⌘K、新筆記 ⌘N、新白板 ⇧⌘N、新資料夾 ⇧⌘F。

@@ -22,11 +22,14 @@ final class NavigationTests: E2ETestCase {
         Fixture.standard(vault)
         let app = launch(vault)
 
-        app.openDocument(Fixture.Path.plan, expecting: "markdown")
+        // 資料夾、列表留在目前分頁，歷史照常（檔案則開在新分頁，見 TabTests）
+        app.waitFor(A11yID.List.document(Fixture.Path.plan))
+        app.tap(A11yID.Sidebar.node("Study"))
+        app.waitFor(A11yID.List.document(Fixture.Path.cards))
         app.tap(A11yID.Toolbar.back)
         app.waitFor(A11yID.List.document(Fixture.Path.plan))
         app.tap(A11yID.Toolbar.forward)
-        app.waitForEditor("markdown")
+        app.waitFor(A11yID.List.document(Fixture.Path.cards))
     }
 
     @MainActor

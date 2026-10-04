@@ -63,6 +63,13 @@ struct EasyNotesApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {
                 NewDocumentItems(store: store, shell: shell)
+                Divider()
+                Button(L("新分頁")) { store.newTab() }
+                    .keyboardShortcut("t")
+                    .disabled(!store.supportsTabs)
+                Button(L("關閉分頁")) { store.closeTab(store.tabs.activeID) }
+                    .keyboardShortcut("w")
+                    .disabled(!store.supportsTabs)
             }
             CommandMenu(L("前往")) {
                 Button(L("快速開啟…")) { shell.showQuickOpen = true }
@@ -74,6 +81,13 @@ struct EasyNotesApp: App {
                 Button(L("下一頁")) { store.goForward() }
                     .keyboardShortcut("]")
                     .disabled(store.forwardStack.isEmpty)
+                Divider()
+                Button(L("下一個分頁")) { store.cycleTab(1) }
+                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                    .disabled(!store.supportsTabs)
+                Button(L("上一個分頁")) { store.cycleTab(-1) }
+                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                    .disabled(!store.supportsTabs)
                 Divider()
                 Button(L("所有文件")) { store.navigate(.all) }
                 Button(L("最近")) { store.navigate(.recents) }

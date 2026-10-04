@@ -219,7 +219,7 @@ Vault 內容存在 Documents，不算在 App 本體大小內。
 
 ### 記憶體做法
 
-- **Markdown**：單一共用、預熱的 WebView；`EditorState` 只保留最近 20 篇（LRU），收到記憶體警告時清掉不在畫面上的。
+- **Markdown**：單一共用、預熱的 WebView；`EditorState` 只保留最近 20 篇（LRU），收到記憶體警告時清掉不在畫面上的。分頁（Mac / iPad）不增加常駐成本：背景分頁只存位置與歷史，編輯器仍是同一個，所以記憶體由這個 LRU 決定，與開了幾個分頁無關。
 - **CSV**：RevoGrid 的 WebView 開檔時才建立、關閉後釋放，不常駐。
 - **PDF**：只為可見頁面建立 `PKCanvasView`，翻走就回收；每頁筆畫需要時才載入。
 - **圖片**：用 ImageIO 依顯示尺寸產生縮圖，不解碼原圖。

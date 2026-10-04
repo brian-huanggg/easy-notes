@@ -37,6 +37,8 @@ public final class MarkdownEditor: EditorController {
     @ObservationIgnored private var currentPath: String?
     /// `reveal` 在檔案載入前就送來：載入後再捲動
     @ObservationIgnored private var pendingReveal: (path: String, line: Int)?
+    /// 記憶體壓力來源（macOS）；iOS 用 UIApplication 的記憶體警告通知
+    @ObservationIgnored private var memorySource: DispatchSourceMemoryPressure?
     #if os(iOS)
     /// 保留 hosting controller：只留 view 時 SwiftUI 不會更新
     @ObservationIgnored private var keyboardBar: UIViewController?
@@ -51,7 +53,21 @@ public final class MarkdownEditor: EditorController {
         let bar = Self.makeKeyboardBar(self)
         keyboardBar = bar
         host.inputAccessoryView = bar.view
+        NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification,
+                                               object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.trimStates() }
+        }
+        #else
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        source.setEventHandler { [weak self] in MainActor.assumeIsolated { self?.trimStates() } }
+        source.resume()
+        memorySource = source
         #endif
+    }
+
+    /// 記憶體警告：丟掉不在畫面上的 `EditorState`（再開時以磁碟內容重建，只少了 undo 紀錄）
+    func trimStates() {
+        host.call("editor.trim()", [:])
     }
 
     // MARK: Swift → JS

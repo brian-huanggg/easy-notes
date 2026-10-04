@@ -44,7 +44,7 @@
 - [x] `App/Editors/EditorRegistry.swift` 的 `switch` 改為向 Registry 查詢
 - [x] `web/` 改為多 entry 打包，輸出到各外掛的 Resources
 - [x] Vault 根目錄建立 `CLAUDE.md`（Vault 慣例）→ 2026-10-02 於 3a 完成（`addVaultGuide`）
-- [ ] 編輯器保留的 `EditorState` 改為 LRU（最近 20 篇），收到記憶體警告時清掉不在畫面上的
+- [x] 編輯器保留的 `EditorState` 改為 LRU（最近 20 篇），收到記憶體警告時清掉不在畫面上的（`StateCache` 單元測試涵蓋；記憶體警告的實機觸發尚未驗證）
 - [ ] 建立 Release build 的大小、記憶體、耗電基準線（見「非功能預算」）
 
 延後項目：VaultWatcher 增量重掃已移到 Phase 2；`EditorState` LRU、Release 基準線與對應的驗收測試延後到 Phase 2 之後。
@@ -56,7 +56,7 @@
 - [ ] 新增 Registry 單元測試：未註冊的副檔名回傳 nil、重複註冊同一副檔名會報錯
 - [ ] 手動：iPad 與 Mac 開啟 md、手寫檔，編輯、搜尋、反向連結行為與重構前相同
 - [ ] Claude Code 一次修改 50 個檔案：只重新索引這 50 個（用 log 或測試驗證）
-- [ ] 開過 30 篇筆記後，記憶體中只保留 20 個 `EditorState`
+- [x] 開過 30 篇筆記後，記憶體中只保留 20 個 `EditorState`（`web/test/stateCache.test.ts`；Instruments 實測尚未驗證）
 - [ ] 基準線符合非功能預算（大小、iPhone 閒置記憶體、Energy gauge）
 
 ## Phase 2 — 同步（含三方合併）
@@ -176,6 +176,18 @@
 - [ ] 注音輸入：在文件頭附近、callout、核取清單內組字正常
 - [ ] 切換筆記仍 < 50 ms；文件列表 1,000 篇捲動流暢（預覽不在主執行緒產生）
 - [ ] 手動：Mac、iPad、iPhone 截圖與 Pen 設計稿並排比對，淺色 / 深色都檢查（字型差異除外）
+
+### 2.5e 分頁（Mac / iPad）
+
+目標：像瀏覽器一樣開多個分頁，不增加常駐記憶體。設計見 [ui.md](./architecture/ui.md)「外殼與導覽」。
+
+- [x] `TabSet`（EasyNotesUI）與單元測試：新增、關閉（右邊優先）、最後一個、循環切換、還原、移動
+- [x] `VaultStore`：開檔預設開新分頁、已開著就切過去；改名 / 搬移 / 刪除同步各分頁；`UserDefaults` 存取與還原
+- [x] 分頁列、⌘T / ⌘W / ⇧⌘[ ⇧⌘]、右鍵「關閉其他分頁」；macOS / iOS 建置通過
+- [x] E2E `TabTests`（macOS）：開新分頁、已開著不重複、關閉、新分頁；`NavigationTests` 通過
+- [ ] iPad 模擬器 E2E 尚未執行
+- [ ] 手動：重啟後還原分頁、白板 / PDF / 表格分頁來回切換（內容與未存檔的修改）、分頁很多時的記憶體（Instruments）尚未驗證
+- [ ] 分頁列拖曳排序、分頁列的 Pen 設計稿尚未做
 
 ## Phase 3 — Flashcards
 

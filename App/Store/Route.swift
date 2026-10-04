@@ -1,7 +1,7 @@
 import Foundation
 
 /// 外殼的目前位置：側邊欄選取、內容區顯示、上一頁 / 下一頁的歷史都用它
-enum Route: Hashable {
+enum Route: Hashable, Codable {
     case all
     case recents
     case pinned

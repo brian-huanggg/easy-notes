@@ -70,15 +70,24 @@ struct SplitShell: View {
                 .toolbar(removing: .sidebarToggle)
                 #endif
         } detail: {
-            ShellDetail(route: store.route)
+            VStack(spacing: 0) {
+                if store.tabs.tabs.count > 1 { DocumentTabBar() }
+                ShellDetail(route: store.route)
+            }
                 .inspector(isPresented: Binding(get: { store.sidePath != nil },
                                                 set: { if !$0 { store.sidePath = nil } })) {
                     SidePanel()
                         .inspectorColumnWidth(min: 320, ideal: 440, max: 720)
                 }
         }
-        .onAppear { store.supportsSide = true }
-        .onDisappear { store.supportsSide = false }
+        .onAppear {
+            store.supportsSide = true
+            store.enableTabs()
+        }
+        .onDisappear {
+            store.supportsSide = false
+            store.supportsTabs = false
+        }
     }
 }
 

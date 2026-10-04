@@ -28,7 +28,7 @@
 核心規則：**打字的熱路徑永遠不跨 Bridge**。對標 Obsidian、Typora 的手感，靠以下七項：
 
 1. **編輯器自持狀態**：按鍵只在 JS 內處理；Swift 在停止輸入 300ms 或失焦時才收到變更，大檔案傳 diff 而非全文。
-2. **單一預熱 WebView**：App 啟動即載入 bundle；切換筆記只換 `EditorState`，不重載頁面。每篇開過的筆記保留 state，切回瞬間完成且 undo 還在。
+2. **單一預熱 WebView**：App 啟動即載入 bundle；切換筆記只換 `EditorState`，不重載頁面。開過的筆記保留 state（最近 20 篇，LRU；`StateCache`），切回瞬間完成且 undo 還在；超過的丟掉最久沒用的，收到記憶體警告時（iOS 的 memory warning、macOS 的 memory pressure）清掉不在畫面上的。丟掉不會遺失內容（存檔在切換前就做了），再開時以磁碟內容重建，只少了 undo 與游標。
 3. **增量解析 + 視窗渲染**：Lezer 增量解析，CodeMirror 6 只渲染可見行。
 4. **Live Preview**：游標所在行顯示 md 語法，其餘行用 decorations 渲染為最終樣式。
 5. **原生細節**：`-apple-system` 字型、Dynamic Type、深色模式；鍵盤工具列用原生 `inputAccessoryView`；macOS 快捷鍵走原生選單再轉發；圖片由 `WKURLSchemeHandler` 從本地讀取。

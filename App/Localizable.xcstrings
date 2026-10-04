@@ -295,6 +295,16 @@
         }
       }
     },
+    "上一個分頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous Tab"
+          }
+        }
+      }
+    },
     "上一頁" : {
       "localizations" : {
         "en" : {
@@ -311,6 +321,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Back (⌘[)"
+          }
+        }
+      }
+    },
+    "下一個分頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next Tab"
           }
         }
       }
@@ -769,6 +789,26 @@
         }
       }
     },
+    "新分頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Tab"
+          }
+        }
+      }
+    },
+    "新分頁（⌘T）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Tab (⌘T)"
+          }
+        }
+      }
+    },
     "新增文件" : {
       "localizations" : {
         "en" : {
@@ -1161,6 +1201,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pinned"
+          }
+        }
+      }
+    },
+    "關閉其他分頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Other Tabs"
+          }
+        }
+      }
+    },
+    "關閉分頁" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Tab"
+          }
+        }
+      }
+    },
+    "關閉分頁（⌘W）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Tab (⌘W)"
           }
         }
       }
