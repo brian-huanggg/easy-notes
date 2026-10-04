@@ -31,4 +31,9 @@ ln -s /Applications "$STAGING/Applications"
 rm -f "$DMG"
 diskutil image create from --format ULFO --volumeName EasyNotes "$STAGING" "$DMG" >/dev/null
 
+# 大小（記到 docs/Roadmap.md 的「版本體積紀錄」）
+mb() { awk -v k="$1" 'BEGIN { printf "%.1f MB", k / 1024 }'; }
+echo "DMG    $(mb $(( $(stat -f%z "$DMG") / 1024 )))"
+echo ".app   $(mb "$(du -sk "$APP" | cut -f1)")"
+echo "執行檔 $(mb "$(du -sk "$APP/Contents/MacOS/EasyNotes" | cut -f1)")"
 echo "$DMG"

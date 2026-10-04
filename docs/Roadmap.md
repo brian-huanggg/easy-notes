@@ -668,6 +668,15 @@
 - [ ] Settings > 支援Light/Dark Theme（實作完成：設定的「外觀」下拉選單 淺色 / 深色 / 跟隨系統，已列入 Changelog 1.0.0；尚未實機驗證：Mac 與 iPad 切換後外殼與編輯器 WebView 都跟著變、重開後保留）
 - [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
+## 版本體積紀錄
+
+每次發版用 `./scripts/make-dmg.sh` 打包後，把它印出的大小記在這裡（macOS Release、universal）。
+
+| 版本 | DMG | .app | 執行檔 | 備註 |
+| --- | --- | --- | --- | --- |
+| 1.0.0 | 尚未量測 | 尚未量測 | 尚未量測 | `build/EasyNotes-1.0.dmg` 是 10/2 的早期打包，還沒有 PDF、表格、Excalidraw，不能代表 v1.0.0 |
+| 1.1.0 | 10.6 MB | 36.7 MB | 33.9 MB | `EasyNotesTestSupport` 只在 DEBUG 編譯，Release 不含 |
+
 ## 風險與待決事項
 
 | 風險 | 影響 | 緩解 |
