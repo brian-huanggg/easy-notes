@@ -659,6 +659,16 @@
         }
       }
     },
+    "已釘選" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pinned"
+          }
+        }
+      }
+    },
     "帳號與同步" : {
       "localizations" : {
         "en" : {

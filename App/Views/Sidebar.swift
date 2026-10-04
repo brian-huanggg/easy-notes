@@ -51,7 +51,7 @@ struct Sidebar: View {
             }
             item(.recents, L("最近"), symbol: "clock.arrow.circlepath")
                 .accessibilityIdentifier(A11yID.Sidebar.recents)
-            item(.pinned, L("釘選"), symbol: "pin", count: pinnedCount)
+            item(.pinned, L("已釘選"), symbol: "pin", count: pinnedCount)
                 .accessibilityIdentifier(A11yID.Sidebar.pinned)
         }
     }
