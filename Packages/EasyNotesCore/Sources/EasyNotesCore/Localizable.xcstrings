@@ -2,7 +2,14 @@
   "sourceLanguage" : "zh-Hant",
   "strings" : {
     "這個檔案在其他裝置上有新的變更，請同步後再試" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This file has newer changes on another device. Sync and try again."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

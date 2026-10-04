@@ -2,108 +2,235 @@
   "sourceLanguage" : "zh-Hant",
   "strings" : {
     "%lld" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
     },
     "%lld 頁" : {
-
-    },
-    "overlay %@　cropBox %@　旋轉 %lld°" : {
       "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "overlay %1$@　cropBox %2$@　旋轉 %3$lld°"
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld page"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld pages"
+                }
+              }
+            }
           }
         }
       }
     },
     "PDF" : {
-
-    },
-    "PDF 已變更，標註可能錯位" : {
-
-    },
-    "Undo %@ Redo %@　最近復原：%@　PencilKit 被吞 %lld" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "Undo %1$@ Redo %2$@　最近復原：%3$@　PencilKit 被吞 %4$lld"
+            "state" : "translated",
+            "value" : "PDF"
           }
         }
       }
     },
-    "不限" : {
-
+    "PDF 已變更，標註可能錯位" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The PDF has changed. Annotations may be misplaced."
+          }
+        }
+      }
     },
     "便利貼" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sticky Note"
+          }
+        }
+      }
     },
     "保留標註" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Annotations"
+          }
+        }
+      }
     },
     "分享…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share…"
+          }
+        }
+      }
     },
     "刪除" : {
-
-    },
-    "加入對齊參考筆畫（每頁）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        }
+      }
     },
     "匯入 PDF…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import PDF…"
+          }
+        }
+      }
     },
     "匯出" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export"
+          }
+        }
+      }
     },
     "匯出含標註的 PDF" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export PDF with Annotations"
+          }
+        }
+      }
     },
     "取消" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
     },
     "在目前頁新增便利貼" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add Sticky Note to This Page"
+          }
+        }
+      }
     },
     "存到 PDF 所在資料夾" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save in the PDF's Folder"
+          }
+        }
+      }
     },
     "完成" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        }
+      }
     },
     "已存成「%@」" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved as “%@”"
+          }
+        }
+      }
     },
     "復原" : {
-
-    },
-    "手指也能書寫（Simulator）" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        }
+      }
     },
     "標註已壓平：在其他 App 中無法再編輯，但任何閱讀器與列印都會一致。" : {
-
-    },
-    "模型 Undo（關閉 = PencilKit 原生）" : {
-
-    },
-    "每頁加 30 筆隨機筆畫" : {
-
-    },
-    "清除所有筆畫" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Annotations are flattened: they can't be edited in other apps, but look the same in any reader and in print."
+          }
+        }
+      }
     },
     "準備中…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing…"
+          }
+        }
+      }
     },
     "無法匯出這份 PDF。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This PDF can't be exported."
+          }
+        }
+      }
     },
     "畫筆" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pen"
+          }
+        }
+      }
     },
     "第 %lld / %lld 頁" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %1$lld of %2$lld"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "new",
@@ -113,66 +240,44 @@
       }
     },
     "結束手寫" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done Drawing"
+          }
+        }
+      }
     },
     "編輯" : {
-
-    },
-    "縮放後重設 contentScaleFactor" : {
-
-    },
-    "自動捲動（壓力測試）" : {
-
-    },
-    "螢幕 × 4" : {
-
-    },
-    "螢幕 × 6" : {
-
-    },
-    "螢幕 × 8" : {
-
-    },
-    "記憶體 %@ MB　峰值 %@ MB" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "記憶體 %1$@ MB　峰值 %2$@ MB"
+            "state" : "translated",
+            "value" : "Edit"
           }
         }
       }
-    },
-    "載入 200 頁範例" : {
-
-    },
-    "選項" : {
-
     },
     "重做" : {
-
-    },
-    "重設記憶體峰值" : {
-
-    },
-    "開啟 PDF…" : {
-
-    },
-    "關閉" : {
-
-    },
-    "頁 %lld / %lld　overlay %lld（累計 %lld）　有筆畫 %lld 頁" : {
       "localizations" : {
-        "zh-Hant" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "頁 %1$lld / %2$lld　overlay %3$lld（累計 %4$lld）　有筆畫 %5$lld 頁"
+            "state" : "translated",
+            "value" : "Redo"
           }
         }
       }
     },
-    "點陣上限" : {
-
+    "關閉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

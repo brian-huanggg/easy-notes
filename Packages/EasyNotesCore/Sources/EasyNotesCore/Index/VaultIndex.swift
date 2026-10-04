@@ -45,14 +45,15 @@ public actor VaultIndex {
     private let contributors: [any IndexContributor]
 
     /// 索引位置：`<vault>/.easynotes/cache/index.sqlite`（cache 不參與同步）
-    public init(fs: VaultFS, location: URL? = nil, contributors: [any IndexContributor] = []) throws {
+    /// `language`：產生顯示文字（`summary`）時的介面語言；Core 只比對不解讀，與上次不同就整份重建
+    public init(fs: VaultFS, location: URL? = nil, contributors: [any IndexContributor] = [], language: String = "") throws {
         self.fs = fs
         self.contributors = contributors
         let url = location ?? fs.root.appending(path: "\(VaultFS.metaFolder)/cache/index.sqlite")
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         db = try SQLiteDB(path: url.path(percentEncoded: false))
         try Self.migrate(db)
-        try Self.resetIfContributorsChanged(db, contributors)
+        try Self.resetIfContributorsChanged(db, contributors, language: language)
     }
 
     private static func migrate(_ db: SQLiteDB) throws {
@@ -76,9 +77,9 @@ public actor VaultIndex {
         db.userVersion = schemaVersion
     }
 
-    /// 外掛的抽取規則改變（新增、移除 contributor 或 version 改變）時清空索引，下一次 sync 全部重建
-    private static func resetIfContributorsChanged(_ db: SQLiteDB, _ contributors: [any IndexContributor]) throws {
-        let signature = contributors.map { "\($0.id):\($0.version)" }.sorted().joined(separator: ",")
+    /// 外掛的抽取規則改變（新增、移除 contributor 或 version 改變）或顯示文字的語言改變時清空索引，下一次 sync 全部重建
+    private static func resetIfContributorsChanged(_ db: SQLiteDB, _ contributors: [any IndexContributor], language: String) throws {
+        let signature = contributors.map { "\($0.id):\($0.version)" }.sorted().joined(separator: ",") + "|\(language)"
         let stored = try db.query("SELECT value FROM meta WHERE key = 'contributors'") { $0.text(0) }.first
         guard stored != signature else { return }
         try db.transaction {

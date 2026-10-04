@@ -6,7 +6,7 @@
 
 - 預設跟隨系統語言；系統語言不在支援清單時用 English（`CFBundleDevelopmentRegion = en`，`CFBundleLocalizations = [zh-Hant, en]`）。
 - iOS / iPadOS：用系統「設定 > EasyNotes > 語言」，App 內不做選擇器（Apple 的標準做法，少一份要維護的 UI）。
-- macOS：設定（⌘,）提供語言選項，寫入 `UserDefaults` 的 `AppleLanguages`，**重新啟動後生效**。
+- macOS：設定（⌘,）提供語言選項，寫入 `UserDefaults` 的 `AppleLanguages`，**重新啟動後生效**；「跟隨系統」時移除 `AppleLanguages` 與 App 自己的 `AppLanguageOverride` 旗標。
 - 不做執行中即時切換：`String(localized:)` 與 AppKit 選單在建立當下就解析成字串，要即時切換得自己換 bundle、重建所有畫面與 WebView，換來的只是一個很少用的功能。
 
 ## 字串資源
@@ -53,11 +53,11 @@ func L(_ value: String.LocalizationValue) -> String {
 | 檔案格式內的文字：frontmatter 鍵、卡片語法、`.excalidraw` / `.pdf.ink` / `.jsonl` 的欄位 | 開放格式，其他工具要讀 |
 | Vault 的 `CLAUDE.md` 內容（固定用英文） | 給 Claude Code 讀；只在檔案不存在時建立，若隨 UI 語言，兩台不同語言的裝置會各自建出不同內容而產生衝突副本。內容裡的範例（卡片語法、路徑）也用英文，附件路徑寫 `Attachments/` |
 
-**建立當下的預設值**用當下的 UI 語言產生，之後就是使用者的檔案，不再改寫：新檔案的預設檔名（「未命名」「白板」）、新資料夾、貼上的圖片檔名、首次啟動的範例內容。
+**建立當下的預設值**用當下的 UI 語言產生，之後就是使用者的檔案，不再改寫：新檔案的預設檔名（「未命名」「白板」）、新資料夾、貼上的圖片檔名、首次啟動的範例內容（`Seed` 依 `Bundle.main.preferredLocalizations` 選中文或英文版，檔名與連結目標各語言自成一組）。
 
 ## 索引裡的顯示文字
 
-`DocumentKind.index()` 的 `summary`（「123 字」「N 頁」「N 個元素」）是顯示用文字，Core 只存不解讀，所以內容帶著產生當下的 UI 語言。索引記錄產生它時的語言；語言與目前不同時，整份索引重建（索引本來就可重建，語言切換很少發生）。標題、全文、連結不受語言影響。
+`DocumentKind.index()` 的 `summary`（「123 字」「N 頁」「N 個元素」）是顯示用文字，Core 只存不解讀，所以內容帶著產生當下的 UI 語言。索引記錄產生它時的語言；語言與目前不同時，整份索引重建（索引本來就可重建，語言切換很少發生）。標題、全文、連結不受語言影響。語言併入索引簽章（與 contributor 版本同一處比對），Core 只比對字串、不解讀。
 
 ## WebView 外掛
 

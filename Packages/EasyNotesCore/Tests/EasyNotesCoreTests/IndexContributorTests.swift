@@ -51,4 +51,20 @@ struct IndexContributorTests {
         #expect(try await index.sync() == ["a.txt"])
         #expect(try await index.records("lines").count == 1)
     }
+
+    /// 顯示文字的語言改變 → 索引清空重建；語言相同則沿用
+    @Test func languageChangeRebuildsIndex() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        try fs.write(Data("一\n".utf8), to: "a.txt")
+        do {
+            let index = try VaultIndex(fs: fs, language: "zh-Hant")
+            #expect(try await index.sync().count == 1)
+        }
+        do {
+            let index = try VaultIndex(fs: fs, language: "zh-Hant")
+            #expect(try await index.sync().isEmpty)
+        }
+        let index = try VaultIndex(fs: fs, language: "en")
+        #expect(try await index.sync() == ["a.txt"])
+    }
 }
