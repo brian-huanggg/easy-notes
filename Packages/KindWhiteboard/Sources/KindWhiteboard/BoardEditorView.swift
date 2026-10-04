@@ -41,6 +41,7 @@ struct BoardEditorView: View {
             if document == nil, let session {
                 let doc = WhiteboardController.shared.open(path, session: session)
                 document = doc
+                Task { await doc.refreshCardPreviews() }
                 let board = BoardEditor(document: doc)
                 board.openNote = { [weak session] in session?.openBeside($0) }
                 editor = board

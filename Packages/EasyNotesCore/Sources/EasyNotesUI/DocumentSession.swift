@@ -22,6 +22,8 @@ public protocol DocumentSession: AnyObject {
     /// 背景取得檔案預覽的圖（`DocumentPreview.image`，依內容 hash 快取），給 WebView 的 `embed://` 使用；
     /// 沒有註冊預覽或沒有圖時回傳 nil
     var embedImageReader: @Sendable (_ path: String) async -> Data? { get }
+    /// 背景取得檔案的預覽資料（`DocumentPreview`，依內容 hash 快取），給白板的筆記卡片；沒有註冊預覽時回傳 nil
+    var previewReader: @Sendable (_ path: String) async -> DocumentPreview? { get }
     /// 外掛讀寫自己的 `.easynotes/<name>/`（例如 Flashcards 的複習紀錄）
     var vault: VaultFS { get }
     /// 索引（records、檔案標籤）；建立失敗時為 nil
@@ -39,6 +41,7 @@ public protocol DocumentSession: AnyObject {
 extension DocumentSession {
     public var embedImageReader: @Sendable (_ path: String) async -> Data? { { _ in nil } }
 
+    public var previewReader: @Sendable (_ path: String) async -> DocumentPreview? { { _ in nil } }
     public func fileMoved(from: String, to: String) {}
     public func openBeside(_ path: String) { open(path, line: nil) }
 

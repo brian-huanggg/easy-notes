@@ -44,6 +44,7 @@ extension BoardEditor {
         inking = false
         tool = .select
         operation(L("筆記卡片"), select: { (id: String) in [id] }) { $0.insertNoteCard(path: path, in: box) }
+        Task { await document.refreshCardPreviews(only: [path]) }
     }
 
     /// 在畫面中央開始一段新文字

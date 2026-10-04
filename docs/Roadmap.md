@@ -14,7 +14,7 @@
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
-| 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片與側邊面板完成（預覽內容、實機尚未） | [whiteboard.md](./architecture/whiteboard.md) |
+| 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
@@ -413,13 +413,14 @@
 ### 4d 選做：筆記卡片
 
 - [x] 筆記卡片元素（rectangle + `link: [[筆記]]` + `customData.easynotes.file` + 綁定的標題文字，見 [whiteboard.md](./architecture/whiteboard.md)「筆記卡片放進白板」）；工具列「筆記卡片」選檔插入（單元測試涵蓋模型、插入與 Undo、雙擊開啟）
-- [ ] 卡片內容向 Registry 要 `.md` 的預覽（不 import KindMarkdown）：目前卡片只顯示標題
+- [x] 卡片內容用檔案的 `DocumentPreview`（`DocumentSession.previewReader`，不 import KindMarkdown），卡片高度跟著內容（單元測試涵蓋高度計算、自動調整規則、存檔、layer 隱藏標題；畫面實機尚未驗證）
 - [x] 雙擊卡片在側邊面板開啟完整編輯器（Mac / iPad 用 `.inspector`；iPhone 改為一般開啟）。macOS 與 iOS 模擬器建置通過，實機尚未驗證
 
 驗收測試：
 
 - [x] 筆記改名後卡片仍指向它（`renameLinks` 單元測試：連結、檔案路徑與標題一併更新）
 - [ ] 在 excalidraw.com 顯示為帶連結的框
+- [ ] 手動：卡片顯示筆記標題與前幾行，編輯筆記後卡片內容與高度更新；手動縮放卡片後不再被自動改回
 - [ ] 手動：Mac、iPad 雙擊卡片開啟側邊面板，編輯後存檔；換到別的檔案時面板關閉
 
 ## Phase 5 — PDF 手寫與標註

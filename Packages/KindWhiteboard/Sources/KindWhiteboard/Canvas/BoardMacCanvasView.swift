@@ -72,6 +72,7 @@ final class BoardMacCanvasView: NSView, NSTextViewDelegate, NSUserInterfaceValid
         registerForDraggedTypes(Self.dropTypes)
         observeTool()
 
+        tree.cardPreview = { [weak document] in document?.cardPreviews[$0] }
         tree.setScene(document.scene)
         editor.undoManager = history
         editor.onChange = { [weak self] change in self?.editorDidChange(change) }

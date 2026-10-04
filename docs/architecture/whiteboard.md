@@ -101,6 +101,7 @@
 
 - **格式**：用一個 rectangle 元素代表卡片（白底，預設 280×160 螢幕點），`link` 設為 `[[筆記]]`，`customData.easynotes.file` 記錄檔案路徑，標題是綁在矩形內的文字。改名時 `renameLinks` 一併更新三者（標題只在仍等於舊名時才改，使用者改過就不動）。任何檔案類型都可以做成卡片（連結以檔名解析）。在 excalidraw.com 上會優雅降級成一個帶連結的框。
 - **插入**：工具列「筆記卡片」彈出檔案選單（`session.index.files()`，可搜尋、不列白板自己），插在畫面中央、選取、一筆 Undo。
-- **顯示**：白板向 Registry 要 `.md` 的 DocumentPreviewProvider，由 Markdown 外掛產生唯讀預覽（標題 + 前幾段），外掛之間仍不互相依賴。
+- **顯示**：卡片內容是檔案的 `DocumentPreview`（標題 + 前幾行，由該類型外掛的預覽產生，白板不認識檔案類型也不 import 其他外掛）：白板經 `DocumentSession.previewReader` 取得（沿用列表縮圖的 hash 快取），存在 `BoardDocument.cardPreviews`。有預覽的卡片由 `NoteCardPainter` 畫標題（18）與最多 6 行內文（14，一行一列、過長以 … 截斷），綁定的標題文字在 App 內隱藏（檔案裡保留給 excalidraw.com）。沒有預覽（類型沒註冊、讀不到）時照常顯示標題文字。預覽是唯讀的，只在 App 內顯示，縮圖與嵌入不畫。內容改了（`vaultChanged`）、開啟白板、插入卡片、同步合併後都重取。
+- **尺寸跟著內容**：行高固定，所以高度 = 上下留白 + 標題 + 內文行數 × 行高（最少 64），不需量測文字；寬度維持使用者設定的值。預覽改變時 `ExcalidrawScene.fitNoteCard` 調整卡片高度並存檔（標題文字重新置中、綁定的箭頭重算）。`customData.easynotes.fit` 記錄上次自動調整的高度：目前高度仍等於 `fit` 才自動調整，使用者手動縮放過（高度 ≠ `fit`）就不再動它。自動調整不進 Undo。
 - **互動**：雙擊卡片（`BoardEditor.editText(at:)` 先判斷卡片，不進文字編輯）呼叫宿主的 `openNote`，白板轉給 `DocumentSession.openBeside`；App 在 Mac / iPad 以 `.inspector` 在主內容右側開啟該檔案的編輯器（`VaultStore.sidePath`，編輯器由 Registry 依類型提供，所以不限筆記），側邊檔案也算「開啟中」（收到外部修改、不被 `close`）。換到別的位置、或檔案被刪就關閉；iPhone 沒有側邊面板，改為一般開啟。不做畫布內直接編輯：縮放中的畫布上要同時跑多個 CM6 編輯器，成本高、收益小。
 - **互通**：需要與 Obsidian Canvas 互通時，另做 JSON Canvas（`.canvas`）匯出即可，不必多維護一種畫布格式。

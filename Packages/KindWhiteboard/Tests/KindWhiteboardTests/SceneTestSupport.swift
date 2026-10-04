@@ -95,6 +95,9 @@ final class FakeSession: DocumentSession {
     let vault: VaultFS
     var index: VaultIndex? { nil }
     var resourceReader: @Sendable (String) async -> Data? { { _ in nil } }
+    /// 筆記卡片的預覽（路徑 → 預覽）
+    nonisolated(unsafe) var previews: [String: DocumentPreview] = [:]
+    var previewReader: @Sendable (String) async -> DocumentPreview? { { [unowned self] in self.previews[$0] } }
 
     init() {
         vault = VaultFS(root: FileManager.default.temporaryDirectory, kinds: try! KindRegistry([InkKind.self]))
