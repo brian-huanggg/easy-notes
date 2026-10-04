@@ -51,4 +51,4 @@ else
 fi
 
 open "$DEST"
-echo "已更新 $DEST（$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$DEST/Contents/Info.plist")）"
+echo "已更新 ${DEST}（$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$DEST/Contents/Info.plist")）"
