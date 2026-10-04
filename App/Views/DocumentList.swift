@@ -178,7 +178,7 @@ struct DocumentList: View {
 
     private func pinnedSection(_ pinned: [IndexedFile]) -> some View {
         VStack(alignment: .leading, spacing: mobile ? 13 : 14) {
-            SectionHeader(L("釘選"), symbol: "pin", detail: "\(pinned.count)", size: mobile ? .mobile : .desktop,
+            SectionHeader(L("已釘選"), symbol: "pin", detail: "\(pinned.count)", size: mobile ? .mobile : .desktop,
                           actionTitle: L("查看全部")) { go(.pinned) }
             if mobile {
                 ScrollView(.horizontal) {
@@ -248,7 +248,7 @@ struct DocumentList: View {
     }
 
     private var sectionTitle: String {
-        if route == .pinned { return L("釘選") }
+        if route == .pinned { return L("已釘選") }
         return sort == .modified || route == .recents ? L("最近") : L("文件")
     }
 

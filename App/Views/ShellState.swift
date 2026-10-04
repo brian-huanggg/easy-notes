@@ -66,7 +66,7 @@ extension VaultStore {
         switch route {
         case .all: L("所有文件")
         case .recents: L("最近")
-        case .pinned: L("釘選")
+        case .pinned: L("已釘選")
         case .folder(let path): (path as NSString).lastPathComponent
         case .tag(let tag): "#\(tag)"
         case .file(let path): displayName(path)
