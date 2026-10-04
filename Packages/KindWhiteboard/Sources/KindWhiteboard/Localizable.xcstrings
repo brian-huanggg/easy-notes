@@ -2,13 +2,34 @@
   "sourceLanguage" : "zh-Hant",
   "strings" : {
     "筆記卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note card"
+          }
+        }
+      }
     },
     "搜尋檔案" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search files"
+          }
+        }
+      }
     },
     "沒有符合的檔案" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching files"
+          }
+        }
+      }
     },
     "%@（點一下切換）" : {
       "localizations" : {

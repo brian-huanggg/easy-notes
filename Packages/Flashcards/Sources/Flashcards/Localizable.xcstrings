@@ -15,10 +15,23 @@
       }
     },
     "%@ Anki 匯出" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ Anki export"
+          }
+        }
+      }
     },
     "%@ · %lld 張卡片" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$lld cards"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "new",
@@ -29,6 +42,12 @@
     },
     "%@ · 第 %lld 行" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · line %2$lld"
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "new",
@@ -38,79 +57,253 @@
       }
     },
     "今天多加" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added today"
+          }
+        }
+      }
     },
     "依筆記順序" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By note order"
+          }
+        }
+      }
     },
     "依遺忘次數" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By lapses"
+          }
+        }
+      }
     },
     "儲存" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
+          }
+        }
+      }
     },
     "全部" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
+          }
+        }
+      }
     },
     "到期 %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due %@"
+          }
+        }
+      }
     },
     "匯出給 Anki" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export for Anki"
+          }
+        }
+      }
     },
     "匯出給 Anki…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export for Anki…"
+          }
+        }
+      }
     },
     "卡片會回到新卡；之前的複習紀錄仍保留在紀錄檔中。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The card goes back to new; its earlier review history stays in the log file."
+          }
+        }
+      }
     },
     "只在今天有效，跟著設定檔同步到其他裝置；從母牌組開始複習時，母牌組的上限仍然適用。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only applies today and syncs to your other devices. When you start a review from a parent deck, the parent deck's limits still apply."
+          }
+        }
+      }
     },
     "含今天，按過「重來」的卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cards you answered \"Again\", including today"
+          }
+        }
+      }
     },
     "含已到期的複習卡" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes review cards that are already due"
+          }
+        }
+      }
     },
     "增加上限" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Increase limit"
+          }
+        }
+      }
     },
     "已暫停" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suspended"
+          }
+        }
+      }
     },
     "幾天內到期" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Due within days"
+          }
+        }
+      }
     },
     "張" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "cards"
+          }
+        }
+      }
     },
     "忘記的卡" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgotten cards"
+          }
+        }
+      }
     },
     "恢復" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume"
+          }
+        }
+      }
     },
     "所有卡片匯出成 Anki 可以匯入的文字檔" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export all cards as text files Anki can import"
+          }
+        }
+      }
     },
     "排序" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort"
+          }
+        }
+      }
     },
     "提前複習" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review ahead"
+          }
+        }
+      }
     },
     "換個篩選條件或搜尋文字試試。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different filter or search text."
+          }
+        }
+      }
     },
     "搜尋正反面文字或 #標籤" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search front, back, or #tag"
+          }
+        }
+      }
     },
     "最近幾天" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past days"
+          }
+        }
+      }
     },
     "會加入 %lld 張卡片（最多 %lld 張）；不受每日上限限制，提前作答不算在今天的複習數內。" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld cards will be added (up to %2$lld). The daily limit doesn't apply, and answers given ahead of time don't count toward today's reviews."
+          }
+        },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "new",
@@ -120,55 +313,174 @@
       }
     },
     "檢視、搜尋所有卡片，暫停或重設" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View and search all cards; suspend or reset them"
+          }
+        }
+      }
     },
     "每日上限 %lld 張" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily limit: %lld cards"
+          }
+        }
+      }
     },
     "沒有符合的卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching cards"
+          }
+        }
+      }
     },
     "瀏覽卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse cards"
+          }
+        }
+      }
     },
     "瀏覽卡片…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse cards…"
+          }
+        }
+      }
     },
     "無法匯出：%@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't export: %@"
+          }
+        }
+      }
     },
     "牌組選項…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deck options…"
+          }
+        }
+      }
     },
     "自訂複習" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom study"
+          }
+        }
+      }
     },
     "自訂複習…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom study…"
+          }
+        }
+      }
     },
     "複習忘記的卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review forgotten cards"
+          }
+        }
+      }
     },
     "複習忘記的卡片或提前複習" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Review forgotten cards or study ahead"
+          }
+        }
+      }
     },
     "這個牌組還沒有可以匯出的卡片" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This deck has no cards to export yet"
+          }
+        }
+      }
     },
     "選項" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Options"
+          }
+        }
+      }
     },
     "重設" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset"
+          }
+        }
+      }
     },
     "重設為新卡…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset to new…"
+          }
+        }
+      }
     },
     "重設這張卡片？" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset this card?"
+          }
+        }
+      }
     },
     "開啟筆記" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open note"
+          }
+        }
+      }
     },
     "，%@" : {
       "localizations" : {
