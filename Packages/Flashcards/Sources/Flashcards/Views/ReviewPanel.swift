@@ -32,9 +32,11 @@ struct DeckListView: View {
     /// 牌組選項 sheet 的對象；"" = 根目錄（全域設定按鈕）
     @State private var optionsDeck: String?
     /// 自訂複習 sheet 的對象
-    @State private var customStudy: CustomStudyRef?
+    @State private var customStudy: DeckScopeRef?
     /// 匯出給 Anki 的資料夾與預設名稱
     @State private var export: (folder: AnkiExportFolder, name: String)?
+    /// 卡片瀏覽 sheet 的對象（nil 牌組 = 所有牌組）
+    @State private var browsing: DeckScopeRef?
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
@@ -69,16 +71,6 @@ struct DeckListView: View {
         .background(Palette.bgCanvas)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(L("匯出給 Anki"), systemImage: "square.and.arrow.up") { exportToAnki(nil) }
-                    .help(L("所有卡片匯出成 Anki 可以匯入的文字檔"))
-                    .disabled(store.cards.isEmpty)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button(L("自訂複習"), systemImage: "slider.horizontal.below.rectangle") { customStudy = CustomStudyRef(deck: nil) }
-                    .help(L("複習忘記的卡片或提前複習"))
-                    .disabled(store.cards.isEmpty)
-            }
-            ToolbarItem(placement: .primaryAction) {
                 Button(L("牌組選項"), systemImage: "gearshape") { optionsDeck = "" }
                     .help(L("預設 preset 與全域設定"))
             }
@@ -88,6 +80,9 @@ struct DeckListView: View {
         }
         .sheet(item: $customStudy) { ref in
             CustomStudySheet(deck: ref.deck)
+        }
+        .sheet(item: $browsing) { ref in
+            CardBrowserSheet(deck: ref.deck)
         }
         .fileExporter(isPresented: Binding(get: { export != nil }, set: { if !$0 { export = nil } }),
                       document: export?.folder, contentType: .folder, defaultFilename: export?.name) { result in
@@ -102,12 +97,31 @@ struct DeckListView: View {
                 titleBlock
                 Spacer(minLength: 16)
                 chips
+                actions
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                titleBlock
+                HStack(spacing: 6) { chips; actions }
             }
             VStack(alignment: .leading, spacing: 12) {
                 titleBlock
                 chips
+                actions
             }
         }
+    }
+
+    /// 所有牌組的瀏覽、自訂複習、匯出；單一牌組用牌組列的右鍵選單
+    private var actions: some View {
+        HStack(spacing: 6) {
+            FilterChip(L("瀏覽卡片"), symbol: "list.bullet.rectangle", isSelected: false) { browsing = DeckScopeRef(deck: nil) }
+                .help(L("檢視、搜尋所有卡片，暫停或重設"))
+            FilterChip(L("自訂複習"), symbol: "slider.horizontal.below.rectangle", isSelected: false) { customStudy = DeckScopeRef(deck: nil) }
+                .help(L("複習忘記的卡片或提前複習"))
+            FilterChip(L("匯出給 Anki"), symbol: "square.and.arrow.up", isSelected: false) { exportToAnki(nil) }
+                .help(L("所有卡片匯出成 Anki 可以匯入的文字檔"))
+        }
+        .disabled(store.cards.isEmpty)
     }
 
     private var titleBlock: some View {
@@ -147,8 +161,11 @@ struct DeckListView: View {
                 ForEach(Array(visibleRows.enumerated()), id: \.element.id) { offset, deck in
                     DeckRow(deck: deck, compact: compact, options: { optionsDeck = deck.path })
                         .contextMenu {
+                            Button(L("瀏覽卡片…"), systemImage: "list.bullet.rectangle") {
+                                browsing = DeckScopeRef(deck: deck.path)
+                            }
                             Button(L("自訂複習…"), systemImage: "slider.horizontal.below.rectangle") {
-                                customStudy = CustomStudyRef(deck: deck.path)
+                                customStudy = DeckScopeRef(deck: deck.path)
                             }
                             Button(L("牌組選項…"), systemImage: "slider.horizontal.3") { optionsDeck = deck.path }
                             Divider()
@@ -192,7 +209,7 @@ private struct DeckRef: Identifiable {
     var id: String { path }
 }
 
-private struct CustomStudyRef: Identifiable {
+private struct DeckScopeRef: Identifiable {
     /// nil = 所有牌組
     let deck: String?
     var id: String { deck.map { "deck:" + $0 } ?? "all" }

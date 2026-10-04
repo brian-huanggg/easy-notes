@@ -356,6 +356,42 @@ public final class ReviewStore: EditorController {
 
     private var today: Int { DayClock(rolloverHour: config.global.rolloverHour).day(of: Date()) }
 
+    // MARK: 卡片瀏覽
+
+    /// 暫停、恢復、重設：寫成手動事件（`type: 4`），不改 md。已經是目標狀態的卡片略過
+    public func apply(_ op: ReviewEntry.Op, to cards: [StudyCard]) {
+        guard let deviceID, let fs else { return }
+        let now = Date()
+        let targets = cards.filter { card in
+            let state = planner.schedule(card)
+            switch op {
+            case .suspend: return !state.suspended
+            case .unsuspend: return state.suspended
+            case .reset: return state.phase != .new
+            }
+        }
+        guard !targets.isEmpty else { return }
+        // 同一毫秒的多筆以卡片 id 區分，重播順序依 (id, 檔名, 行)
+        let entries = targets.map { ReviewEntry.manual(op, cid: $0.id, at: now) }
+        do {
+            try ReviewLog(fs: fs, deviceID: deviceID).append(entries)
+        } catch {
+            notice = L("無法寫入複習紀錄：\(error.localizedDescription)")
+            return
+        }
+        for (card, entry) in zip(targets, entries) {
+            history[card.id, default: []].append(entry)
+            schedules[card.id] = scheduler(for: card).apply(entry, to: planner.schedule(card))
+        }
+        vaultSession?.metaChanged()
+        rebuild()
+    }
+
+    /// 開啟卡片所在的筆記並捲到該行
+    public func open(_ card: StudyCard) {
+        vaultSession?.open(card.path, line: card.line)
+    }
+
     // MARK: 匯出
 
     /// 匯出給 Anki：牌組（含子牌組；"" = 只有根目錄，nil = 全部）的卡片，依筆記類型拆成三個檔
