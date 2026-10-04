@@ -69,6 +69,8 @@ EasyNotes 是個人使用、不上架的 App（見 [README](./README.md)），�
 
 - 只有 Markdown 與 Sheets 兩個外掛使用 WebView，共用 `WebEditorHost`：單一 `bridge` message handler，訊息是 `{type, …}`，由外掛的 `onMessage` 依 `type` 分派。
 - 頁面以 `loadFileURL(_, allowingReadAccessTo:)` 載入，讀取範圍限於外掛 bundle 內該頁面所在資料夾；Vault 的圖片不走 `file://`，只走 `vault://`（上節的路徑檢查）。
+- **導覽**：`WebEditorHost` 的 navigation delegate 只放行頁面本身；任何其他導覽取消，使用者點擊的 `http(s)` / `mailto` 交給系統開啟。
+- **CSP**：兩個頁面以 `<meta>` 設定 `default-src 'none'`，只放行同資料夾的腳本（`'self'`）、inline 樣式（CodeMirror 與注入的主題需要）、`vault:` / `embed:` / `symbol:` / `data:` 圖片；`connect-src 'none'`，沒有遠端資源、沒有 inline 腳本。新增外掛的 WebView 頁面必須套用同一份 CSP。
 - Swift → JS 用 `callAsyncJavaScript` 傳具名參數，不拼接字串；注入的語言與主題以 JSON 編碼成字面值。
 - Bridge 傳來的任何路徑都不直接當寫入目標：Markdown 的 `changed` 只接受該編輯器載入過的文件 id，且通過 `VaultFS.isSafe`；`VaultStore.write` 再檢查一次。連結標題建立新檔時經 `VaultFS.safeFileName`，只會是單一路徑段。
 - Bridge 不在打字熱路徑上（見 [markdown.md](./markdown.md)），所以對訊息的驗證不影響手感。

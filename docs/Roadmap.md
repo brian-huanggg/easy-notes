@@ -626,14 +626,14 @@
 - [x] 遠端路徑未驗證 → `VaultFS.isSafe(path:)`；`pull` 跳過不安全的列、`restore` 拒絕（單元測試通過；symlink 離開 Vault 的情況尚未處理，Bridge 與 `vault://` 以外的入口尚未逐一檢查）
 - [x] 下載的 blob 未驗證 hash → `content(hash:)` 比對 SHA-256，不符丟 `HashMismatchError`、不套用不快取（單元測試通過；尚未對真實 Supabase 驗證）
 - [x] `WebEditorHost` 的 `isInspectable` 只在 DEBUG 開啟（尚未以 Release 建置驗證）
-- [ ] WebView 沒有 `WKNavigationDelegate`（不擋頁面內導覽）、頁面沒有 CSP（不變條件 4）
+- [x] WebView 導覽與 CSP：`WebEditorHost` 的 navigation delegate 只放行編輯器頁面本身，點擊的 http(s) / mailto 交給系統開啟，其餘取消；兩個頁面加上 CSP（`script-src 'self'`、`img-src vault: embed: symbol: data:`、`connect-src 'none'`、`default-src 'none'`）。單元測試通過；以真實 WKWebView 探測：頁面腳本照常執行、`vault:` / `embed:` / `symbol:`（含 CSS mask）圖片放行，遠端圖片、`file:` 圖片、`fetch`、inline 腳本被擋；macOS E2E smoke 21 項通過。尚未驗證：實機注音輸入與 iOS、`npm run build` 後的頁面（CSP 在 HTML，不受影響）
 - [ ] macOS 未啟用 Hardened Runtime（不影響個人使用；給他人安裝前必須處理）
 
 **待驗證**
 
 - [x] Bridge 各 `type` 的欄位驗證：`KindMarkdown` 的 `changed` 原本直接用 JS 給的 `id` 當寫入路徑，現在只接受該編輯器載入過且 `isSafe` 的路徑，`VaultStore.write` 也再擋一次；`KindSheet` 的 `edit` / `meta` 以 Codable 解碼且 `apply` 失敗時以模型重載，沒有路徑欄位（單元測試通過；未做超大訊息的壓力測試）
 - [x] 連結標題建檔：`[[../../x]]` 點擊後 `Vault.create` 會把標題當檔名，可建到 Vault 外 → `VaultFS.safeFileName`（單元測試通過）
-- [ ] 外部 URL：筆記內的 `http(s)` 連結怎麼開（尚未檢查 JS 端的點擊處理與 WebView 導覽）；`openLink` 只做檔名比對，已確認安全
+- [ ] 外部 URL：JS 端沒有建立 `<a>` 或呼叫 `window.open`，目前點 md 的 `http(s)` 連結不會開啟任何東西（產品行為，不是漏洞）；之後要支援時走導覽委派的 `openExternally`。`openLink` 只做檔名比對，已確認安全
 - [ ] 日誌：DEBUG 以外不印筆記內容；`print` 與 `os_log` 全數檢視
 - [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
 - [x] 跨使用者 RLS 實測：`RLSAttackTests` 對本地 Supabase 驗證直接 insert / update / delete `files`（含假冒 `user_id`）、blob upsert 與刪除、`..` 繞進別人資料夾、匿名讀 Storage 與公開網址、維護函式 `purge_deleted_files` 不可呼叫、`commit_file` 只用 `auth.uid()`（13 項整合測試通過；只驗證本地，雲端專案的設定尚未核對）

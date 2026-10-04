@@ -13,6 +13,7 @@ public final class WebEditorHost {
     /// 其他 JS → Swift 訊息：`type` 與整個訊息
     @ObservationIgnored public var onMessage: ((_ type: String, _ message: [String: Any]) -> Void)?
     @ObservationIgnored private let messageProxy = MessageProxy()
+    @ObservationIgnored private let navigationPolicy = NavigationPolicy()
 
     /// `vault://` 圖片的來源；由外掛在 `EditorController.attach` 時設定
     @ObservationIgnored public var readResource: (@Sendable (_ path: String) async -> Data?)? {
@@ -62,6 +63,8 @@ public final class WebEditorHost {
         webView.isInspectable = true // Safari → 開發 → 可檢查 WebView；Release 不開，避免外部程式附加到 WebView
         #endif
         messageProxy.host = self
+        navigationPolicy.pageURL = page
+        webView.navigationDelegate = navigationPolicy
 
         if let page {
             webView.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
@@ -106,6 +109,44 @@ public final class WebEditorHost {
             onReady?()
         } else {
             onMessage?(type, msg)
+        }
+    }
+}
+
+/// WebView 只能停在外掛 bundle 內的那一頁：任何導覽（連結、表單、`location`）都取消。
+/// 使用者點的 http(s) / mailto 連結改由系統開啟（security.md 不變條件 4）
+enum NavigationDecision: Equatable {
+    case allow, cancel, openExternally
+
+    static func decide(url: URL?, pageURL: URL?, isLinkActivation: Bool) -> NavigationDecision {
+        guard let url else { return .cancel }
+        if !isLinkActivation, let pageURL, url.isFileURL, url.standardizedFileURL.path == pageURL.standardizedFileURL.path {
+            return .allow // 載入編輯器頁面本身（含 reload）
+        }
+        if isLinkActivation, ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") { return .openExternally }
+        return .cancel
+    }
+}
+
+private final class NavigationPolicy: NSObject, WKNavigationDelegate {
+    var pageURL: URL?
+
+    @MainActor
+    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        let decision = NavigationDecision.decide(url: action.request.url, pageURL: pageURL,
+                                                 isLinkActivation: action.navigationType == .linkActivated)
+        switch decision {
+        case .allow: return .allow
+        case .cancel: return .cancel
+        case .openExternally:
+            if let url = action.request.url {
+                #if os(iOS)
+                UIApplication.shared.open(url)
+                #else
+                NSWorkspace.shared.open(url)
+                #endif
+            }
+            return .cancel
         }
     }
 }
