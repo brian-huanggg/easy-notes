@@ -74,7 +74,7 @@ final class VaultStore: DocumentSession {
         }
         #if DEBUG
         // UI 測試用：xcrun simctl launch … -EasyNotesOpen <path> -EasyNotesSearch <query>
-        if let open = UserDefaults.standard.string(forKey: "EasyNotesOpen") { route = .file(open) }
+        if let open = UserDefaults.standard.string(forKey: LaunchKey.open) { route = .file(open) }
         if let query = UserDefaults.standard.string(forKey: "EasyNotesSearch") { searchText = query }
         #endif
         watcher = VaultWatcher(root: root) { [weak self] paths in
@@ -93,6 +93,7 @@ final class VaultStore: DocumentSession {
     /// macOS：~/Documents/EasyNotes（Finder 與其他編輯器可直接開啟）
     /// iOS：App 的 Documents，透過「檔案」App 可見
     static func defaultRoot() -> URL {
+        if let root = TestHooks.vaultRoot { return root } // E2E：每個測試一個暫存 Vault
         #if os(macOS)
         FileManager.default.homeDirectoryForCurrentUser.appending(path: "Documents/EasyNotes")
         #else

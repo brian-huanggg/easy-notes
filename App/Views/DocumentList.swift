@@ -131,11 +131,13 @@ struct DocumentList: View {
                 .textStyle(mobile ? .largeTitle : .pageTitle)
                 .foregroundStyle(Palette.textPrimary)
                 .lineLimit(1)
+                .accessibilityIdentifier(A11yID.List.title)
             Text(subtitle(docs: docs, folders: folders))
                 .textStyle(mobile ? TextStyle(13) : .pageSubtitle)
                 .foregroundStyle(mobile ? Palette.textSecondary : Palette.textTertiary)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .accessibilityIdentifier(A11yID.List.subtitle)
         }
         .padding(.bottom, mobile ? 18 : 26)
     }
@@ -159,10 +161,12 @@ struct DocumentList: View {
         ScrollView(.horizontal) {
             HStack(spacing: mobile ? 8 : 6) {
                 FilterChip(L("全部"), isSelected: filter == nil) { filter = nil }
+                    .accessibilityIdentifier(A11yID.List.filterAll)
                 ForEach(store.plugins.kindInfos) { info in
                     FilterChip(info.name, symbol: info.symbol, tint: info.tint.base, isSelected: filter == info.id) {
                         filter = filter == info.id ? nil : info.id
                     }
+                    .accessibilityIdentifier(A11yID.List.filter(info.id))
                 }
             }
         }
@@ -212,6 +216,7 @@ struct DocumentList: View {
                    meta: L("\(store.fileCount(in: path)) 份文件"), style: mobile ? .list : .card)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(A11yID.List.folder(path))
         .contextMenu { NodeMenu(path: path, isFolder: true) }
     }
 
@@ -269,6 +274,7 @@ struct DocumentList: View {
     private func cell(_ file: IndexedFile, @ViewBuilder label: () -> some View) -> some View {
         Button { go(.file(file.path)) } label: { label() }
             .buttonStyle(.plain)
+            .accessibilityIdentifier(A11yID.List.document(file.path))
             .contextMenu { NodeMenu(path: file.path, isFolder: false) }
     }
 

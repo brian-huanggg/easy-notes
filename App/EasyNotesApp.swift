@@ -6,6 +6,9 @@ import KindPDF
 import KindSheet
 import KindWhiteboard
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 /// 編譯期組裝的外掛，依序註冊。第一個是預設類型（`[[連結]]` 找不到時建立）。
 private let plugins: [any EasyNotesPlugin.Type] = [
@@ -25,6 +28,9 @@ struct EasyNotesApp: App {
     @AppStorage(AppTheme.storageKey) private var theme = AppTheme.system
 
     init() {
+        #if os(iOS)
+        if TestHooks.isUITest { UIView.setAnimationsEnabled(false) }
+        #endif
         let registry = PluginRegistry()
         for plugin in plugins { plugin.register(in: registry) }
         let kinds: KindRegistry

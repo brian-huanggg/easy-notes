@@ -40,7 +40,9 @@ targets:
     type: application
     supportedDestinations: [iOS, macOS]
     # 產生共用 scheme：scripts/ 的 xcodebuild 用 -scheme EasyNotes，不能依賴 Xcode 自動建立的使用者 scheme
-    scheme: {}
+    # ⌘U / scripts/test-e2e.sh 跑 E2E（XCUITest）
+    scheme:
+      testTargets: [EasyNotesE2ETests]
     sources:
       - path: App
     dependencies:
@@ -56,6 +58,9 @@ targets:
       - package: SupabaseSync
       - package: Supabase
         product: Supabase
+      # E2E 的資料夾同步 backend；App 只在 DEBUG 的測試模式 import（見 App/Support/TestHooks.swift）
+      - package: EasyNotesCore
+        product: EasyNotesTestSupport
     entitlements:
       path: App/EasyNotes.entitlements
       properties:
@@ -92,3 +97,29 @@ targets:
         ENABLE_APP_SANDBOX: NO
         ENABLE_HARDENED_RUNTIME: NO
         ENABLE_PREVIEWS: YES
+
+  # E2E：XCUITest 從外部操作 App（macOS、iPad 模擬器），並直接讀寫測試用的暫存 Vault 驗證「檔案即真相」。
+  # 放在 Tests/E2E（check-l10n.py 略過 Tests/，測試資料可以寫中文）；跑法見 scripts/test-e2e.sh
+  EasyNotesE2ETests:
+    type: bundle.ui-testing
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Tests/E2E
+      # 與 App 共用啟動參數與 accessibility identifier
+      - path: App/Support/UITestContract.swift
+    dependencies:
+      - target: EasyNotes
+      # 測試程序扮演另一台裝置：自己的 VaultFS + SyncEngine + 資料夾 backend
+      - package: EasyNotesCore
+        product: EasyNotesCore
+      - package: EasyNotesCore
+        product: EasyNotesTestSupport
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.easynotes.EasyNotesE2ETests
+        TEST_TARGET_NAME: EasyNotes
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: SF553X26YR
+        ENABLE_APP_SANDBOX: NO

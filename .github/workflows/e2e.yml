@@ -1,0 +1,35 @@
+# E2E（XCUITest）。macOS runner 的分鐘數較貴，先只手動觸發；
+# 在 Mac 上跑過一次全綠後，再考慮加上 pull_request。
+name: E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: smoke / sync / perf / all
+        default: smoke
+      destination:
+        description: mac / ipad
+        default: mac
+      ipad_simulator:
+        description: iPad 模擬器機型（destination = ipad 時）
+        default: iPad Pro 13-inch (M4)
+
+jobs:
+  e2e:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Run E2E
+        env:
+          IPAD_SIMULATOR: ${{ inputs.ipad_simulator }}
+        run: ./scripts/test-e2e.sh "${{ inputs.suite }}" "${{ inputs.destination }}" --ci
+      - name: Upload result bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: E2E-${{ inputs.suite }}-${{ inputs.destination }}
+          path: build/E2E-*.xcresult
