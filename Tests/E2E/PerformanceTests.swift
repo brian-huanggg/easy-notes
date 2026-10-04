@@ -35,8 +35,7 @@ final class PerformanceTests: E2ETestCase {
         let options = XCTMeasureOptions()
         options.iterationCount = 5
         measure(metrics: [XCTClockMetric(), XCTMemoryMetric(application: app)], options: options) {
-            app.tap(A11yID.List.document(path))
-            app.waitForEditor("ink")
+            app.openDocument(path, expecting: "ink")
             app.tap(A11yID.Toolbar.back)
             app.waitFor(A11yID.List.document(path))
         }

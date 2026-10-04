@@ -1,4 +1,7 @@
 import XCTest
+#if os(macOS)
+import Carbon
+#endif
 
 /// E2E 測試的共用流程：每個測試一個新的 Vault、App 以測試模式啟動（不同步或用資料夾 backend）。
 /// 找元素一律用 `A11yID`（UITestContract.swift，與 App 共用），不用介面文字。
@@ -8,7 +11,26 @@ class E2ETestCase: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+        #if os(macOS)
+        // typeText 走系統目前的輸入法：注音開著時，輸入的 ASCII 會變成組字。測試期間切到 ABC，結束後還原
+        savedInputSource = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue()
+        if let ascii = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue() {
+            TISSelectInputSource(ascii)
+        }
+        #endif
     }
+
+    override func tearDownWithError() throws {
+        #if os(macOS)
+        if let savedInputSource { TISSelectInputSource(savedInputSource) }
+        savedInputSource = nil
+        #endif
+        try super.tearDownWithError()
+    }
+
+    #if os(macOS)
+    private var savedInputSource: TISInputSource?
+    #endif
 
     enum SyncMode {
         case off
@@ -76,6 +98,21 @@ extension XCUIApplication {
         waitFor(A11yID.Editor.container(kindID), file: file, line: line)
     }
 
+    /// 點列表上的文件並等編輯器開啟。啟動後 ContentFixer（例如補卡片 `^id`）改寫檔案會讓列表重繪，
+    /// 剛好落在重繪中的點擊會遺失，所以沒開啟就再點一次
+    @discardableResult
+    func openDocument(_ path: String, expecting kindID: String,
+                      file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        let row = waitFor(A11yID.List.document(path), file: file, line: line)
+        let editor = element(A11yID.Editor.container(kindID))
+        for _ in 0..<3 {
+            row.tapOrClick()
+            if editor.waitForExistence(timeout: 5) { return editor }
+            guard row.exists else { break }
+        }
+        return waitForEditor(kindID, file: file, line: line)
+    }
+
     /// 右鍵（macOS）或長按（iOS）開啟選單，再點 `itemID`。
     /// SwiftUI 的選單項目在某些系統版本不帶 identifier，所以以介面文字作為備援。
     func contextMenu(on element: XCUIElement, select itemID: String, fallbackLabel: String,
@@ -93,13 +130,14 @@ extension XCUIApplication {
         item.tapOrClick()
     }
 
-    /// 重新命名的對話框：清空後輸入新名稱並確定
+    /// 重新命名的對話框：清空後輸入新名稱並確定。
+    /// SwiftUI `.alert` 的 TextField 在 macOS 不帶 identifier，對話框本身是 Sheet（iOS 是 alert），所以依序備援
     func confirmRename(_ name: String, file: StaticString = #filePath, line: UInt = #line) {
         var field = textFields.matching(identifier: A11yID.Rename.field).firstMatch
         if !field.waitForExistence(timeout: 3) {
-            field = descendants(matching: .alert).textFields.firstMatch.exists
-                ? descendants(matching: .alert).textFields.firstMatch
-                : descendants(matching: .dialog).textFields.firstMatch
+            field = [XCUIElement.ElementType.sheet, .alert, .dialog]
+                .map { descendants(matching: $0).textFields.firstMatch }
+                .first { $0.exists } ?? field
         }
         XCTAssertTrue(field.waitForExistence(timeout: 5), "找不到重新命名的欄位", file: file, line: line)
         field.replaceText(name)

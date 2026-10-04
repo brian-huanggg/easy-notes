@@ -9,45 +9,80 @@
 /* Begin PBXBuildFile section */
 		00510153B7BCE96032DD107D /* PhoneShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579B252C4E387DAA206A81C4 /* PhoneShell.swift */; };
 		101E2195848FAA36B004175C /* DocumentList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 408995D942130D7C246E9488 /* DocumentList.swift */; };
+		1B59EB85DD018EE7F22253F6 /* UITestContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03CB0B10BBAF43D957D51255 /* UITestContract.swift */; };
+		245FE206C403D487F6CCA352 /* LaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2295814A756F2B4505373A8 /* LaunchTests.swift */; };
+		255F67F2B57CFEF5CCD52192 /* NavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A8D66DAA2305686C3A9E78F /* NavigationTests.swift */; };
 		26D8C7AF355BC8EC6375792E /* Seed.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621DAA0D9BC592CA611B85CD /* Seed.swift */; };
 		2BC105003B98F723E7122D75 /* DocumentToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB8558266EAD5CF5E792D7DF /* DocumentToolbar.swift */; };
 		2DD864AD35BAE672AD261BEF /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A6CB15764ED9797D6EAC845 /* MeView.swift */; };
+		32F4427D655C2722CA54A522 /* EasyNotesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = AEAD8EC223CF48391C93AA34 /* EasyNotesTestSupport */; };
+		360AB2BBBFB22530B65AA3AA /* PerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4605625F43F0D98B12B2CF /* PerformanceTests.swift */; };
+		3C41A90A549F8695EEC928E3 /* TestVault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3375B50D3ED19B88F5423DFA /* TestVault.swift */; };
+		441044142EF3EDD0956286C2 /* ExternalChangeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A9095B3CDD1B76B0B2A933C /* ExternalChangeTests.swift */; };
 		44F7F76D1757548363DB2BA0 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C1AA5C478ED64BDD2C28AB55 /* Supabase */; };
+		492640D03B6B74378C120D52 /* EasyNotesCore in Frameworks */ = {isa = PBXBuildFile; productRef = AD5138F07C57E0C354C31ED9 /* EasyNotesCore */; };
+		4999FF013D15083A752B9593 /* E2ETestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957D23FF9A93F0CC76A463EF /* E2ETestCase.swift */; };
 		4E3F9CE490D0F1A4D2231248 /* Supabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0381EF19D6A158B3D066B56 /* Supabase.swift */; };
 		5053C674585C371A9FF065B5 /* KindMarkdown in Frameworks */ = {isa = PBXBuildFile; productRef = 5F513C491EF263012ADAAAA5 /* KindMarkdown */; };
 		562E9CFCE40CCCAC90603D90 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FC84ABDAAA1676CC2BB8B71 /* Assets.xcassets */; };
 		61239FA9D59ACA922EBF1F61 /* VaultStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 478E093E92082AF0228D7FDB /* VaultStore.swift */; };
 		661B52D1596DA264E6C7FD18 /* Flashcards in Frameworks */ = {isa = PBXBuildFile; productRef = BC21D5F4A99FEA9B0F34414C /* Flashcards */; };
 		71B87B4921F329C07C51EB22 /* EasyNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */; };
+		79C7526B0C30B2AA506385F8 /* SyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E021341BDBB1095B651A4DC /* SyncTests.swift */; };
 		7B39F0C84A82CBE036935CFD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */; };
 		810508B94A5967474123D458 /* QuickOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2458B612293008933144BC /* QuickOpen.swift */; };
+		84191269109B39ABEE405BA8 /* EasyNotesTestSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 96A0F38BC18300E4D4D45409 /* EasyNotesTestSupport */; };
 		89A25B0B136CCD5053459038 /* KindPDF in Frameworks */ = {isa = PBXBuildFile; productRef = 5AE66D168F0693ED64D33821 /* KindPDF */; };
+		93001A56AC8A8292C9198733 /* UITestContract.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03CB0B10BBAF43D957D51255 /* UITestContract.swift */; };
+		94F164597CDB80743CF0B3AE /* DocumentLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C51F7185F4953A2E8430545 /* DocumentLifecycleTests.swift */; };
 		9ABE5F25F2FD7C89AF3E6C6B /* SupabaseSync in Frameworks */ = {isa = PBXBuildFile; productRef = 9D5B39998C83E05A037ADDFB /* SupabaseSync */; };
 		9E895F42899E4023B412BB5B /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */; };
 		9F7F874263CA5DF02B065C52 /* EasyNotesCore in Frameworks */ = {isa = PBXBuildFile; productRef = B9C6D86826182F8A6B0C1A75 /* EasyNotesCore */; };
 		A3293461134EC4B1FC322280 /* Route.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C06943C1E3B03FBB43D2F18 /* Route.swift */; };
+		A402E598164863857176833C /* Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67554188473CA891CCB3D242 /* Fixtures.swift */; };
+		A90FE3504B3EFF5B98FFF55A /* TestHooks.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB0CBABF25F165173CC16D0 /* TestHooks.swift */; };
+		AC7AFDE9D530A4C66B099DCC /* IndexRebuildTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74ACD88C67077CA9B3CDF9D1 /* IndexRebuildTests.swift */; };
 		B125C927D13041E12ECD383F /* EasyNotesUI in Frameworks */ = {isa = PBXBuildFile; productRef = E492EAACD24364FEC93BEB08 /* EasyNotesUI */; };
 		BAEBFC823C75186C18E4E972 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2CA4592EED0C29EB079E0DB9 /* AppIcon.icon */; };
+		BBDEA8C95760495B8F2194D4 /* RemoteDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DB8CE86C06EEE25EB06055 /* RemoteDevice.swift */; };
 		BED5D6BD9BF8F481BE517100 /* ShellState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F0D4D876FF56EBFC66238FD /* ShellState.swift */; };
 		C061FA860E9889C904B17340 /* VaultWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2024AECF50DE93B1BFB3D1B3 /* VaultWatcher.swift */; };
 		C94F18E977A2FA3EEBF6F080 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C133D004357078C1AC75F9A8 /* ContentView.swift */; };
 		CA00D08815DA96AD3E154DFB /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F60100543025B4150BDF63 /* Localization.swift */; };
 		CB2F1AF36D1B3836CF57867A /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBD41C33E0C444D157A12471 /* SyncStatusView.swift */; };
+		D7B16CF5362B37F3AB22B299 /* KindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30A6948309965EB81D042C4 /* KindTests.swift */; };
 		F4B2C11CE46963F42C1001FE /* KindSheet in Frameworks */ = {isa = PBXBuildFile; productRef = 5ED64E5120E3A21332117C90 /* KindSheet */; };
 		F7C896CC5E14D34A847A7F5F /* KindWhiteboard in Frameworks */ = {isa = PBXBuildFile; productRef = 376C0F5FD94C5941AA73AA60 /* KindWhiteboard */; };
 		F827F36A57A76A636081793D /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA6A0FF1DE592EB8765FAF6C /* Sidebar.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		BF084E7963FFE8DFCF9E9834 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 12F50C7D497672757E6775D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 60CB2AAA99396AFAADBE7E97;
+			remoteInfo = EasyNotes;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		03CB0B10BBAF43D957D51255 /* UITestContract.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestContract.swift; sourceTree = "<group>"; };
 		0C06943C1E3B03FBB43D2F18 /* Route.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Route.swift; sourceTree = "<group>"; };
 		131D57F2B13446461773B699 /* KindPDF */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindPDF; path = Packages/KindPDF; sourceTree = SOURCE_ROOT; };
 		1959DEF5F7FF257FF7420913 /* KindMarkdown */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindMarkdown; path = Packages/KindMarkdown; sourceTree = SOURCE_ROOT; };
+		1E021341BDBB1095B651A4DC /* SyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncTests.swift; sourceTree = "<group>"; };
 		2024AECF50DE93B1BFB3D1B3 /* VaultWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultWatcher.swift; sourceTree = "<group>"; };
+		2A9095B3CDD1B76B0B2A933C /* ExternalChangeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalChangeTests.swift; sourceTree = "<group>"; };
 		2C161B996879933835F5809A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2C51F7185F4953A2E8430545 /* DocumentLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentLifecycleTests.swift; sourceTree = "<group>"; };
 		2CA4592EED0C29EB079E0DB9 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		2D85937F8C8590D67D738942 /* Flashcards */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Flashcards; path = Packages/Flashcards; sourceTree = SOURCE_ROOT; };
 		2F0D4D876FF56EBFC66238FD /* ShellState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShellState.swift; sourceTree = "<group>"; };
+		3375B50D3ED19B88F5423DFA /* TestVault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestVault.swift; sourceTree = "<group>"; };
 		360112A632C2C3741CA6E6AF /* EasyNotesCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = EasyNotesCore; path = Packages/EasyNotesCore; sourceTree = SOURCE_ROOT; };
+		3A8D66DAA2305686C3A9E78F /* NavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigationTests.swift; sourceTree = "<group>"; };
+		3AE470EE1D171C5EF72455C4 /* EasyNotesE2ETests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = EasyNotesE2ETests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		408995D942130D7C246E9488 /* DocumentList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentList.swift; sourceTree = "<group>"; };
 		41122F522BECB2CC19813DA0 /* EasyNotes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EasyNotes.entitlements; sourceTree = "<group>"; };
 		4349B0177C6608D882AA5873 /* KindWhiteboard */ = {isa = PBXFileReference; lastKnownFileType = folder; name = KindWhiteboard; path = Packages/KindWhiteboard; sourceTree = SOURCE_ROOT; };
@@ -56,11 +91,17 @@
 		579B252C4E387DAA206A81C4 /* PhoneShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneShell.swift; sourceTree = "<group>"; };
 		621DAA0D9BC592CA611B85CD /* Seed.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Seed.swift; sourceTree = "<group>"; };
 		62F2C57A2A803D17A26D20ED /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		67554188473CA891CCB3D242 /* Fixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures.swift; sourceTree = "<group>"; };
 		6A6CB15764ED9797D6EAC845 /* MeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
 		6EFDC3012F2B7775D1A82DB8 /* SupabaseSync */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SupabaseSync; path = Packages/SupabaseSync; sourceTree = SOURCE_ROOT; };
+		74ACD88C67077CA9B3CDF9D1 /* IndexRebuildTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IndexRebuildTests.swift; sourceTree = "<group>"; };
+		74DB8CE86C06EEE25EB06055 /* RemoteDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDevice.swift; sourceTree = "<group>"; };
 		8B52AD41F6680ED128A3F28D /* EasyNotesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyNotesApp.swift; sourceTree = "<group>"; };
 		8FC84ABDAAA1676CC2BB8B71 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		957D23FF9A93F0CC76A463EF /* E2ETestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = E2ETestCase.swift; sourceTree = "<group>"; };
 		A0381EF19D6A158B3D066B56 /* Supabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Supabase.swift; sourceTree = "<group>"; };
+		A30A6948309965EB81D042C4 /* KindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KindTests.swift; sourceTree = "<group>"; };
+		AA4605625F43F0D98B12B2CF /* PerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceTests.swift; sourceTree = "<group>"; };
 		BA6A0FF1DE592EB8765FAF6C /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		BC2458B612293008933144BC /* QuickOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickOpen.swift; sourceTree = "<group>"; };
 		C133D004357078C1AC75F9A8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -68,10 +109,21 @@
 		DF9993BD4CC3547317AEF773 /* EasyNotes.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = EasyNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E1F60100543025B4150BDF63 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
 		E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCoordinator.swift; sourceTree = "<group>"; };
+		F2295814A756F2B4505373A8 /* LaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; };
+		FAB0CBABF25F165173CC16D0 /* TestHooks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestHooks.swift; sourceTree = "<group>"; };
 		FBD41C33E0C444D157A12471 /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		37CCAB6C3B99A52B677AC93B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				492640D03B6B74378C120D52 /* EasyNotesCore in Frameworks */,
+				84191269109B39ABEE405BA8 /* EasyNotesTestSupport in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C0396EB86FE6F0F1140376AC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -85,6 +137,7 @@
 				661B52D1596DA264E6C7FD18 /* Flashcards in Frameworks */,
 				9ABE5F25F2FD7C89AF3E6C6B /* SupabaseSync in Frameworks */,
 				44F7F76D1757548363DB2BA0 /* Supabase in Frameworks */,
+				32F4427D655C2722CA54A522 /* EasyNotesTestSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,6 +149,7 @@
 			children = (
 				65FB05757D991E710741C9FB /* App */,
 				AF1E6DC1447014A4721DF909 /* Packages */,
+				48F38FA47E952377A926B3D9 /* Tests */,
 				940CC1549D4949CE0AF31457 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -127,6 +181,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		48F38FA47E952377A926B3D9 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				9E211A990781CCFD621706C6 /* E2E */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		65FB05757D991E710741C9FB /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -137,6 +199,7 @@
 				E1F60100543025B4150BDF63 /* Localization.swift */,
 				867FC53B0B94A77D3C23B9DA /* Resources */,
 				46C82C2BBBB6B7B313047B12 /* Store */,
+				A0E93C1210A920E56C4E2BC6 /* Support */,
 				9933E4320E5D4BA7CD5002DD /* Sync */,
 				48524507B5EC05C5DE72FDC6 /* Views */,
 			);
@@ -156,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				DF9993BD4CC3547317AEF773 /* EasyNotes.app */,
+				3AE470EE1D171C5EF72455C4 /* EasyNotesE2ETests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -167,6 +231,31 @@
 				E8CE518742656332B5D7EA23 /* SyncCoordinator.swift */,
 			);
 			path = Sync;
+			sourceTree = "<group>";
+		};
+		9E211A990781CCFD621706C6 /* E2E */ = {
+			isa = PBXGroup;
+			children = (
+				2C51F7185F4953A2E8430545 /* DocumentLifecycleTests.swift */,
+				2A9095B3CDD1B76B0B2A933C /* ExternalChangeTests.swift */,
+				74ACD88C67077CA9B3CDF9D1 /* IndexRebuildTests.swift */,
+				A30A6948309965EB81D042C4 /* KindTests.swift */,
+				F2295814A756F2B4505373A8 /* LaunchTests.swift */,
+				3A8D66DAA2305686C3A9E78F /* NavigationTests.swift */,
+				AA4605625F43F0D98B12B2CF /* PerformanceTests.swift */,
+				1E021341BDBB1095B651A4DC /* SyncTests.swift */,
+				DFC4661327C11EA2A1520B90 /* Support */,
+			);
+			path = E2E;
+			sourceTree = "<group>";
+		};
+		A0E93C1210A920E56C4E2BC6 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				FAB0CBABF25F165173CC16D0 /* TestHooks.swift */,
+				03CB0B10BBAF43D957D51255 /* UITestContract.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 		AF1E6DC1447014A4721DF909 /* Packages */ = {
@@ -183,9 +272,41 @@
 			path = Packages;
 			sourceTree = "<group>";
 		};
+		DFC4661327C11EA2A1520B90 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				957D23FF9A93F0CC76A463EF /* E2ETestCase.swift */,
+				67554188473CA891CCB3D242 /* Fixtures.swift */,
+				74DB8CE86C06EEE25EB06055 /* RemoteDevice.swift */,
+				3375B50D3ED19B88F5423DFA /* TestVault.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2F364A8120097A82FB195406 /* EasyNotesE2ETests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 343DE9D7BA69C74FC98BABF9 /* Build configuration list for PBXNativeTarget "EasyNotesE2ETests" */;
+			buildPhases = (
+				933535058E3D1BDF558F7AE1 /* Sources */,
+				37CCAB6C3B99A52B677AC93B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3B26C269BD1276BB5290CE6F /* PBXTargetDependency */,
+			);
+			name = EasyNotesE2ETests;
+			packageProductDependencies = (
+				AD5138F07C57E0C354C31ED9 /* EasyNotesCore */,
+				96A0F38BC18300E4D4D45409 /* EasyNotesTestSupport */,
+			);
+			productName = EasyNotesE2ETests;
+			productReference = 3AE470EE1D171C5EF72455C4 /* EasyNotesE2ETests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		60CB2AAA99396AFAADBE7E97 /* EasyNotes */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 1AFB46AEDD98FC2D30B01DC7 /* Build configuration list for PBXNativeTarget "EasyNotes" */;
@@ -209,6 +330,7 @@
 				BC21D5F4A99FEA9B0F34414C /* Flashcards */,
 				9D5B39998C83E05A037ADDFB /* SupabaseSync */,
 				C1AA5C478ED64BDD2C28AB55 /* Supabase */,
+				AEAD8EC223CF48391C93AA34 /* EasyNotesTestSupport */,
 			);
 			productName = EasyNotes;
 			productReference = DF9993BD4CC3547317AEF773 /* EasyNotes.app */;
@@ -223,6 +345,11 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					2F364A8120097A82FB195406 = {
+						DevelopmentTeam = SF553X26YR;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 60CB2AAA99396AFAADBE7E97;
+					};
 					60CB2AAA99396AFAADBE7E97 = {
 						DevelopmentTeam = SF553X26YR;
 						ProvisioningStyle = Automatic;
@@ -254,6 +381,7 @@
 			projectRoot = "";
 			targets = (
 				60CB2AAA99396AFAADBE7E97 /* EasyNotes */,
+				2F364A8120097A82FB195406 /* EasyNotesE2ETests */,
 			);
 		};
 /* End PBXProject section */
@@ -291,12 +419,42 @@
 				4E3F9CE490D0F1A4D2231248 /* Supabase.swift in Sources */,
 				9E895F42899E4023B412BB5B /* SyncCoordinator.swift in Sources */,
 				CB2F1AF36D1B3836CF57867A /* SyncStatusView.swift in Sources */,
+				A90FE3504B3EFF5B98FFF55A /* TestHooks.swift in Sources */,
+				1B59EB85DD018EE7F22253F6 /* UITestContract.swift in Sources */,
 				61239FA9D59ACA922EBF1F61 /* VaultStore.swift in Sources */,
 				C061FA860E9889C904B17340 /* VaultWatcher.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		933535058E3D1BDF558F7AE1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				94F164597CDB80743CF0B3AE /* DocumentLifecycleTests.swift in Sources */,
+				4999FF013D15083A752B9593 /* E2ETestCase.swift in Sources */,
+				441044142EF3EDD0956286C2 /* ExternalChangeTests.swift in Sources */,
+				A402E598164863857176833C /* Fixtures.swift in Sources */,
+				AC7AFDE9D530A4C66B099DCC /* IndexRebuildTests.swift in Sources */,
+				D7B16CF5362B37F3AB22B299 /* KindTests.swift in Sources */,
+				245FE206C403D487F6CCA352 /* LaunchTests.swift in Sources */,
+				255F67F2B57CFEF5CCD52192 /* NavigationTests.swift in Sources */,
+				360AB2BBBFB22530B65AA3AA /* PerformanceTests.swift in Sources */,
+				BBDEA8C95760495B8F2194D4 /* RemoteDevice.swift in Sources */,
+				79C7526B0C30B2AA506385F8 /* SyncTests.swift in Sources */,
+				3C41A90A549F8695EEC928E3 /* TestVault.swift in Sources */,
+				93001A56AC8A8292C9198733 /* UITestContract.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		3B26C269BD1276BB5290CE6F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 60CB2AAA99396AFAADBE7E97 /* EasyNotes */;
+			targetProxy = BF084E7963FFE8DFCF9E9834 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		6A68035D59F5414F173D4EDC /* Release */ = {
@@ -358,6 +516,30 @@
 			};
 			name = Release;
 		};
+		83E43408B988E1F04D77B377 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = SF553X26YR;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.easynotes.EasyNotesE2ETests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EasyNotes;
+			};
+			name = Release;
+		};
 		86EF51978CE32F50A93B402F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -381,6 +563,30 @@
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C14FCFE5DCCC7AB4F3680011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = SF553X26YR;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.easynotes.EasyNotesE2ETests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = EasyNotes;
 			};
 			name = Debug;
 		};
@@ -488,6 +694,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		343DE9D7BA69C74FC98BABF9 /* Build configuration list for PBXNativeTarget "EasyNotesE2ETests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C14FCFE5DCCC7AB4F3680011 /* Debug */,
+				83E43408B988E1F04D77B377 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		6A481989F6FBFF11E4AB7489 /* Build configuration list for PBXProject "EasyNotes" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -558,9 +773,21 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = KindMarkdown;
 		};
+		96A0F38BC18300E4D4D45409 /* EasyNotesTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EasyNotesTestSupport;
+		};
 		9D5B39998C83E05A037ADDFB /* SupabaseSync */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SupabaseSync;
+		};
+		AD5138F07C57E0C354C31ED9 /* EasyNotesCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EasyNotesCore;
+		};
+		AEAD8EC223CF48391C93AA34 /* EasyNotesTestSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EasyNotesTestSupport;
 		};
 		B9C6D86826182F8A6B0C1A75 /* EasyNotesCore */ = {
 			isa = XCSwiftPackageProductDependency;

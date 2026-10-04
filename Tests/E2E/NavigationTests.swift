@@ -22,8 +22,7 @@ final class NavigationTests: E2ETestCase {
         Fixture.standard(vault)
         let app = launch(vault)
 
-        app.tap(A11yID.List.document(Fixture.Path.plan))
-        app.waitForEditor("markdown")
+        app.openDocument(Fixture.Path.plan, expecting: "markdown")
         app.tap(A11yID.Toolbar.back)
         app.waitFor(A11yID.List.document(Fixture.Path.plan))
         app.tap(A11yID.Toolbar.forward)
