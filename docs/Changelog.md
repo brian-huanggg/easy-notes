@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 同步收到其他裝置的修改時，正在下載的那幾秒內打的字可能被覆蓋。
+
 ## [1.0.0] - 2026-10-04
 
 首次正式發佈（iOS / iPadOS 經 TestFlight；macOS 經 DMG）。

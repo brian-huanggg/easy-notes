@@ -21,10 +21,13 @@ actor FakeBackend: SyncBackend {
     var clock = Date(timeIntervalSince1970: 1_000_000)
     var failNextCommit = false
     var commits = 0
+    /// 下載時呼叫：模擬下載（網路）期間使用者在編輯器打字、自動存檔
+    var onDownload: (@Sendable (String) -> Void)?
 
     func upload(_ data: Data, hash: String) async throws { blobs[hash] = data }
 
     func download(hash: String) async throws -> Data {
+        onDownload?(hash)
         guard let data = blobs[hash] else { throw CocoaError(.fileNoSuchFile) }
         return data
     }
@@ -54,6 +57,7 @@ actor FakeBackend: SyncBackend {
     }
 
     func setFailNextCommit() { failNextCommit = true }
+    func setOnDownload(_ f: (@Sendable (String) -> Void)?) { onDownload = f }
 }
 
 /// 一台裝置：自己的 Vault 資料夾 + 同步引擎
@@ -146,6 +150,25 @@ struct SyncEngineTests {
         let copy = try #require(files.keys.first { $0.hasPrefix("a (衝突 iPad ") && $0.hasSuffix(").note") })
         #expect(files[copy] == "iPad 版\n")
         #expect(try mac.snapshot() == files)
+    }
+
+    /// 同步開始時本地沒有修改，下載遠端版本期間才存檔：這段修改要合併進去，不能被遠端內容蓋掉
+    @Test func editSavedDuringDownloadIsMerged() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("一\n\n二\n", "a.note")
+        try await converge(mac, ipad)
+
+        try mac.write("一（Mac）\n\n二\n", "a.note")
+        await mac.sync()
+        let file = ipad.fs.url(for: "a.note")
+        await backend.setOnDownload { _ in try? Data("一\n\n二（iPad）\n".utf8).write(to: file) }
+        await ipad.sync()
+        await backend.setOnDownload(nil)
+
+        #expect(ipad.read("a.note") == "一（Mac）\n\n二（iPad）\n")
+        try await converge(mac, ipad)
+        #expect(mac.read("a.note") == "一（Mac）\n\n二（iPad）\n")
+        #expect(await ipad.engine.currentStatus.conflicts.isEmpty)
     }
 
     @Test func binaryConflictKeepsBoth() async throws {

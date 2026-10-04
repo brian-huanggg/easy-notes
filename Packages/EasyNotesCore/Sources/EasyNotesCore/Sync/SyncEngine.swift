@@ -286,15 +286,22 @@ public actor SyncEngine {
     }
 
     private func apply(_ row: RemoteFile) async throws {
-        guard var r = state.records[row.id] else {
+        guard let known = state.records[row.id] else {
             if !row.deleted { try await applyNew(row) }
             return
         }
-        if let base = r.baseVersion, row.version <= base { return } // 自己的提交或已套用過
-        if !r.localDeleted {
-            await hooks.willChange(r.path)
-            try refreshHash(&r)
+        if let base = known.baseVersion, row.version <= base { return } // 自己的提交或已套用過
+        // 先下載（網路），再讓編輯器寫回：下載期間打的字也會算進合併，不會被遠端內容蓋掉
+        var remoteData: Data?
+        var baseData: Data?
+        if !known.localDeleted, !row.deleted, row.hash != known.baseHash {
+            remoteData = try await content(hash: row.hash)
+            if let baseHash = known.baseHash { baseData = try await content(hash: baseHash) }
         }
+        if !known.localDeleted { await hooks.willChange(known.path) }
+        // 等待期間 App 可能改名或搬移（`moved`）：以最新的紀錄為準
+        guard var r = state.records[row.id] else { return }
+        if !r.localDeleted { try refreshHash(&r) }
 
         if row.deleted {
             if r.localDeleted {
@@ -330,23 +337,9 @@ public actor SyncEngine {
         }
 
         let oldPath = r.path
-        var newData: Data?
         if row.hash != r.baseHash {
-            let remote = try await content(hash: row.hash)
-            if r.hash == r.baseHash {
-                newData = remote
-            } else {
-                let local = try fs.read(r.path)
-                var base: Data?
-                if let baseHash = r.baseHash { base = try await content(hash: baseHash) }
-                if let merged = kind(for: r.path).merge(base: base, local: local, remote: remote) {
-                    newData = merged
-                } else {
-                    try await createConflictCopy(of: local, for: r.path)
-                    newData = remote
-                }
-            }
-            try cacheBase(remote, hash: row.hash)
+            if remoteData == nil { remoteData = try await content(hash: row.hash) }
+            if baseData == nil, let baseHash = r.baseHash { baseData = try await content(hash: baseHash) }
         }
         // 本地沒改名才跟著遠端改名；兩邊都改名時保留本地的，下次上傳覆蓋遠端
         if row.path != r.basePath, r.path == r.basePath, row.path != r.path {
@@ -356,9 +349,27 @@ public actor SyncEngine {
             try FileManager.default.moveItem(at: fs.url(for: r.path), to: fs.url(for: target))
             r.path = target
         }
+        // 從讀取本地到寫回之間沒有 await：編輯器不會在中間寫入而被蓋掉
+        var newData: Data?
+        var conflict: (path: String, data: Data)?
+        if row.hash != r.baseHash, let remote = remoteData {
+            let local = try fs.read(r.path)
+            r.hash = Self.sha256(local)
+            if r.hash == r.baseHash {
+                newData = remote
+            } else if let merged = kind(for: r.path).merge(base: baseData, local: local, remote: remote) {
+                newData = merged
+            } else {
+                let copy = try writeConflictCopy(of: local, for: r.path)
+                conflict = (path: copy, data: local)
+                newData = remote
+            }
+            try cacheBase(remote, hash: row.hash)
+        }
         if let newData { try write(newData, to: r.path, record: &r) }
         setBase(&r, row, data: nil)
         try state.save(r)
+        if let conflict { await hooks.didChange(conflict.path, nil, conflict.data) }
         if newData != nil || r.path != oldPath {
             await hooks.didChange(r.path, r.path != oldPath ? oldPath : nil, newData)
         }
@@ -511,12 +522,12 @@ public actor SyncEngine {
         return path
     }
 
-    /// 衝突副本是新檔案，下一輪掃描會把它當成新增並上傳
-    private func createConflictCopy(of data: Data, for path: String) async throws {
+    /// 衝突副本是新檔案，下一輪掃描會把它當成新增並上傳；寫完主檔後才通知 App（`didChange`）
+    private func writeConflictCopy(of data: Data, for path: String) throws -> String {
         let copy = conflictPath(for: path)
         try fs.write(data, to: copy)
         status.conflicts.append(copy)
-        await hooks.didChange(copy, nil, data)
+        return copy
     }
 
     /// `筆記.md` → `筆記 (衝突 iPad 2026-10-01).md`，已存在時加上編號
