@@ -13,6 +13,8 @@ public struct ReviewEntry: Codable, Equatable, Hashable, Sendable {
         case learning = 0
         case review = 1
         case relearning = 2
+        /// 提前複習：還沒到期的複習卡（只有自訂複習會出現），不佔今天的複習上限
+        case filtered = 3
         /// 手動事件（`op`）
         case manual = 4
     }

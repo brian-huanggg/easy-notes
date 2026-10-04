@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習實作完成（實機尚未驗證）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -183,7 +183,7 @@
 
 設計見 [flashcards.md](./architecture/flashcards.md)。
 
-分四個子階段，依序進行；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
+分五個子階段，依序進行（3e 自訂複習排在 3d 之前）；每個子階段的驗收測試通過才進入下一個。3a、3b 不需要介面，全部可用單元測試驗證；3c 完成後即可日常使用；3d 是互通與優化。
 
 ### 3a 卡片解析與語法標示
 
@@ -266,6 +266,24 @@
 - [ ] 手動：TSV 匯入 Anki 後卡片正確
 - [ ] 同一組紀錄，App 內的優化結果與 Anki 的優化結果相近
 - [ ] 基準線符合非功能預算
+
+### 3e 自訂複習（Custom Study）
+
+目標：牌組的每日上限之外，臨時多複習一些卡片。設計見 [flashcards.md](./architecture/flashcards.md)「自訂複習」。
+
+- [x] 增加今天的上限（新卡、複習各自設定）：寫進設定檔 `extend/<資料夾>/new|review`，跟著同步、欄位 LWW，只在當天有效
+- [x] 複習忘記的卡片：最近 N 天（含今天）按過 Again 的卡片；可選一個牌組或所有牌組
+- [x] 提前複習：N 天內到期的複習卡；提前作答的紀錄寫 `type: 3`（Anki 的 Filtered），不佔今天的複習上限
+- [x] `StudyScope.filtered`：開始時選定卡片（最多 100 張）、不受上限、不出新卡；畢業的卡片移出這次的選擇，復原時加回
+- [x] 入口：牌組列右鍵選單（iPad 長按）、工具列「自訂複習」；Sheet 顯示會加入幾張卡片
+
+驗收測試：
+
+- [x] 單元測試（`CustomStudyTests`）：增加的上限只在當天有效、從母牌組開始時母牌組上限仍適用；兩台裝置分別加新卡與複習都保留；忘記的卡與提前複習的選擇；提前作答為 `type: 3`、不扣今天的複習上限、Again 算 lapse
+- [ ] 手動：Mac、iPad 各做一次三種自訂複習；在 Mac 增加上限後 iPad 的牌組數字跟著變
+- [ ] 手動：自訂複習中按 U 復原，卡片回到這次的選擇中
+
+尚未驗證：實機畫面（Sheet 在 iPhone 的版面）、跨裝置同步。注意：舊版 App 讀不懂 `type: 3`，會略過這幾行，所以其他裝置要一起更新，否則那台裝置算出的卡片狀態會不同（更新後重播即恢復）。
 
 ## Phase 4 — Whiteboard
 
@@ -605,7 +623,7 @@
 ### Review
 
 - [ ] 當卡片都複習完時，"開始複習" 按鈕應該會變灰色不可點擊（原本已 `.disabled`，但 `PrimaryButtonStyle` 沒畫停用外觀；改為停用時灰底灰字、無陰影。建置通過，實機尚未驗證）
-- [ ] 自定義複習 (Custom Study)
+- [ ] 自定義複習 (Custom Study)（見 3e；增加上限、忘記的卡、提前複習，實機尚未驗證）
 
 ### Editor
 

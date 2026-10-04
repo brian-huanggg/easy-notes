@@ -31,6 +31,8 @@ struct DeckListView: View {
     @State private var filter = DeckFilter.all
     /// 牌組選項 sheet 的對象；"" = 根目錄（全域設定按鈕）
     @State private var optionsDeck: String?
+    /// 自訂複習 sheet 的對象
+    @State private var customStudy: CustomStudyRef?
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
@@ -65,12 +67,20 @@ struct DeckListView: View {
         .background(Palette.bgCanvas)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button(L("自訂複習"), systemImage: "slider.horizontal.below.rectangle") { customStudy = CustomStudyRef(deck: nil) }
+                    .help(L("複習忘記的卡片或提前複習"))
+                    .disabled(store.cards.isEmpty)
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button(L("牌組選項"), systemImage: "gearshape") { optionsDeck = "" }
                     .help(L("預設 preset 與全域設定"))
             }
         }
         .sheet(item: Binding(get: { optionsDeck.map(DeckRef.init) }, set: { optionsDeck = $0?.path })) { ref in
             DeckOptionsSheet(deck: ref.path)
+        }
+        .sheet(item: $customStudy) { ref in
+            CustomStudySheet(deck: ref.deck)
         }
     }
 
@@ -124,6 +134,12 @@ struct DeckListView: View {
             VStack(spacing: 0) {
                 ForEach(Array(visibleRows.enumerated()), id: \.element.id) { offset, deck in
                     DeckRow(deck: deck, compact: compact, options: { optionsDeck = deck.path })
+                        .contextMenu {
+                            Button(L("自訂複習…"), systemImage: "slider.horizontal.below.rectangle") {
+                                customStudy = CustomStudyRef(deck: deck.path)
+                            }
+                            Button(L("牌組選項…"), systemImage: "slider.horizontal.3") { optionsDeck = deck.path }
+                        }
                     if offset < visibleRows.count - 1 { Divider().overlay(Palette.border.color) }
                 }
             }
@@ -149,6 +165,12 @@ struct DeckListView: View {
 private struct DeckRef: Identifiable {
     let path: String
     var id: String { path }
+}
+
+private struct CustomStudyRef: Identifiable {
+    /// nil = 所有牌組
+    let deck: String?
+    var id: String { deck.map { "deck:" + $0 } ?? "all" }
 }
 
 /// 標籤篩選學習：選一個標籤就開始複習

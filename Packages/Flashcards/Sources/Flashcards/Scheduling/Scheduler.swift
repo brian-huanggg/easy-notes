@@ -105,6 +105,7 @@ public struct Scheduler: Sendable {
     /// 四個按鈕各自的紀錄（`ivl` 即下次間隔）；作答時把選到的那筆（填上 `time`）寫進紀錄並交給 `apply`
     public func preview(_ card: CardSchedule, cid: String, now: Date) -> [Grade: ReviewEntry] {
         let results = fsrsPreview(card, at: now)
+        let early = card.phase == .review && card.due.map { clock.day(of: $0) > clock.day(of: now) } == true
         var entries: [Grade: ReviewEntry] = [:]
         for grade in Grade.allCases {
             let ivl: Int
@@ -123,7 +124,7 @@ public struct Scheduler: Sendable {
                 }
             }
             entries[grade] = ReviewEntry(id: now.millis, cid: cid, ease: grade.rawValue, ivl: ivl,
-                                         lastIvl: card.lastIvl, time: 0, type: kind(of: card.phase))
+                                         lastIvl: card.lastIvl, time: 0, type: early ? .filtered : kind(of: card.phase))
         }
         return entries
     }

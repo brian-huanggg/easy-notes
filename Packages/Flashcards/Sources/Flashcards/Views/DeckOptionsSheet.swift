@@ -337,7 +337,7 @@ extension [Deck] {
 
 // MARK: - 元件
 
-private struct OptionSection<Content: View>: View {
+struct OptionSection<Content: View>: View {
     let title: String
     let symbol: String
     @ViewBuilder let content: Content
@@ -359,7 +359,7 @@ private struct OptionSection<Content: View>: View {
     }
 }
 
-private struct OptionRow<Control: View>: View {
+struct OptionRow<Control: View>: View {
     let title: String
     let hint: String?
     @ViewBuilder let control: Control
@@ -382,7 +382,7 @@ private struct OptionRow<Control: View>: View {
     }
 }
 
-private struct NumberField: View {
+struct NumberField: View {
     @Binding var value: Int
     let range: ClosedRange<Int>
     var unit: String?
@@ -441,7 +441,7 @@ private struct StepsField: View {
     }
 }
 
-private extension View {
+extension View {
     func optionField(width: CGFloat) -> some View {
         textFieldStyle(.plain)
             .multilineTextAlignment(.trailing)
