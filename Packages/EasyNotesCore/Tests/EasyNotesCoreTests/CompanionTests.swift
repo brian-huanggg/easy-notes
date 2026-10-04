@@ -65,6 +65,29 @@ struct CompanionTests {
         #expect(fs.exists("講義2.note.ann"))
     }
 
+    @Test func moveToFolderMovesCompanionAndRefusesConflicts() throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fs = try vault()
+        try fs.write(Data("內容".utf8), to: "講義.note")
+        try fs.write(Data("標註".utf8), to: "講義.note.ann")
+        try fs.write(Data("舊的".utf8), to: "存檔/講義.note")
+        _ = try fs.createFolder(named: "課程")
+        _ = try fs.createFolder(named: "第一章", in: "課程")
+
+        #expect(try fs.move("講義.note", toFolder: "課程/第一章") == "課程/第一章/講義.note")
+        #expect(try fs.read("課程/第一章/講義.note.ann") == Data("標註".utf8))
+        #expect(!fs.exists("講義.note") && !fs.exists("講義.note.ann"))
+
+        // 同名、搬進自己或子資料夾都不搬
+        #expect(throws: (any Error).self) { try fs.move("課程/第一章/講義.note", toFolder: "存檔") }
+        #expect(throws: (any Error).self) { try fs.move("課程", toFolder: "課程/第一章") }
+        #expect(throws: (any Error).self) { try fs.move("課程", toFolder: "課程") }
+        #expect(fs.exists("課程/第一章/講義.note"))
+
+        #expect(try fs.move("課程/第一章", toFolder: "") == "第一章")
+        #expect(fs.exists("第一章/講義.note.ann"))
+    }
+
     @Test func externalRenameMovesCompanionAndKeepsFileID() async throws {
         let backend = FakeBackend()
         let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)

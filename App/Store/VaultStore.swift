@@ -394,16 +394,7 @@ final class VaultStore: DocumentSession {
             let newPathGuess = ((path as NSString).deletingLastPathComponent as NSString).appendingPathComponent(name)
             let companions = isFolder(path) ? [] : fs.companionMoves(from: path, to: newPathGuess)
             let newPath = try fs.rename(path, to: name)
-            // 伴隨檔由 `fs.rename` 一起搬移；同步層與編輯器也要知道
-            for move in [(from: path, to: newPath)] + companions where fs.exists(move.to) {
-                onMove?(move.from, move.to)
-                for editor in editors {
-                    editor.close(path: move.from)
-                    editor.moved(from: move.from, to: move.to)
-                }
-            }
-            refresh()
-            routesMoved(from: path, to: newPath)
+            didMove(from: path, to: newPath, companions: companions)
 
             for source in sources {
                 let src = source == path ? newPath : source
@@ -419,6 +410,35 @@ final class VaultStore: DocumentSession {
             await syncIndex()
             onLocalChange?()
         } catch { report(error) }
+    }
+
+    /// 拖曳到另一個資料夾（`""` = 根目錄）：名稱不變，所以連結不必改寫
+    func move(_ path: String, toFolder folder: String) async {
+        guard fs.exists(path), folder.isEmpty || isFolder(folder),
+              (path as NSString).deletingLastPathComponent != folder else { return }
+        await flushEditors()
+        do {
+            let newPathGuess = folder.isEmpty ? (path as NSString).lastPathComponent
+                                              : (folder as NSString).appendingPathComponent((path as NSString).lastPathComponent)
+            let companions = isFolder(path) ? [] : fs.companionMoves(from: path, to: newPathGuess)
+            let newPath = try fs.move(path, toFolder: folder)
+            didMove(from: path, to: newPath, companions: companions)
+            await syncIndex()
+            onLocalChange?()
+        } catch { report(error) }
+    }
+
+    /// 伴隨檔由 `fs.rename` / `fs.move` 一起搬移；同步層、編輯器與導覽也要知道
+    private func didMove(from path: String, to newPath: String, companions: [(from: String, to: String)]) {
+        for move in [(from: path, to: newPath)] + companions where fs.exists(move.to) {
+            onMove?(move.from, move.to)
+            for editor in editors {
+                editor.close(path: move.from)
+                editor.moved(from: move.from, to: move.to)
+            }
+        }
+        refresh()
+        routesMoved(from: path, to: newPath)
     }
 
     func delete(_ path: String) async {

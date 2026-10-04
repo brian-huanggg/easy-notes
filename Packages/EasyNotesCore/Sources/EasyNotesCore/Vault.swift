@@ -202,6 +202,21 @@ public struct VaultFS: Sendable {
         return newPath
     }
 
+    /// 搬到另一個資料夾（`""` = 根目錄），名稱不變；伴隨檔一起搬移。
+    /// 目的地有同名項目、或把資料夾搬進自己時丟出錯誤
+    public func move(_ path: String, toFolder folder: String) throws -> String {
+        let newPath = join(folder, (path as NSString).lastPathComponent)
+        guard newPath != path else { return path }
+        guard folder != path, !folder.hasPrefix(path + "/") else { throw CocoaError(.fileWriteInvalidFileName) }
+        guard !exists(newPath) else { throw CocoaError(.fileWriteFileExists) }
+        let companions = companionMoves(from: path, to: newPath)
+        try FileManager.default.moveItem(at: url(for: path), to: url(for: newPath))
+        for move in companions where !exists(move.to) {
+            try FileManager.default.moveItem(at: url(for: move.from), to: url(for: move.to))
+        }
+        return newPath
+    }
+
     /// 刪除（移到垃圾桶）；檔案的伴隨檔一起刪除
     public func trash(_ path: String) throws {
         let companions = companions(of: path)

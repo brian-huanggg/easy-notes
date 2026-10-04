@@ -10,6 +10,12 @@ struct Sidebar: View {
     @Environment(ShellState.self) private var shell
     /// 展開中的資料夾（Spaces 檔案樹）
     @State private var expanded: Set<String> = []
+    /// 就地改名中的路徑（Mac 雙擊）
+    @State private var editing: String?
+    @State private var draftName = ""
+    @FocusState private var nameFocused: Bool
+    /// 拖曳經過的資料夾（`""` = 「空間」標題 = 根目錄）
+    @State private var dropTarget: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -63,6 +69,10 @@ struct Sidebar: View {
     private var spaces: some View {
         VStack(alignment: .leading, spacing: 1) {
             SidebarGroupLabel(L("空間"), actionSymbol: "plus", actionHelp: L("新增空間")) { store.createSpace() }
+                .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous)
+                    .fill(dropTarget == "" ? Palette.bgSelected : ColorToken.clear))
+                .dropDestination(for: String.self) { paths, _ in drop(paths, into: "") }
+                    isTargeted: { setDropTarget("", $0) }
             ForEach(store.tree.filter(\.isFolder)) { folder in
                 node(folder, depth: 0)
             }
@@ -83,16 +93,100 @@ struct Sidebar: View {
     private func row(_ node: VaultNode, depth: Int) -> some View {
         let route: Route = node.isFolder ? .folder(node.path) : .file(node.path)
         let kind = store.kindID(node.path)
-        return Button { open(node) } label: {
-            SidebarItem(node.isFolder ? node.name : store.displayName(node.path),
-                        symbol: node.isFolder ? (expanded.contains(node.path) ? "folder.fill" : "folder")
-                                              : store.plugins.symbol(for: kind),
-                        symbolTint: node.isFolder ? nil : store.plugins.tint(for: kind).base,
-                        count: node.isFolder && depth == 0 ? store.fileCount(in: node.path) : nil,
-                        isSelected: store.route == route, indent: depth)
+        let symbol = node.isFolder ? (expanded.contains(node.path) ? "folder.fill" : "folder")
+                                   : store.plugins.symbol(for: kind)
+        // 放到檔案上 = 放進它所在的資料夾
+        let folder = node.isFolder ? node.path : (node.path as NSString).deletingLastPathComponent
+        return Group {
+            if editing == node.path {
+                renameField(symbol: symbol, depth: depth)
+            } else {
+                Button { click(node) } label: {
+                    SidebarItem(title(of: node), symbol: symbol,
+                                symbolTint: node.isFolder ? nil : store.plugins.tint(for: kind).base,
+                                count: node.isFolder && depth == 0 ? store.fileCount(in: node.path) : nil,
+                                isSelected: store.route == route || (node.isFolder && dropTarget == node.path),
+                                indent: depth)
+                }
+                .buttonStyle(.plain)
+                .draggable(node.path)
+            }
         }
-        .buttonStyle(.plain)
         .contextMenu { NodeMenu(path: node.path, isFolder: node.isFolder) }
+        .dropDestination(for: String.self) { paths, _ in drop(paths, into: folder) }
+            isTargeted: { setDropTarget(folder, $0) }
+    }
+
+    private func title(of node: VaultNode) -> String {
+        node.isFolder ? node.name : store.displayName(node.path)
+    }
+
+    // MARK: 就地改名
+
+    /// 與 `SidebarItem` 同樣的排版，標題換成文字欄位
+    private func renameField(symbol: String, depth: Int) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: depth > 0 ? 12 : 14))
+                .foregroundStyle(Palette.textSecondary)
+                .frame(width: 16, height: 16)
+            TextField(L("名稱"), text: $draftName)
+                .textFieldStyle(.plain)
+                .textStyle(depth > 0 ? .control : .sidebarItem)
+                .foregroundStyle(Palette.textPrimary)
+                .focused($nameFocused)
+                .onSubmit(commitRename)
+                #if os(macOS)
+                .onExitCommand { editing = nil }
+                #endif
+                .onChange(of: nameFocused) { _, focused in if !focused { commitRename() } }
+        }
+        .padding(.vertical, depth > 0 ? 4 : 5.5)
+        .padding(.leading, 9 + CGFloat(depth) * 14)
+        .padding(.trailing, 6)
+        .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous)
+            .fill(Palette.surfaceRaised))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous)
+            .strokeBorder(Palette.accent))
+        .onAppear { nameFocused = true }
+    }
+
+    private func startRename(_ node: VaultNode) {
+        draftName = title(of: node)
+        editing = node.path
+    }
+
+    /// Return 與失去焦點都會呼叫；Esc 先把 `editing` 清掉，之後失去焦點就不會再改名
+    private func commitRename() {
+        guard let path = editing else { return }
+        editing = nil
+        let name = draftName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let current = store.isFolder(path) ? (path as NSString).lastPathComponent : store.displayName(path)
+        guard !name.isEmpty, name != current else { return }
+        Task { await store.rename(path, to: name) }
+    }
+
+    // MARK: 拖曳搬移
+
+    private func setDropTarget(_ folder: String, _ targeted: Bool) {
+        if targeted { dropTarget = folder } else if dropTarget == folder { dropTarget = nil }
+    }
+
+    /// 只接受 Vault 內存在的路徑（拖進來的也可能是一般文字）
+    private func drop(_ paths: [String], into folder: String) -> Bool {
+        let moves = paths.filter { $0 != folder && store.vault.exists($0) }
+        guard !moves.isEmpty else { return false }
+        if !folder.isEmpty { expanded.insert(folder) }
+        Task { for path in moves { await store.move(path, toFolder: folder) } }
+        return true
+    }
+
+    /// Mac 雙擊改名；單擊照常開啟（雙擊的第一下已經開啟過）
+    private func click(_ node: VaultNode) {
+        #if os(macOS)
+        if NSApp.currentEvent?.clickCount == 2 { return startRename(node) }
+        #endif
+        open(node)
     }
 
     /// 點資料夾：開啟資料夾頁並展開；再點一次已選取的資料夾則收合
