@@ -47,3 +47,20 @@ struct SyncSecurityTests {
         #expect(!VaultFS.isSafe(path: "a/\0b"))
     }
 }
+
+/// 新檔案的標題來自 `[[連結]]`，不能讓檔名離開 Vault（security.md 不變條件 1）
+struct VaultCreateSecurityTests {
+    @Test func linkTitleCannotEscapeVault() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "create-\(UUID().uuidString)")
+        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+
+        for title in ["../../evil", "/etc/evil", "..", "a/b", "   "] {
+            let path = try fs.create(kind: NoteKind.self, title: title)
+            #expect(VaultFS.isSafe(path: path), "\(title) → \(path)")
+            #expect(!path.contains("/"))
+            #expect(fs.url(for: path).deletingLastPathComponent().standardizedFileURL == root.standardizedFileURL)
+        }
+        #expect(VaultFS.safeFileName("日常/筆記") == "日常-筆記")
+    }
+}

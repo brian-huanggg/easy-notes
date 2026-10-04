@@ -17,7 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
-| 資安審查 | 第一輪靜態檢查完成，5 項缺口已修 3 項（路徑驗證、hash 驗證、Release 不可檢查）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
+| 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -631,15 +631,16 @@
 
 **待驗證**
 
-- [ ] Bridge 各 `type` 的欄位驗證：逐一檢查 `KindMarkdown`、`KindSheet` 的 `onMessage`（路徑、URL、長度）
-- [ ] `openLink` 與外部 URL：只允許 `http(s)`，交給系統瀏覽器
+- [x] Bridge 各 `type` 的欄位驗證：`KindMarkdown` 的 `changed` 原本直接用 JS 給的 `id` 當寫入路徑，現在只接受該編輯器載入過且 `isSafe` 的路徑，`VaultStore.write` 也再擋一次；`KindSheet` 的 `edit` / `meta` 以 Codable 解碼且 `apply` 失敗時以模型重載，沒有路徑欄位（單元測試通過；未做超大訊息的壓力測試）
+- [x] 連結標題建檔：`[[../../x]]` 點擊後 `Vault.create` 會把標題當檔名，可建到 Vault 外 → `VaultFS.safeFileName`（單元測試通過）
+- [ ] 外部 URL：筆記內的 `http(s)` 連結怎麼開（尚未檢查 JS 端的點擊處理與 WebView 導覽）；`openLink` 只做檔名比對，已確認安全
 - [ ] 日誌：DEBUG 以外不印筆記內容；`print` 與 `os_log` 全數檢視
 - [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
 - [ ] 跨使用者 RLS 實測：用第二個帳號讀、寫、覆寫第一個帳號的列與 blob（擴充 `scripts/test-sync.sh`）
 - [ ] Storage 上傳大小限制與配額
 - [ ] 解析器模糊測試：Markdown、Excalidraw JSON、`.pdf.ink`、CSV / TSV、Anki 匯入、PDF
-- [ ] 依賴審計：`npm audit`、SPM 套件的已知漏洞、`Package.resolved` 與 `package-lock.json` 已提交
-- [ ] 機密掃描（gitleaks）：repo 歷史與 App bundle
+- [ ] 依賴審計：`npm audit` 無已知漏洞（已跑）；SPM 套件的已知漏洞尚未檢查（本機沒有 osv-scanner）
+- [ ] 機密掃描：以 grep 掃過工作樹與歷史（私鑰、JWT、`service_role`、雲端金鑰格式），沒有發現；`.env*` 與憑證檔從未進過版控。尚未用 gitleaks 全面掃描，也沒掃 App bundle
 - [ ] 建置產物檢查：`codesign -dvvv --entitlements -`、`otool -L`、App bundle 內沒有多餘檔案
 - [ ] 加進 CI：依賴審計、機密掃描、Semgrep
 

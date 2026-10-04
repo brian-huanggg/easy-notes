@@ -288,6 +288,7 @@ final class VaultStore: DocumentSession {
     /// 寫入在背景的序列 actor 進行，不擋主執行緒且保持順序；寫完立即更新該檔索引。
     /// 存檔前外部工具剛改過、檔案監看還沒通知時，寫入合併結果並推回編輯器，不覆蓋外部的修改
     func write(_ data: Data, to path: String) {
+        guard VaultFS.isSafe(path: path) else { return } // 路徑來自 Bridge 等外部輸入時不寫到 Vault 外
         let expected = lastWritten[path]
         lastWritten[path] = data
         let device = SyncCoordinator.deviceName

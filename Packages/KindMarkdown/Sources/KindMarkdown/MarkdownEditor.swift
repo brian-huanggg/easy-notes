@@ -1,3 +1,4 @@
+import EasyNotesCore
 import EasyNotesUI
 import Foundation
 import Observation
@@ -35,6 +36,8 @@ public final class MarkdownEditor: EditorController {
     @ObservationIgnored private var pendingLoad: (id: String, text: String, modified: Date?)?
     @ObservationIgnored private var linkTargets: [[String: Any]] = []
     @ObservationIgnored private var currentPath: String?
+    /// 這個編輯器載入過的文件：`changed` 只接受這些 id（JS 端不能自己指定要寫哪個檔案）
+    @ObservationIgnored private var loadedPaths = Set<String>()
     /// `reveal` 在檔案載入前就送來：載入後再捲動
     @ObservationIgnored private var pendingReveal: (path: String, line: Int)?
     /// 記憶體壓力來源（macOS）；iOS 用 UIApplication 的記憶體警告通知
@@ -74,6 +77,7 @@ public final class MarkdownEditor: EditorController {
 
     func load(id: String, text: String, modified: Date?) {
         currentPath = id
+        loadedPaths.insert(id)
         guard host.isReady else {
             pendingLoad = (id, text, modified)
             return
@@ -229,10 +233,16 @@ public final class MarkdownEditor: EditorController {
         }
     }
 
+    /// Bridge 傳來的 `changed` 是否可以寫入：必須是這個編輯器載入過、且在 Vault 內的相對路徑
+    static func acceptsChange(id: String, loaded: Set<String>) -> Bool {
+        loaded.contains(id) && VaultFS.isSafe(path: id)
+    }
+
     private func receive(_ type: String, _ msg: [String: Any]) {
         switch type {
         case "changed":
-            if let id = msg["id"] as? String, let text = msg["text"] as? String {
+            if let id = msg["id"] as? String, let text = msg["text"] as? String,
+               Self.acceptsChange(id: id, loaded: loadedPaths) {
                 session?.write(Data(text.utf8), to: id)
             }
         case "openLink":

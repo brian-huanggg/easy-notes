@@ -129,3 +129,14 @@ struct MarkdownPreviewTests {
         #expect(preview.lines.count == MarkdownPreview.maxLines)
     }
 }
+
+/// Bridge 的 `changed` 不能讓 JS 指定任意寫入路徑（security.md 不變條件 1、3）
+struct MarkdownBridgeSecurityTests {
+    @Test @MainActor func changedOnlyAcceptsLoadedSafePaths() {
+        let loaded: Set<String> = ["筆記/a.md", "../evil.md", "/etc/passwd"]
+        #expect(MarkdownEditor.acceptsChange(id: "筆記/a.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "筆記/b.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "../evil.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "/etc/passwd", loaded: loaded))
+    }
+}

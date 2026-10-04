@@ -33,6 +33,14 @@ public struct VaultFS: Sendable {
             .contains { $0 == ".." || $0 == "." || $0.isEmpty }
     }
 
+    /// 把標題變成單一路徑段的檔名：`/`、`\`、NUL 換成 `-`，去掉開頭的 `.`；
+    /// `[[../../x]]` 之類的連結標題因此不會讓新檔案建到 Vault 外
+    public static func safeFileName(_ title: String) -> String {
+        let replaced = String(title.map { $0 == "/" || $0 == "\\" || $0 == "\0" ? "-" : $0 })
+        let trimmed = String(replaced.drop { $0 == "." }).trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "untitled" : trimmed
+    }
+
     public func url(for path: String) -> URL {
         root.appending(path: path, directoryHint: .notDirectory)
     }
@@ -164,10 +172,11 @@ public struct VaultFS: Sendable {
     /// 在資料夾中建立不重名的新檔案，回傳相對路徑
     public func create(kind: any DocumentKind.Type, title: String, in folder: String = "") throws -> String {
         let ext = kind.fileExtensions[0]
-        var name = "\(title).\(ext)"
+        let stem = Self.safeFileName(title)
+        var name = "\(stem).\(ext)"
         var n = 2
         while FileManager.default.fileExists(atPath: url(for: join(folder, name)).path(percentEncoded: false)) {
-            name = "\(title) \(n).\(ext)"
+            name = "\(stem) \(n).\(ext)"
             n += 1
         }
         let path = join(folder, name)
