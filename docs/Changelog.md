@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-05
+
 ### Added
 
 - 自訂複習：可以增加某個牌組今天的新卡 / 複習上限（會同步到其他裝置）、複習最近幾天忘記的卡片，或提前複習幾天內到期的卡片。從複習頁上方的「自訂複習」按鈕或牌組的右鍵選單開啟。
@@ -67,5 +69,6 @@
 - 使用 SF Symbol 當文件圖示時，編輯器中顯示空白。
 - iPhone 直向的複習牌組列表內容超出螢幕。
 
-[Unreleased]: https://github.com/brian-huanggg/easy-notes/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/brian-huanggg/easy-notes/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/brian-huanggg/easy-notes/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/brian-huanggg/easy-notes/releases/tag/v1.0.0
