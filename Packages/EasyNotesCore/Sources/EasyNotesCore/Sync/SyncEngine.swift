@@ -378,6 +378,11 @@ public actor SyncEngine {
     /// 本地沒有這個 id 的遠端檔案
     private func applyNew(_ row: RemoteFile) async throws {
         let remote = try await content(hash: row.hash)
+        // 掃描之後才建立的本地檔案（例如剛新增的筆記）：先登記成本地新檔，再依內容採用、合併或讓位，不直接覆寫
+        if state.record(at: row.path) == nil, let stat = try fs.fileStat(row.path) {
+            try state.save(SyncRecord(id: UUID(), path: row.path, hash: try hash(of: row.path),
+                                      mtime: stat.mtime, size: stat.size))
+        }
         var r = SyncRecord(id: row.id, path: row.path, hash: row.hash, mtime: 0, size: row.size)
         if var occupant = state.record(at: row.path) {
             await hooks.willChange(occupant.path)
@@ -509,14 +514,19 @@ public actor SyncEngine {
         try? FileManager.default.removeItem(at: baseCache.appending(path: hash))
     }
 
-    /// `path` 被另一個本地檔案佔用時，把那個檔案改名成衝突副本，回傳可用的 `path`
+    /// `path` 被另一個本地檔案佔用時，把那個檔案改名成衝突副本，回傳可用的 `path`。
+    /// 掃描之後才建立、還沒有紀錄的檔案也算佔用（下一輪掃描會把衝突副本當成新增並上傳）
     private func makeRoom(at path: String, for id: UUID) async throws -> String {
-        guard var occupant = state.record(at: path), occupant.id != id else { return path }
+        let occupant = state.record(at: path)
+        if let occupant, occupant.id == id { return path }
+        guard occupant != nil || fs.exists(path) else { return path }
         let copy = conflictPath(for: path)
         await hooks.willChange(path)
         try FileManager.default.moveItem(at: fs.url(for: path), to: fs.url(for: copy))
-        occupant.path = copy
-        try state.save(occupant)
+        if var occupant {
+            occupant.path = copy
+            try state.save(occupant)
+        }
         status.conflicts.append(copy)
         await hooks.didChange(copy, path, nil)
         return path

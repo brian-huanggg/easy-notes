@@ -171,6 +171,43 @@ struct SyncEngineTests {
         #expect(await ipad.engine.currentStatus.conflicts.isEmpty)
     }
 
+    /// 掃描之後、套用遠端新檔之前，本地在同一路徑建立了檔案（例如兩邊同時新增「未命名」）：不能被覆寫
+    @Test func localFileCreatedDuringPullIsNotOverwritten() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("Mac\n", "a.note")
+        await mac.sync()
+        let file = ipad.fs.url(for: "a.note")
+        await backend.setOnDownload { _ in try? Data("iPad\n".utf8).write(to: file) }
+        await ipad.sync()
+        await backend.setOnDownload(nil)
+        try await converge(mac, ipad)
+
+        let files = try ipad.snapshot()
+        #expect(files["a.note"] == "Mac\n")
+        let copy = try #require(files.keys.first { $0.hasPrefix("a (衝突 iPad ") && $0.hasSuffix(").note") })
+        #expect(files[copy] == "iPad\n")
+        #expect(try mac.snapshot() == files)
+    }
+
+    /// 三台裝置離線各改同一篇的不同段落 → 連線後內容一致、沒有衝突副本
+    @Test func threeDevicesOfflineEditsConverge() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        let iphone = try Device("iPhone", backend: backend)
+        try mac.write("一\n\n二\n\n三\n", "a.note")
+        for _ in 0..<2 { for d in [mac, ipad, iphone] { await d.sync() } }
+
+        try mac.write("一（Mac）\n\n二\n\n三\n", "a.note")
+        try ipad.write("一\n\n二（iPad）\n\n三\n", "a.note")
+        try iphone.write("一\n\n二\n\n三（iPhone）\n", "a.note")
+        for _ in 0..<3 { for d in [mac, ipad, iphone] { await d.sync() } }
+
+        let expected = ["a.note": "一（Mac）\n\n二（iPad）\n\n三（iPhone）\n"]
+        #expect(try mac.snapshot() == expected)
+        #expect(try ipad.snapshot() == expected)
+        #expect(try iphone.snapshot() == expected)
+        for d in [mac, ipad, iphone] { #expect(await d.engine.currentStatus.pending == 0) }
+    }
+
     @Test func binaryConflictKeepsBoth() async throws {
         let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
         try mac.write("v1", "圖.png")

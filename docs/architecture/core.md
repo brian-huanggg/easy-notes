@@ -165,7 +165,7 @@ create function commit_file(p_id uuid, p_base_version bigint, p_path text,
 
 1. **本地變更**：寫入檔案（App 內或 Claude Code 等外部工具）→ VaultWatcher 比對 hash → 更新索引 → 進入上傳佇列。
 2. **上傳**：先傳內容到 Storage，再呼叫 `commit_file(id, base_version, …)`。回傳 null 代表遠端已變，進入合併。
-3. **拉取**：Realtime 訂閱 `files` 變更；回到前景時補拉 `updated_at` 大於上次游標的列。只有 path 變了 = 改名，直接搬移本地檔案。
+3. **拉取**：Realtime 訂閱 `files` 變更；回到前景時補拉 `updated_at` 大於上次游標的列。只有 path 變了 = 改名，直接搬移本地檔案。遠端新檔或改名的目標路徑上已有本地檔案（含掃描之後才建立、還沒有同步紀錄的）時，本地那份不被覆寫：內容相同就採用遠端的 id，否則讓位成衝突副本。
 4. **合併**：先下載遠端內容與 base（網路），再請編輯器寫回（`Hooks.willChange`）、讀取本地，交給 `DocumentKind.merge`；從讀取本地到寫回之間沒有 `await`，下載期間存檔的修改也會算進合併，不會被蓋掉。成功 → 寫回本地並上傳合併結果；回傳 nil → 產生 `筆記 (衝突 iPad 2026-10-01).md`。正在編輯的文件透過編輯器套用遠端變更（Markdown 用 `applyRemote`）。
 5. **刪除**：軟刪除（`deleted = true`），保留 30 天。內容留在 Storage（只增不覆寫），所以 30 天內都能還原。
 6. **還原**：同步面板的「最近刪除」列出 30 天內刪除、本地也不存在的檔案（`SyncBackend.deletedFiles`）。還原 = 下載該 hash 的內容寫回原路徑（被佔用時改用衝突副本的命名），再以同一個 file id 提交 `deleted = false`，歷史與合併基準都保留。

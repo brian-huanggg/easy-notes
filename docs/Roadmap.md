@@ -73,6 +73,7 @@
 - [x] Excalidraw 依元素 `id` + `version` 合併
 - [x] 衝突副本、軟刪除（30 天）、「最近刪除」還原（`SyncEngineTests` 涵蓋；實機見下方整合驗收）
 - [ ] 合併時先下載遠端與 base，再讓編輯器寫回、讀取本地：下載期間存檔的修改不被遠端內容蓋掉（新增 `editSavedDuringDownloadIsMerged`；尚未驗證：`swift test` 未在 Mac 執行）
+- [ ] 套用遠端新檔或改名時，目標路徑上掃描之後才建立的本地檔案讓位成衝突副本，不被覆寫（新增 `localFileCreatedDuringPullIsNotOverwritten`、`threeDevicesOfflineEditsConverge`；尚未驗證：`swift test` 未在 Mac 執行）
 - [x] 同步狀態 UI（已同步 / 待上傳 / 衝突）
 - [x] Realtime 只在前景連線；上傳佇列合併連續變更、批次上傳
 
