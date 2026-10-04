@@ -584,11 +584,11 @@
 
 ### i2 英文翻譯（Phase 6 完成後）
 
-- [ ] 各模組 catalog 補 `en`（含複數 variations）；`CFBundleDevelopmentRegion` 改 `en`、`CFBundleLocalizations` 加 `en`；系統選單跟著變英文
-- [ ] 索引記錄產生時的語言，語言改變時整份重建（`summary` 是顯示文字）
-- [ ] Mac 設定（⌘,）的語言選項（寫入 `AppleLanguages`，提示重新啟動）；iOS 以系統設定切換
-- [ ] Web 端 `en` 字典
-- [ ] 首次啟動的範例內容（`Seed`）依介面語言產生
+- [ ] 各模組 catalog 補 `en`（含複數 variations）；`CFBundleDevelopmentRegion` 改 `en`、`CFBundleLocalizations` 加 `en`；系統選單跟著變英文（八個 catalog 共約 380 條已補、macOS 建置通過；畫面與系統選單尚未驗證；專案設定 `SWIFT_EMIT_LOC_STRINGS` 讓 `xcodebuild -exportLocalizations` 能擷取 App 的字串）
+- [x] 索引記錄產生時的語言，語言改變時整份重建（`summary` 是顯示文字；`VaultIndex(language:)` 併入簽章，`IndexContributorTests` 涵蓋）
+- [ ] Mac 設定（⌘,）的語言選項（寫入 `AppleLanguages`，提示重新啟動；macOS 建置通過，實機尚未驗證）；iOS 以系統設定切換
+- [ ] Web 端 `en` 字典（13 條已補，`npm test` 與 build 通過；畫面尚未驗證）
+- [ ] 首次啟動的範例內容（`Seed`）依介面語言產生（macOS 建置通過；實際首次啟動尚未驗證）
 
 驗收測試：
 

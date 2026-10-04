@@ -10,7 +10,21 @@ declare global {
 export const locale: string = window.__locale ?? "zh-Hant";
 
 const dictionaries: Record<string, Record<string, string>> = {
-  en: {},
+  en: {
+    "{time}編輯": "Edited {time}",
+    "{date} 編輯": "Edited {date}",
+    "{time}更新": "Updated {time}",
+    "{date} 更新": "Updated {date}",
+    剛剛: "Just now",
+    卡片: "Card",
+    雙向卡片: "Two-way card",
+    "欄位 {n}": "Column {n}",
+    新增圖示: "Add Icon",
+    新增封面: "Add Cover",
+    更換圖示: "Change Icon",
+    更換封面: "Change Cover",
+    點一下建立新筆記: "Click to create a new note",
+  },
 };
 
 /** `t("{time}編輯", { time })`：參數用 `{名稱}`，語序由各語言的字串決定，不要在程式裡拼接 */

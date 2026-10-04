@@ -1,11 +1,65 @@
-// l10n:fixed-file 首次啟動的範例內容；依介面語言產生留到 Roadmap 的 i2
+import Foundation
+
+// l10n:fixed-file 首次啟動的範例內容；建立當下依介面語言選擇，之後就是使用者的檔案
 enum Seed {
+    private static var usesChinese: Bool {
+        Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
+    }
+
     /// 由對應的外掛產生空白範本（外掛沒註冊就略過）
-    static let templates: [(path: String, title: String)] = [
-        ("Spike/手寫測試.excalidraw", "手寫測試"),
+    static var templates: [(path: String, title: String)] {
+        usesChinese ? [("Spike/手寫測試.excalidraw", "手寫測試")]
+                    : [("Spike/Handwriting Test.excalidraw", "Handwriting Test")]
+    }
+
+    static var files: [(String, String)] { usesChinese ? chineseFiles : englishFiles }
+
+    private static let englishFiles: [(String, String)] = [
+        ("Welcome to EasyNotes.md", """
+        # Welcome to EasyNotes
+
+        Every note is a **real file** you can open in any editor. The *Markdown* syntax of a line only shows while the cursor is on it.
+
+        ## Try it
+
+        - [ ] Click this checkbox
+        - [x] A completed item
+        - Click [[Spike Checklist]] to jump to another note
+        - Click [[A note that doesn't exist yet]] to create it automatically
+
+        > Quote block: knowledge should belong to you, not to an app.
+
+        Inline `code`, ~~strikethrough~~, **bold**, *italic*.
+
+        ```swift
+        let vault = VaultFS(root: url)
+        ```
+
+        #getting-started #easynotes
+        """),
+        ("Spike/Spike Checklist.md", """
+        # Spike Checklist
+
+        ## S1: CodeMirror 6 in WKWebView
+
+        - [ ] iOS Zhuyin input: type "知識管理系統" in one go, with no dropped or duplicated characters
+        - [ ] macOS Zhuyin input: same as above
+        - [ ] The candidate window is positioned correctly and follows the cursor
+        - [ ] Switching notes takes < 50ms (the last switch time shows at the top right)
+        - [ ] Typing stays smooth after pressing "Benchmark 10k lines"
+        - [ ] Open the .md in Finder: the content matches what you typed (no reformatting)
+        - [ ] The native formatting toolbar appears above the iPad keyboard
+        - [ ] Dark mode looks right
+
+        ## S2: PencilKit ⇄ Excalidraw
+
+        - [x] Unit tests: points, pressure, and timing round-trip losslessly (`swift test`)
+        - [ ] Open [[Handwriting Test]] on an iPad and draw a few strokes
+        - [ ] Drag `Handwriting Test.excalidraw` onto excalidraw.com and check the strokes render correctly
+        """),
     ]
 
-    static let files: [(String, String)] = [
+    private static let chineseFiles: [(String, String)] = [
         ("歡迎使用 EasyNotes.md", """
         # 歡迎使用 EasyNotes
 

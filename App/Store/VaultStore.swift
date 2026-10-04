@@ -62,7 +62,8 @@ final class VaultStore: DocumentSession {
         self.plugins = plugins
         fs = VaultFS(root: root, kinds: kinds)
         writer = VaultWriter(fs: fs)
-        index = try? VaultIndex(fs: fs, contributors: plugins.indexContributors)
+        index = try? VaultIndex(fs: fs, contributors: plugins.indexContributors,
+                           language: Bundle.main.preferredLocalizations.first ?? "")
         previews = PreviewCache(directory: root.appending(path: "\(VaultFS.metaFolder)/cache/preview", directoryHint: .isDirectory))
         seedIfNeeded()
         writeVaultGuideIfNeeded()

@@ -1,7 +1,202 @@
 {
   "sourceLanguage" : "zh-Hant",
   "strings" : {
-
+    "%@ · %@ 列 · %@ 欄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@ rows · %3$@ columns"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ 列 · %3$@ 欄"
+          }
+        }
+      }
+    },
+    "Big5 編碼的檔案只能檢視" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Big5-encoded files are view-only"
+          }
+        }
+      }
+    },
+    "依此欄遞增排序並寫入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort Ascending by This Column and Save"
+          }
+        }
+      }
+    },
+    "依此欄遞減排序並寫入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort Descending by This Column and Save"
+          }
+        }
+      }
+    },
+    "備註" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        }
+      }
+    },
+    "凍結首欄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Freeze First Column"
+          }
+        }
+      }
+    },
+    "刪除列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Row"
+          }
+        }
+      }
+    },
+    "刪除欄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Column"
+          }
+        }
+      }
+    },
+    "匯入 CSV…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import CSV…"
+          }
+        }
+      }
+    },
+    "名稱" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
+          }
+        }
+      }
+    },
+    "在上方插入列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert Row Above"
+          }
+        }
+      }
+    },
+    "在下方插入列" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert Row Below"
+          }
+        }
+      }
+    },
+    "在右側插入欄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert Column to the Right"
+          }
+        }
+      }
+    },
+    "在左側插入欄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert Column to the Left"
+          }
+        }
+      }
+    },
+    "新表格" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Sheet"
+          }
+        }
+      }
+    },
+    "無法辨識檔案的編碼，只能檢視" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The file's encoding isn't recognized, so it is view-only"
+          }
+        }
+      }
+    },
+    "第一列是標題" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "First Row Is Header"
+          }
+        }
+      }
+    },
+    "表格" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sheet"
+          }
+        }
+      }
+    },
+    "轉成 UTF-8" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Convert to UTF-8"
+          }
+        }
+      }
+    }
   },
   "version" : "1.0"
 }
