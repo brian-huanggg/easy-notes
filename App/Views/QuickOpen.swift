@@ -51,12 +51,15 @@ struct QuickOpen: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier(A11yID.QuickOpen.hit(hit.path))
-                            .id(index)
+                            // 以路徑當 id（與 ForEach 相同）：用 index 會讓搜尋結果沿用「最近」同一列的舊畫面
+                            .id(hit.path)
                         }
                     }
                     .padding(8)
                 }
-                .onChange(of: highlighted) { _, index in proxy.scrollTo(index) }
+                .onChange(of: highlighted) { _, index in
+                    if hits.indices.contains(index) { proxy.scrollTo(hits[index].path) }
+                }
             }
         }
         .background(Palette.bgCanvas)

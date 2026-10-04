@@ -39,6 +39,17 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "2F364A8120097A82FB195406"
+               BuildableName = "EasyNotesE2ETests.xctest"
+               BlueprintName = "EasyNotesE2ETests"
+               ReferencedContainer = "container:EasyNotes.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

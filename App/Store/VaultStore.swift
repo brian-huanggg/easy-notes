@@ -95,9 +95,9 @@ final class VaultStore: DocumentSession {
     static func defaultRoot() -> URL {
         if let root = TestHooks.vaultRoot { return root } // E2E：每個測試一個暫存 Vault
         #if os(macOS)
-        FileManager.default.homeDirectoryForCurrentUser.appending(path: "Documents/EasyNotes")
+        return FileManager.default.homeDirectoryForCurrentUser.appending(path: "Documents/EasyNotes")
         #else
-        URL.documentsDirectory.appending(path: "EasyNotes")
+        return URL.documentsDirectory.appending(path: "EasyNotes")
         #endif
     }
 

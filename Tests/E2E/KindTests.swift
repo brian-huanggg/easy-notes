@@ -32,8 +32,7 @@ final class KindTests: E2ETestCase {
         let original = try? Data(contentsOf: vault.url(path))
         let app = launch(vault)
 
-        app.tap(A11yID.List.document(path), file: file, line: line)
-        app.waitForEditor(kindID, file: file, line: line)
+        app.openDocument(path, expecting: kindID, file: file, line: line)
         XCTAssertFalse(app.element(A11yID.Editor.unsupported).exists, file: file, line: line)
 
         // 回到列表（觸發編輯器 flush），檔案內容不變

@@ -11,6 +11,7 @@
 #   --ci   不用開發者憑證簽署（GitHub Actions 等沒有登入 Apple ID 的機器）
 #
 # 結果在 build/E2E-<suite>-<dest>.xcresult（含失敗時的截圖與錄影），用 Xcode 開啟。
+# 執行期間不要操作滑鼠鍵盤（XCUITest 送的是真實的輸入事件）；macOS 測試會自動切到 ABC 輸入法並在結束後還原。
 # 第一次在 macOS 執行時，系統會要求允許「Xcode Helper」/ 終端機控制電腦（輔助使用）。
 set -euo pipefail
 
