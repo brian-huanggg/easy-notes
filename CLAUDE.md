@@ -27,6 +27,7 @@
 
 ```sh
 (cd web && npm install && npm run build)    # 修改 web/src 後
+(cd web && npm test)                        # Web 端單元測試（Node，不需要瀏覽器）
 xcodegen generate                           # 修改 project.yml 後
 (cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）

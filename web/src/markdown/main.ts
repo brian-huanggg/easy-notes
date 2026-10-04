@@ -16,6 +16,7 @@ import { post } from "./bridge";
 import { cards } from "./cards";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
 import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
+import { lineBreakExtension, lineBreakOf, lines, normalized, replaceChange } from "./lineBreak";
 import { livePreview } from "./livePreview";
 
 declare global {
@@ -136,7 +137,7 @@ function flush() {
     scheduleFlush();
     return;
   }
-  post({ type: "changed", id: currentId, text: view.state.doc.toString() });
+  post({ type: "changed", id: currentId, text: view.state.sliceDoc() });
   view.dispatch({ effects: setModified.of(Date.now()) });
 }
 
@@ -146,8 +147,8 @@ const api = {
     flush();
     if (currentId !== null) states.set(currentId, view.state);
     let state = states.get(id);
-    if (!state || state.doc.toString() !== text) {
-      state = EditorState.create({ doc: text, extensions });
+    if (!state || state.sliceDoc() !== text) {
+      state = EditorState.create({ doc: text, extensions: [extensions, lineBreakExtension(text)] });
       // 游標放在 frontmatter 之後，開檔時屬性是收合的
       const fm = frontmatterRange(state);
       if (fm) state = state.update({ selection: EditorSelection.cursor(Math.min(fm.to + 1, state.doc.length)) }).state;
@@ -165,17 +166,17 @@ const api = {
       states.delete(id);
       return;
     }
-    const old = view.state.doc.toString();
-    if (old === text) return;
-    let start = 0;
-    while (start < old.length && start < text.length && old[start] === text[start]) start++;
-    let endOld = old.length;
-    let endNew = text.length;
-    while (endOld > start && endNew > start && old[endOld - 1] === text[endNew - 1]) {
-      endOld--;
-      endNew--;
+    if (view.state.sliceDoc() === text) return;
+    // 換行符改變（例如外部工具轉成 CRLF）：重建 state，游標留在原位置附近
+    if (lineBreakOf(text) !== view.state.lineBreak) {
+      const head = view.state.selection.main.head;
+      const state = EditorState.create({ doc: text, extensions: [extensions, lineBreakExtension(text)] });
+      view.setState(state.update({ selection: EditorSelection.cursor(Math.min(head, state.doc.length)) }).state);
+      view.dispatch({ effects: targetsChanged.of(null) });
+      dirty = false;
+      return;
     }
-    view.dispatch({ changes: { from: start, to: endOld, insert: text.slice(start, endNew) } });
+    view.dispatch({ changes: replaceChange(view.state, text) });
     dirty = false;
   },
 
@@ -248,13 +249,14 @@ const api = {
       view.dispatch({ changes });
     };
     // 在游標下方另起一行插入（目前行是空行時直接寫在這一行）
-    const insertBlock = (text: string, select?: [number, number]) => {
+    const insertBlock = (raw: string, select?: [number, number]) => {
+      const text = normalized(raw);
       const line = view.state.doc.lineAt(view.state.selection.main.head);
       const prefix = line.text.trim() ? "\n" : "";
       const from = prefix ? line.to : line.from;
       const start = from + prefix.length;
       view.dispatch({
-        changes: { from, to: line.to, insert: prefix + text },
+        changes: { from, to: line.to, insert: lines(prefix + text) },
         selection: select ? EditorSelection.range(start + select[0], start + select[1]) : EditorSelection.cursor(start + text.length),
         scrollIntoView: true,
       });

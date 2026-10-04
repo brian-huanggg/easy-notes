@@ -3,6 +3,7 @@
 - **做**：Live Preview、`[[連結]]` + 反向連結、`[[` 自動完成、連結改名、標籤、FTS5 搜尋、`![[x.excalidraw]]` / `![[x.csv]]` 嵌入預覽、卡片語法標示、Writing 模式（專注、打字機捲動、字數）。
 - **實作**：CM6 + Lezer 增量解析；單一預熱 WebView，切換筆記只換 `EditorState`；Bridge 協定見下方。
 - **嵌入**：`LinkTarget` 帶 `hash`（隨 `setLinkTargets` 推送，只在索引變動時送出，不在打字路徑上）；CM6 的 `EmbedWidget` 依完整路徑或「檔名.副檔名」找到目標，放 `<img src="embed:///…?h=<hash>">`。圖片副檔名仍走 `vault://`；`.md` 不嵌入；找不到目標時顯示原始語法。hash 改變時只換 `src`，舊圖留到新圖載入完成。點一下開啟目標，⌘ / ⌥ 點擊顯示原始 md。深色模式用 CSS `invert(93%) hue-rotate(180deg)`。
+- **換行符**：檔案的換行全部是 `\r\n` 時，`EditorState` 加上 `lineSeparator`，寫回用 `sliceDoc()`，換行逐位元組保留；混合的換行照 CM6 預設統一成 `\n`。插入多行文字一律轉成 `Text`（`lineBreak.ts` 的 `lines`），不直接插入含 `\n` 的字串；`applyRemote` 在 doc 座標上算差異，換行符改變時重建 state。
 - **合併**：diff3 三方合併。非重疊修改自動合併，重疊才產生衝突副本。編輯中收到遠端變更時，用 `applyRemote` 套用到 CM6，保留游標與 undo。
 
 
