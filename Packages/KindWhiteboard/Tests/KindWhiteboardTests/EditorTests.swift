@@ -101,7 +101,7 @@ struct EditorTests {
         var moved = try #require(editor.document.scene.element(r.id))
         #expect(moved.x == 100 && moved.y == 30)
         #expect(session.writes.isEmpty) // 只改記憶體，宿主停止操作後才存
-        #expect(undo.canUndo && undo.undoActionName == "移動")
+        #expect(undo.canUndo && undo.undoActionName == KindWhiteboard.L("移動"))
 
         let versionAfterMove = moved.version
         undo.undo()

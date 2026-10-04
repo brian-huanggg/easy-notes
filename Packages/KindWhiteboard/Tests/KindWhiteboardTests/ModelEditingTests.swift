@@ -238,7 +238,7 @@ struct ModelEditingTests {
         let data = try Fixture.data()
         let entry = InkKind.index(data, fileName: "board.excalidraw")
         #expect(entry.links == ["光合作用"])
-        #expect(entry.summary == "13 個元素") // 已刪除的不算
+        #expect(entry.summary == KindWhiteboard.L("\(13) 個元素")) // 已刪除的不算
         #expect(entry.plainText.contains("光合作用"))
     }
 

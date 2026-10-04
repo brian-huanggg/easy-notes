@@ -160,7 +160,7 @@ struct StudyTests {
         let cards = Self.notes("日文/N2 文法/a.md", 3, prefix: "g") + Self.notes("日文/N2 單字/b.md", 2, prefix: "v")
             + Self.notes("程式/c.md", 1, prefix: "p") + Self.notes("雜記.md", 1, prefix: "r")
         let tree = Deck.tree(cards)
-        #expect(tree.map(\.name) == ["日文", "程式", "未分類"])
+        #expect(tree.map(\.name) == ["日文", "程式", L("未分類")])
         #expect(tree[0].children.map(\.name) == ["N2 單字", "N2 文法"])
         #expect(tree[0].cardCount == 5)
         #expect(tree[0].noteCount == 5)
