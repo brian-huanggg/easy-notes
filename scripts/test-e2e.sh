@@ -30,7 +30,7 @@ for arg in "$@"; do
 done
 
 TARGET=EasyNotesE2ETests
-SMOKE=(LaunchTests DocumentLifecycleTests ExternalChangeTests KindTests NavigationTests IndexRebuildTests)
+SMOKE=(LaunchTests DocumentLifecycleTests ExternalChangeTests KindTests NavigationTests TabTests IndexRebuildTests)
 case "$SUITE" in
   smoke) CLASSES=("${SMOKE[@]}") ;;
   sync) CLASSES=(SyncTests) ;;

@@ -15,6 +15,7 @@ final class VaultStore: DocumentSession {
     private(set) var route: Route = .all {
         didSet {
             guard route != oldValue else { return }
+            tabs.active.route = route
             // 側邊面板屬於開啟它的那張白板：換到別的位置就關閉
             if sidePath != nil, route.filePath != oldValue.filePath { sidePath = nil }
             refreshBacklinks()
@@ -25,8 +26,12 @@ final class VaultStore: DocumentSession {
     /// 主內容旁側邊面板開啟的檔案（白板的筆記卡片）；只有 Mac / iPad 的外殼支援
     var sidePath: String?
     @ObservationIgnored var supportsSide = false
-    private(set) var backStack: [Route] = []
-    private(set) var forwardStack: [Route] = []
+    private(set) var backStack: [Route] = [] { didSet { tabs.active.back = backStack } }
+    private(set) var forwardStack: [Route] = [] { didSet { tabs.active.forward = forwardStack } }
+    /// 分頁（Mac / iPad）：背景分頁只存位置與歷史，不持有編輯器；目前分頁的內容與上面的 `route`、歷史同步
+    private(set) var tabs = TabSet(TabState(route: .all)) { didSet { saveTabs() } }
+    var supportsTabs = false
+    @ObservationIgnored private var tabsRestored = false
     /// 開啟中的檔案；設為 nil 時回到它所在的資料夾（不記入歷史）
     var selection: String? {
         get { route.filePath }
@@ -115,9 +120,102 @@ final class VaultStore: DocumentSession {
 
     func navigate(_ target: Route) {
         guard target != route else { return }
+        // 有分頁時開啟檔案一律在新分頁（已開著就切過去）；資料夾、列表等位置留在目前分頁
+        if supportsTabs, case .file = target { return openInTab(target) }
         backStack.append(route)
         forwardStack.removeAll()
         route = target
+    }
+
+    // MARK: 分頁
+
+    /// 分頁的狀態：位置與各自的上一頁 / 下一頁
+    struct TabState {
+        var route: Route
+        var back: [Route] = []
+        var forward: [Route] = []
+    }
+
+    /// 分頁的位置；目前分頁以 `route` 為準
+    func tabRoute(_ tab: TabSet<TabState>.Tab) -> Route {
+        tab.id == tabs.activeID ? route : tab.state.route
+    }
+
+    private func load(_ state: TabState) {
+        route = state.route
+        backStack = state.back
+        forwardStack = state.forward
+    }
+
+    private func openInTab(_ target: Route) {
+        if let existing = tabs.firstTab(where: { $0.route == target }) { return activateTab(existing.id) }
+        tabs.open(TabState(route: target))
+        load(tabs.active)
+    }
+
+    func newTab() {
+        tabs.open(TabState(route: .all))
+        load(tabs.active)
+    }
+
+    func activateTab(_ id: UUID) {
+        guard id != tabs.activeID else { return }
+        tabs.activate(id)
+        load(tabs.active)
+    }
+
+    func cycleTab(_ offset: Int) {
+        tabs.activate(offset: offset)
+        load(tabs.active)
+    }
+
+    func closeTab(_ id: UUID) {
+        guard let closing = tabs.tabs.first(where: { $0.id == id }) else { return }
+        let path = tabRoute(closing).filePath
+        tabs.close(id, blank: TabState(route: .all))
+        load(tabs.active)
+        // 不再開著的檔案：編輯器丟掉它保留的狀態（再開時以磁碟內容重建）
+        if let path, path != selection, path != sidePath {
+            for editor in editors { editor.close(path: path) }
+        }
+    }
+
+    func closeOtherTabs(keeping id: UUID) {
+        let others = tabs.tabs.filter { $0.id != id }.map(\.id)
+        for other in others { closeTab(other) }
+        activateTab(id)
+    }
+
+    private static let tabsKey = "EasyNotesOpenTabs"
+
+    private func saveTabs() {
+        guard supportsTabs, tabsRestored else { return }
+        let routes = tabs.tabs.map(tabRoute)
+        let saved = SavedTabs(routes: routes, active: tabs.activeIndex)
+        if let data = try? JSONEncoder().encode(saved) { UserDefaults.standard.set(data, forKey: Self.tabsKey) }
+    }
+
+    /// 外殼支援分頁時呼叫（Mac / iPad 的 SplitShell）；第一次啟用時還原上次開著的分頁（跟著裝置，不同步）
+    func enableTabs() {
+        supportsTabs = true
+        guard !tabsRestored else { return }
+        tabsRestored = true
+        #if DEBUG
+        // E2E 與指定開啟的檔案：從乾淨的狀態開始
+        if TestHooks.vaultRoot != nil || UserDefaults.standard.string(forKey: LaunchKey.open) != nil { return }
+        #endif
+        guard let data = UserDefaults.standard.data(forKey: Self.tabsKey),
+              let saved = try? JSONDecoder().decode(SavedTabs.self, from: data) else { return }
+        let routes = saved.routes.filter(exists)
+        guard !routes.isEmpty else { return }
+        let active = saved.routes.prefix(saved.active).filter(exists).count
+        tabs = TabSet(restoring: routes.map { TabState(route: $0) }, active: active, fallback: TabState(route: .all))
+        load(tabs.active)
+    }
+
+    private struct SavedTabs: Codable {
+        var routes: [Route]
+        var active: Int
     }
 
     /// 換掉目前位置但不記入歷史（iPhone 的導覽堆疊、刪除後回到資料夾）
@@ -153,15 +251,22 @@ final class VaultStore: DocumentSession {
 
     /// 改名、搬移後，目前位置與歷史中指向舊路徑的項目一併更新
     private func routesMoved(from: String, to: String) {
-        route = route.moved(from: from, to: to)
         if let side = sidePath, case .file(let moved) = Route.file(side).moved(from: from, to: to) { sidePath = moved }
-        backStack = backStack.map { $0.moved(from: from, to: to) }
-        forwardStack = forwardStack.map { $0.moved(from: from, to: to) }
+        tabs.update { state in
+            state.route = state.route.moved(from: from, to: to)
+            state.back = state.back.map { $0.moved(from: from, to: to) }
+            state.forward = state.forward.map { $0.moved(from: from, to: to) }
+        }
+        load(tabs.active)
     }
 
     /// 刪除後，目前位置若在被刪的路徑下，回到上一層
     private func routesDeleted(_ path: String) {
         if let side = sidePath, Route.file(side).points(into: path) { sidePath = nil }
+        // 背景分頁指向被刪的檔案或資料夾：直接關掉
+        for tab in tabs.tabs where tab.id != tabs.activeID && tab.state.route.points(into: path) {
+            tabs.close(tab.id, blank: TabState(route: .all))
+        }
         guard route.points(into: path) else { return }
         let parent = (path as NSString).deletingLastPathComponent
         route = parent.isEmpty ? .all : .folder(parent)

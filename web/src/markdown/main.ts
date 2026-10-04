@@ -19,6 +19,7 @@ import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCar
 import { lineBreakExtension, lineBreakOf, lines, normalized } from "./lineBreak";
 import { livePreview } from "./livePreview";
 import { rebase } from "./rebase";
+import { StateCache } from "./stateCache";
 
 declare global {
   interface Window {
@@ -124,7 +125,7 @@ const extensions = [
 ];
 
 // 每篇開過的筆記保留 EditorState：切回來時 undo 紀錄與游標都還在
-const states = new Map<string, EditorState>();
+const states = new StateCache<EditorState>(20);
 let currentId: string | null = null;
 let dirty = false;
 let timer: number | undefined;
@@ -260,6 +261,11 @@ const api = {
 
   close(id: string) {
     states.delete(id);
+  },
+
+  // 記憶體警告：丟掉不在畫面上的 state（目前這篇由 view 持有）
+  trim() {
+    states.clear();
   },
 
   // 複習時的「編輯筆記」：游標放到該行行首（line 從 0 起算）並捲到畫面中間

@@ -38,6 +38,14 @@ enum A11yID {
         static func folder(_ path: String) -> String { "list.folder:\(path)" }
     }
 
+    enum Tabs {
+        static let bar = "tabs.bar"
+        static let new = "tabs.new"
+        /// 分頁的位置：檔案帶 Vault 相對路徑，其他為 `all`、`recents`…
+        static func tab(_ key: String) -> String { "tabs.tab:\(key)" }
+        static func close(_ key: String) -> String { "tabs.close:\(key)" }
+    }
+
     enum Toolbar {
         static let back = "toolbar.back"
         static let forward = "toolbar.forward"
