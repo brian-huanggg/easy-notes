@@ -56,6 +56,8 @@ public final class ReviewStore: EditorController {
     @ObservationIgnored private var schedules: [String: CardSchedule] = [:]
     @ObservationIgnored private var history: [String: [ReviewEntry]] = [:]
     @ObservationIgnored private var tags: [String: [String]] = [:]
+    /// 索引中的卡片 note（匯出給 Anki）
+    @ObservationIgnored private var notes: [(path: String, note: CardNote)] = []
     @ObservationIgnored private var cardsTask: Task<Void, Never>?
     @ObservationIgnored private var historyTask: Task<Void, Never>?
     @ObservationIgnored private var clockTask: Task<Void, Never>?
@@ -125,6 +127,7 @@ public final class ReviewStore: EditorController {
     private func reloadCards() async {
         guard let index = vaultSession?.index else { return }
         let notes = (try? await CardIndexer.notes(in: index)) ?? []
+        self.notes = notes
         cards = notes.flatMap { StudyCard.cards(path: $0.path, note: $0.note) }
         tags = (try? await index.fileTags()) ?? [:]
         decks = Deck.tree(cards)
@@ -352,6 +355,18 @@ public final class ReviewStore: EditorController {
     }
 
     private var today: Int { DayClock(rolloverHour: config.global.rolloverHour).day(of: Date()) }
+
+    // MARK: 匯出
+
+    /// 匯出給 Anki：牌組（含子牌組；"" = 只有根目錄，nil = 全部）的卡片，依筆記類型拆成三個檔
+    public func ankiExport(deck: String?) -> [AnkiExport.File] {
+        let selected = notes.filter { item in
+            guard let deck else { return true }
+            let folder = (item.path as NSString).deletingLastPathComponent
+            return deck.isEmpty ? folder.isEmpty : folder == deck || folder.hasPrefix(deck + "/")
+        }
+        return AnkiExport.files(selected, tags: tags)
+    }
 
     // MARK: 設定
 

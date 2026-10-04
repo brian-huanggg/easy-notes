@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習實作完成（實機尚未驗證）；3d 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -256,7 +256,7 @@
 
 目標：與 Anki 互通，並用自己的紀錄優化參數。
 
-- [ ] TSV 匯出給 Anki
+- [x] TSV 匯出給 Anki：依筆記類型拆成三個檔、guid = `^id`、資料夾 → 牌組、Markdown → HTML（`AnkiExportTests`；實際匯入 Anki 尚未驗證）
 - [ ] fsrs-rs 參數優化（UniFFI、XCFramework）；紀錄不足時不允許；結果寫回 preset 的 `w`
 - [ ] 量測加入 fsrs-rs 後的 App 大小（非功能預算）
 - [ ] 選做：匯入 Anki `.apkg` 與複習歷史

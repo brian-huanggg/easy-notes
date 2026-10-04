@@ -33,6 +33,8 @@ struct DeckListView: View {
     @State private var optionsDeck: String?
     /// 自訂複習 sheet 的對象
     @State private var customStudy: CustomStudyRef?
+    /// 匯出給 Anki 的資料夾與預設名稱
+    @State private var export: (folder: AnkiExportFolder, name: String)?
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
@@ -67,6 +69,11 @@ struct DeckListView: View {
         .background(Palette.bgCanvas)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button(L("匯出給 Anki"), systemImage: "square.and.arrow.up") { exportToAnki(nil) }
+                    .help(L("所有卡片匯出成 Anki 可以匯入的文字檔"))
+                    .disabled(store.cards.isEmpty)
+            }
+            ToolbarItem(placement: .primaryAction) {
                 Button(L("自訂複習"), systemImage: "slider.horizontal.below.rectangle") { customStudy = CustomStudyRef(deck: nil) }
                     .help(L("複習忘記的卡片或提前複習"))
                     .disabled(store.cards.isEmpty)
@@ -81,6 +88,11 @@ struct DeckListView: View {
         }
         .sheet(item: $customStudy) { ref in
             CustomStudySheet(deck: ref.deck)
+        }
+        .fileExporter(isPresented: Binding(get: { export != nil }, set: { if !$0 { export = nil } }),
+                      document: export?.folder, contentType: .folder, defaultFilename: export?.name) { result in
+            if case .failure(let error) = result { store.notice = L("無法匯出：\(error.localizedDescription)") }
+            export = nil
         }
     }
 
@@ -139,6 +151,8 @@ struct DeckListView: View {
                                 customStudy = CustomStudyRef(deck: deck.path)
                             }
                             Button(L("牌組選項…"), systemImage: "slider.horizontal.3") { optionsDeck = deck.path }
+                            Divider()
+                            Button(L("匯出給 Anki…"), systemImage: "square.and.arrow.up") { exportToAnki(deck.path) }
                         }
                     if offset < visibleRows.count - 1 { Divider().overlay(Palette.border.color) }
                 }
@@ -146,6 +160,17 @@ struct DeckListView: View {
             .background(RoundedRectangle(cornerRadius: Metrics.radiusLarge, style: .continuous).fill(Palette.surfaceRaised))
             .overlay(RoundedRectangle(cornerRadius: Metrics.radiusLarge, style: .continuous).strokeBorder(Palette.border.color))
         }
+    }
+
+    /// 牌組（nil = 全部）的卡片匯出成資料夾，每種筆記類型一個檔
+    private func exportToAnki(_ deck: String?) {
+        let files = store.ankiExport(deck: deck)
+        guard !files.isEmpty else {
+            store.notice = L("這個牌組還沒有可以匯出的卡片")
+            return
+        }
+        let name = deck.map { $0.isEmpty ? L("未分類") : ($0 as NSString).lastPathComponent } ?? L("所有牌組")
+        export = (AnkiExportFolder(files: files), L("\(name) Anki 匯出"))
     }
 
     /// 展開狀態與篩選後要顯示的列（樹狀攤平）
