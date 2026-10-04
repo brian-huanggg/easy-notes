@@ -17,7 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
-| i18n 多語言（English (US)） | i0 基礎建設完成（在 `i18n-foundation` 分支，尚未合併；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
+| i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
 ## Phase 0 — Spike + Prototype（完成）
 
@@ -329,7 +329,7 @@
 - [x] `SceneRenderer`（CoreGraphics，背景執行緒）：所有標準元素、`angle`、曲線與 elbow 箭頭與箭頭頭部、文字（系統字型）、圖片（依尺寸縮圖）、frame 裁切與標題；未知類型畫佔位框
 - [x] EasyNotesUI：`DocumentPreview.image: Data?`（快取另存 `<hash>.png`）；`BoardPreview` 產生 PNG 縮圖、摘要
 - [x] EasyNotesUI：WebEditorHost 的 `embed://<路徑>?h=<hash>` scheme，回傳預覽快取中的 `image`
-- [ ] Markdown：`![[x.excalidraw]]` 顯示為圖片 widget（游標所在行顯示原始語法），點擊開啟白板
+- [ ] Markdown：`![[x.excalidraw]]` 顯示為圖片 widget（游標所在行顯示原始語法），點擊開啟白板（實作完成、已列入 Changelog 1.0.0；App 內尚未驗證：顯示、游標行顯示原始語法、點擊開啟白板）
 - [ ] Mac 檢視改用 `SceneRenderer`（取代只顯示 `PKDrawing` 的畫面），可平移、縮放
 
 驗收測試：
@@ -577,7 +577,7 @@
 
 ### Review
 
-- [ ] 當卡片都複習完時，"開始複習" 按鈕應該會變灰色不可點擊
+- [ ] 當卡片都複習完時，"開始複習" 按鈕應該會變灰色不可點擊（原本已 `.disabled`，但 `PrimaryButtonStyle` 沒畫停用外觀；改為停用時灰底灰字、無陰影。建置通過，實機尚未驗證）
 - [ ] 自定義複習 (Custom Study)
 
 ### Editor
@@ -594,14 +594,14 @@
 - [x] Sidebar Easynotes Icon 應該替換成App Icon 而不是'E'
 - [x] App中顯示的檔案是默認的預設檔案 而不是 ~/Documents/Easynotes 內真實的檔案，點擊 '在「檔案」App中顯示 ' 也無法正常跳出Finder-> 原因：TestFlight 安裝到 iPadOS
 - [x] 選擇Icon時，因為Light Theme的白色背景會看不到Icons（原因：文件頭的 SF Symbol 用 CSS mask 從 `symbol://` 載入，頁面是 `file://`，回應缺 CORS header 被 WebKit 丟掉，與主題無關；`SymbolSchemeHandler` 加上 `Access-Control-Allow-Origin` 後實機確認正常。選單也改用 text-primary 與格子邊框）
-- [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置
+- [ ] 左側的Sidebar, 雙點擊檔案或資料夾要可以重新命名，資料夾與檔案可以點擊拖拽到其他位置（Mac 雙擊就地改名；拖到資料夾或檔案 = 搬進該資料夾，拖到「空間」= 根目錄，同名或拖進自己時不搬；`Vault.move` 有單元測試，macOS / iOS 建置通過，App 內尚未驗證）
 
 ## 其餘功能清單
 
 - [ ] Xmind - Mindmap
 - [ ] Notion - Database 列表
 - [ ] 需支援English (US) 可以在設定(cmd + ,)中設定，並使用English作為App預設語言（見上方「i18n」）
-- [ ] Settings > 支援Light/Dark Theme
+- [ ] Settings > 支援Light/Dark Theme（實作完成：設定的「外觀」下拉選單 淺色 / 深色 / 跟隨系統，已列入 Changelog 1.0.0；尚未實機驗證：Mac 與 iPad 切換後外殼與編輯器 WebView 都跟著變、重開後保留）
 - [x] Upload Cover Image 支援Clipboard（封面選單新增「貼上剪貼簿的圖片」，⌘V；存成 PNG 後走一般附件路徑，待實機確認）
 
 ## 風險與待決事項

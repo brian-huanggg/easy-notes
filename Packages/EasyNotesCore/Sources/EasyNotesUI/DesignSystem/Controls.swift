@@ -64,6 +64,8 @@ struct Hovering: ViewModifier {
 public struct PrimaryButtonStyle: ButtonStyle {
     public enum Size: Sendable { case regular, large }
     let size: Size
+    /// 停用時改成灰底灰字（`.disabled(_:)` 不會自動改變自訂樣式的外觀）
+    @Environment(\.isEnabled) private var isEnabled
 
     public init(size: Size = .regular) { self.size = size }
 
@@ -71,11 +73,11 @@ public struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .textStyle(.button)
             .labelStyle(CompactLabelStyle(spacing: 6))
-            .foregroundStyle(.white)
+            .foregroundStyle(isEnabled ? Color.white : Palette.textTertiary.color)
             .padding(.vertical, size == .large ? 8 : 6)
             .padding(.horizontal, size == .large ? 14 : 12)
-            .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous).fill(Palette.accent))
-            .shadow(color: Palette.accent.color.opacity(0.25), radius: 2, y: 1)
+            .background(RoundedRectangle(cornerRadius: Metrics.radiusSmall, style: .continuous).fill(isEnabled ? Palette.accent : Palette.bgHover))
+            .shadow(color: isEnabled ? Palette.accent.color.opacity(0.25) : .clear, radius: 2, y: 1)
             .opacity(configuration.isPressed ? 0.85 : 1)
             .contentShape(Rectangle())
     }
