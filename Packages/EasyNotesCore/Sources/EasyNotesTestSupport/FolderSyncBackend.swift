@@ -1,3 +1,5 @@
+// E2E 專用：只在 DEBUG 編譯，Release 即使連結了這個 target 也不會帶進任何程式碼
+#if DEBUG
 import EasyNotesCore
 import Foundation
 
@@ -126,3 +128,5 @@ public struct FolderSyncBackend: SyncBackend {
         deinit { source.cancel() }
     }
 }
+
+#endif
