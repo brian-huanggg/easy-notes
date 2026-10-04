@@ -372,6 +372,7 @@
 - [x] Undo：交錯畫筆畫與移動形狀後連按 ⌘Z，依時間順序復原
 - [x] 多裝置：Mac 移動形狀、iPad 同時加筆畫 → 同步後兩邊都保留
 - [ ] 開著白板時 Claude Code 加入一個 text 元素 → 數秒內出現在畫面，之後存檔不會消失
+  - 存檔改為先比對磁碟再寫（`VaultFS.write(_:to:expecting:)`，`VaultWriteTests`）：監看通知前就存檔也會合併。尚未驗證：`swift test` 未在 Mac 執行、實機未測。
 - [ ] 基準線符合非功能預算（記憶體：開著 1,000 個元素的白板）
 
 ### 4d 選做：筆記卡片
@@ -519,6 +520,7 @@
 - [ ] 儲存格內注音輸入正常（iPad、Mac），含選取後直接打字
 - [ ] 1 萬列捲動流暢
 - [ ] 開著表格時 Claude Code 修改檔案，畫面即時更新且不被舊內容覆蓋
+  - 同上：存檔先比對磁碟再寫。尚未驗證。
 - [ ] 多裝置：兩台離線修改不同列 → 同步後自動合併；同一列不同儲存格 → 也自動合併
 - [ ] Big5 檔案開啟不損壞
 - [ ] 關閉表格後 WebContent process 結束（記憶體預算）
@@ -580,6 +582,7 @@
 
 ### Editor
 
+- [ ] 開著筆記時 Claude Code 修改同一篇：停止輸入 300ms 內打的字被外部內容覆蓋；檔案監看通知前存檔會蓋掉外部修改（`applyRemote` 改為 rebase，`web/test/rebase.test.ts` 通過；存檔先比對磁碟，`VaultWriteTests` 尚未在 Mac 執行；實機尚未驗證）
 - [x] CRLF 換行的筆記在 App 內編輯後，整份檔案的換行被改成 LF（CM6 預設統一成 `\n`；改為全部是 CRLF 時保留，`web/test/lineBreak.test.ts`。實機尚未驗證）
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）
 

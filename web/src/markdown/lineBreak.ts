@@ -26,8 +26,8 @@ export function lines(text: string): Text {
 }
 
 // 把文件改成 `text` 的最小變更（共同前後綴之外的一段），在 doc 座標（換行算一個字元）上計算
-export function replaceChange(state: EditorState, text: string): { from: number; to: number; insert: Text } {
-  const old = state.doc.toString();
+export function replaceChange(doc: Text, text: string): { from: number; to: number; insert: Text } {
+  const old = doc.toString();
   const next = normalized(text);
   let start = 0;
   while (start < old.length && start < next.length && old[start] === next[start]) start++;

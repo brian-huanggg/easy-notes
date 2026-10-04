@@ -540,22 +540,8 @@ public actor SyncEngine {
         return copy
     }
 
-    /// `筆記.md` → `筆記 (衝突 iPad 2026-10-01).md`，已存在時加上編號
     func conflictPath(for path: String) -> String {
-        let dir = (path as NSString).deletingLastPathComponent
-        let name = (path as NSString).lastPathComponent
-        var stem = fs.kinds.displayName(name)
-        if stem == name { stem = (name as NSString).deletingPathExtension } // 未註冊的類型，例如 .png
-        let ext = String(name.dropFirst(stem.count))
-        let date = Date().formatted(.iso8601.year().month().day())
-        var n = 1
-        while true {
-            let suffix = n == 1 ? "" : " \(n)"
-            let candidate = "\(stem) (\(Self.conflictMarker) \(deviceName) \(date)\(suffix))\(ext)"
-            let full = dir.isEmpty ? candidate : "\(dir)/\(candidate)"
-            if !FileManager.default.fileExists(atPath: fs.url(for: full).path(percentEncoded: false)) { return full }
-            n += 1
-        }
+        fs.conflictPath(for: path, deviceName: deviceName)
     }
 
     private func hash(of path: String) throws -> String {

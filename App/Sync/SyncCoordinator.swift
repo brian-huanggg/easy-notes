@@ -246,7 +246,8 @@ final class SyncCoordinator {
         schedule(after: .milliseconds(300))
     }
 
-    private static var deviceName: String {
+    /// 衝突副本檔名用（同步與存檔時的外部修改）
+    static var deviceName: String {
         #if os(iOS)
         UIDevice.current.model
         #else

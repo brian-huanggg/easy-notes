@@ -45,7 +45,8 @@ final class VaultStore: DocumentSession {
     @ObservationIgnored private let writer: VaultWriter
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var derivedTask: Task<Void, Never>?
-    /// 最近一次由 App 寫入的內容，用來分辨外部修改與自己的寫入
+    /// App 最近一次寫入（開啟中的檔案也包含讀取）的內容：用來分辨外部修改與自己的寫入，
+    /// 也是存檔時的比對基準（磁碟已不是這份 → 外部工具剛改過，先合併再寫）
     @ObservationIgnored private var lastWritten: [String: Data] = [:]
     @ObservationIgnored private var watcher: VaultWatcher?
     /// 等待外掛 ContentFixer 處理的檔案（本機的變動）；開啟中的檔案留到離開後
@@ -164,16 +165,31 @@ final class VaultStore: DocumentSession {
     }
 
     func readData(_ path: String) -> Data {
-        (try? fs.read(path)) ?? Data()
+        let data = (try? fs.read(path)) ?? Data()
+        // 編輯器開檔時讀到的內容：之後存檔時用來判斷外部工具有沒有先改過
+        if isOpen(path) { lastWritten[path] = data }
+        return data
     }
 
-    /// 寫入在背景的序列 actor 進行，不擋主執行緒且保持順序；寫完立即更新該檔索引
+    /// 寫入在背景的序列 actor 進行，不擋主執行緒且保持順序；寫完立即更新該檔索引。
+    /// 存檔前外部工具剛改過、檔案監看還沒通知時，寫入合併結果並推回編輯器，不覆蓋外部的修改
     func write(_ data: Data, to path: String) {
+        let expected = lastWritten[path]
         lastWritten[path] = data
+        let device = SyncCoordinator.deviceName
         Task { [writer, index] in
             do {
-                try await writer.write(data, to: path)
-                try await index?.update(path, data: data)
+                let result = try await writer.write(data, to: path, expecting: expected, deviceName: device)
+                // 之後又有新的存檔時交給它處理（它會再跟磁碟比對一次）
+                if result.data != data, lastWritten[path] == data {
+                    lastWritten[path] = result.data
+                    if isOpen(path) { for editor in editors { editor.externalChange(path: path, data: result.data) } }
+                }
+                if let copy = result.conflictCopy {
+                    refresh()
+                    try await index?.update(copy, data: data)
+                }
+                try await index?.update(path, data: result.data)
                 scheduleDerivedRefresh()
                 for editor in editors { editor.vaultChanged([path]) }
                 scheduleFixes([path])
@@ -225,7 +241,7 @@ final class VaultStore: DocumentSession {
     }
 
     private func pushExternalChange(_ path: String) {
-        let data = readData(path)
+        let data = (try? fs.read(path)) ?? Data()
         guard data != lastWritten[path] else { return }
         lastWritten[path] = data
         for editor in editors { editor.externalChange(path: path, data: data) }
@@ -659,7 +675,8 @@ final class VaultStore: DocumentSession {
 private actor VaultWriter {
     let fs: VaultFS
     init(fs: VaultFS) { self.fs = fs }
-    func write(_ data: Data, to path: String) throws {
-        try fs.write(data, to: path)
+    func write(_ data: Data, to path: String, expecting expected: Data?,
+               deviceName: String) throws -> (data: Data, conflictCopy: String?) {
+        try fs.write(data, to: path, expecting: expected, deviceName: deviceName)
     }
 }

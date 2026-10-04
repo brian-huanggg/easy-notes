@@ -117,6 +117,42 @@ public struct VaultFS: Sendable {
         try data.write(to: target, options: .atomic)
     }
 
+    /// App 存檔用：磁碟上的內容已不是 `expected`（外部工具剛寫入、App 還沒套用）時不直接覆寫，
+    /// 以 `expected` 為 base 交給 `DocumentKind.merge`；無法合併時磁碟上的版本留在原處，`data` 另存成衝突副本。
+    /// `expected` 為 nil（不知道上次的內容）時直接寫入。回傳 `path` 上實際寫入的內容與衝突副本的路徑
+    public func write(_ data: Data, to path: String, expecting expected: Data?,
+                      deviceName: String) throws -> (data: Data, conflictCopy: String?) {
+        guard let expected, let current = try? read(path), current != expected, current != data else {
+            try write(data, to: path)
+            return (data, nil)
+        }
+        if let merged = kinds.kind(for: path)?.merge(base: expected, local: data, remote: current) {
+            if merged != current { try write(merged, to: path) }
+            return (merged, nil)
+        }
+        let copy = conflictPath(for: path, deviceName: deviceName)
+        try write(data, to: copy)
+        return (current, copy)
+    }
+
+    /// `筆記.md` → `筆記 (衝突 iPad 2026-10-01).md`，已存在時加上編號
+    public func conflictPath(for path: String, deviceName: String) -> String {
+        let dir = (path as NSString).deletingLastPathComponent
+        let name = (path as NSString).lastPathComponent
+        var stem = kinds.displayName(name)
+        if stem == name { stem = (name as NSString).deletingPathExtension } // 未註冊的類型，例如 .png
+        let ext = String(name.dropFirst(stem.count))
+        let date = Date().formatted(.iso8601.year().month().day())
+        var n = 1
+        while true {
+            let suffix = n == 1 ? "" : " \(n)"
+            let candidate = "\(stem) (\(SyncEngine.conflictMarker) \(deviceName) \(date)\(suffix))\(ext)"
+            let full = dir.isEmpty ? candidate : "\(dir)/\(candidate)"
+            if !exists(full) { return full }
+            n += 1
+        }
+    }
+
     /// 在資料夾中建立不重名的新檔案，回傳相對路徑
     public func create(kind: any DocumentKind.Type, title: String, in folder: String = "") throws -> String {
         let ext = kind.fileExtensions[0]
