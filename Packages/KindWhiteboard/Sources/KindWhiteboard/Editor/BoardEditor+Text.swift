@@ -47,7 +47,7 @@ extension BoardEditor {
     @discardableResult
     func editText(at p: CGPoint) -> Bool {
         guard textEditing == nil else { return false }
-        if let hit = element(at: p), editText(of: hit) { return true }
+        if let hit = element(at: p), openNoteCard(hit) || editText(of: hit) { return true }
         newText(at: p)
         return true
     }
@@ -60,6 +60,14 @@ extension BoardEditor {
         start(TextEditing(text: "", origin: CGPoint(x: p.x, y: p.y - lineBox / 2),
                           fontSize: fontSize, lineHeight: 1.25, align: currentTextAlign(default: "left"),
                           color: currentTextColor, angle: 0))
+    }
+
+    /// 筆記卡片：雙擊開啟它指向的檔案（不編輯卡片文字）。不是卡片、或宿主沒有設定 `openNote` 回傳 false
+    @discardableResult
+    func openNoteCard(_ id: String) -> Bool {
+        guard let openNote, let path = document.scene.noteCardPath(id) else { return false }
+        openNote(path)
+        return true
     }
 
     /// 編輯文字元素，或形狀內的文字（沒有就新增）。其他元素回傳 false

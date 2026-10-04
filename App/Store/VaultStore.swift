@@ -15,11 +15,16 @@ final class VaultStore: DocumentSession {
     private(set) var route: Route = .all {
         didSet {
             guard route != oldValue else { return }
+            // 側邊面板屬於開啟它的那張白板：換到別的位置就關閉
+            if sidePath != nil, route.filePath != oldValue.filePath { sidePath = nil }
             refreshBacklinks()
             // 離開開啟中的檔案：之前延後的 ContentFixer 現在可以處理
             if let old = oldValue.filePath, old != route.filePath, pendingFixes.contains(old) { scheduleFixes([]) }
         }
     }
+    /// 主內容旁側邊面板開啟的檔案（白板的筆記卡片）；只有 Mac / iPad 的外殼支援
+    var sidePath: String?
+    @ObservationIgnored var supportsSide = false
     private(set) var backStack: [Route] = []
     private(set) var forwardStack: [Route] = []
     /// 開啟中的檔案；設為 nil 時回到它所在的資料夾（不記入歷史）
@@ -149,12 +154,14 @@ final class VaultStore: DocumentSession {
     /// 改名、搬移後，目前位置與歷史中指向舊路徑的項目一併更新
     private func routesMoved(from: String, to: String) {
         route = route.moved(from: from, to: to)
+        if let side = sidePath, case .file(let moved) = Route.file(side).moved(from: from, to: to) { sidePath = moved }
         backStack = backStack.map { $0.moved(from: from, to: to) }
         forwardStack = forwardStack.map { $0.moved(from: from, to: to) }
     }
 
     /// 刪除後，目前位置若在被刪的路徑下，回到上一層
     private func routesDeleted(_ path: String) {
+        if let side = sidePath, Route.file(side).points(into: path) { sidePath = nil }
         guard route.points(into: path) else { return }
         let parent = (path as NSString).deletingLastPathComponent
         route = parent.isEmpty ? .all : .folder(parent)
@@ -251,8 +258,8 @@ final class VaultStore: DocumentSession {
 
     /// 開啟中的檔案或它的伴隨檔
     private func isOpen(_ path: String) -> Bool {
-        guard let selection else { return false }
-        return path == selection || fs.kinds.mainFile(ofCompanion: path) == selection
+        let main = fs.kinds.mainFile(ofCompanion: path) ?? path
+        return main == selection || main == sidePath
     }
 
     // MARK: 外掛的背景改寫（ContentFixer）
@@ -502,6 +509,10 @@ final class VaultStore: DocumentSession {
     }
 
     var vault: VaultFS { fs }
+
+    func openBeside(_ path: String) {
+        if supportsSide, path != selection { sidePath = path } else { open(path, line: nil) }
+    }
 
     func open(_ path: String, line: Int?) {
         selection = path

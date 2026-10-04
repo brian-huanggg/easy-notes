@@ -62,6 +62,7 @@ struct SplitShell: View {
     @Environment(VaultStore.self) private var store
 
     var body: some View {
+        @Bindable var store = store
         NavigationSplitView {
             Sidebar()
                 .navigationSplitViewColumnWidth(min: 220, ideal: Metrics.sidebarWidth, max: 340)
@@ -70,6 +71,47 @@ struct SplitShell: View {
                 #endif
         } detail: {
             ShellDetail(route: store.route)
+                .inspector(isPresented: Binding(get: { store.sidePath != nil },
+                                                set: { if !$0 { store.sidePath = nil } })) {
+                    SidePanel()
+                        .inspectorColumnWidth(min: 320, ideal: 440, max: 720)
+                }
+        }
+        .onAppear { store.supportsSide = true }
+        .onDisappear { store.supportsSide = false }
+    }
+}
+
+/// 側邊面板：白板的筆記卡片在主內容旁開啟完整編輯器（與主內容各自獨立）
+struct SidePanel: View {
+    @Environment(VaultStore.self) private var store
+
+    var body: some View {
+        if let path = store.sidePath {
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    Image(systemName: store.symbol(for: .file(path)))
+                    Text(store.title(for: .file(path))).lineLimit(1)
+                    Spacer()
+                    Button(L("在主視窗開啟"), systemImage: "arrow.up.left.and.arrow.down.right") {
+                        store.sidePath = nil
+                        store.open(path, line: nil)
+                    }
+                    .labelStyle(.iconOnly)
+                    Button(L("關閉"), systemImage: "xmark") { store.sidePath = nil }
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                Divider()
+                if let editor = store.plugins.editor(for: store.kindID(path), path: path) {
+                    editor.id(path)
+                } else {
+                    ContentUnavailableView(L("不支援的檔案類型"), systemImage: "doc.questionmark")
+                }
+            }
+            .background(Palette.bgCanvas)
         }
     }
 }

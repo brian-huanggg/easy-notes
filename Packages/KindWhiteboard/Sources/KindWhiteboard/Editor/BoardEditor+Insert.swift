@@ -9,6 +9,7 @@ extension BoardEditor {
     static let arrowLength: CGFloat = 200
     static let frameSize = CGSize(width: 400, height: 300)
     static let stickySize: CGFloat = 200
+    static let noteCardSize = CGSize(width: 280, height: 160)
     /// 中央已有同位置的元素時往右下錯開
     static let insertOffset: CGFloat = 20
 
@@ -34,6 +35,15 @@ extension BoardEditor {
         tool = .select
         operation(L("便條紙"), select: { [el.id] }) { $0.insert(el) }
         editText(of: el.id)
+    }
+
+    /// 插入指向 Vault 檔案 `path` 的筆記卡片，選取它（一筆 Undo）
+    func insertNoteCard(path: String) {
+        let z = max(zoom, 0.01)
+        let box = insertionBox(CGSize(width: Self.noteCardSize.width / z, height: Self.noteCardSize.height / z))
+        inking = false
+        tool = .select
+        operation(L("筆記卡片"), select: { (id: String) in [id] }) { $0.insertNoteCard(path: path, in: box) }
     }
 
     /// 在畫面中央開始一段新文字

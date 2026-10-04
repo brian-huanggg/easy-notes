@@ -1,3 +1,5 @@
+import EasyNotesCore
+import EasyNotesUI
 import ExcalidrawKit
 import PhotosUI
 import SwiftUI
@@ -8,6 +10,8 @@ import UniformTypeIdentifiers
 struct BoardToolbar: View {
     let editor: BoardEditor
     @SwiftUI.Binding var selectionShape: SelectionShape
+    /// 這張白板自己的路徑（筆記卡片的選單不列它）
+    var thisBoard = ""
     var showsInk = true
 
     @State private var showsShapes = false
@@ -15,6 +19,7 @@ struct BoardToolbar: View {
     @State private var showsPhotos = false
     @State private var photo: PhotosPickerItem?
     @State private var showsFiles = false
+    @State private var showsNotes = false
     @State private var canUndo = false
     @State private var canRedo = false
 
@@ -37,6 +42,14 @@ struct BoardToolbar: View {
                     ShapePalette { shape in
                         showsShapes = false
                         editor.insert(shape)
+                    }
+                    .presentationCompactAdaptation(.popover)
+                }
+            button(L("筆記卡片"), "rectangle.and.text.magnifyingglass", active: showsNotes) { showsNotes = true }
+                .popover(isPresented: $showsNotes) {
+                    NoteCardPicker(exclude: thisBoard) { path in
+                        showsNotes = false
+                        editor.insertNoteCard(path: path)
                     }
                     .presentationCompactAdaptation(.popover)
                 }
@@ -217,5 +230,43 @@ enum BoardPasteboard {
         }
         return nil
         #endif
+    }
+}
+
+
+/// 「筆記卡片」面板：列出 Vault 內的檔案（最近修改的在前），可搜尋名稱，點一下插入卡片
+private struct NoteCardPicker: View {
+    let exclude: String
+    let pick: (String) -> Void
+    @Environment(\.documentSession) private var session
+    @State private var files: [IndexedFile] = []
+    @State private var query = ""
+
+    private var shown: [IndexedFile] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        return files.filter { $0.path != exclude && (q.isEmpty || $0.title.localizedCaseInsensitiveContains(q)) }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField(L("搜尋檔案"), text: $query)
+                .textFieldStyle(.roundedBorder)
+                .padding(10)
+            List(shown.prefix(100)) { file in
+                Button { pick(file.path) } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(file.title).lineLimit(1)
+                        Text(file.path).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .listStyle(.plain)
+            .overlay { if shown.isEmpty { Text(L("沒有符合的檔案")).foregroundStyle(.secondary) } }
+        }
+        .frame(width: 320, height: 380)
+        .task { files = (try? await session?.index?.files()) ?? [] }
     }
 }

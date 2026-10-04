@@ -28,6 +28,8 @@ public protocol DocumentSession: AnyObject {
     var index: VaultIndex? { get }
     /// 開啟檔案並捲到第 `line` 行（從 0 起算），例如複習時的「編輯筆記」
     func open(_ path: String, line: Int?)
+    /// 在主內容旁的側邊面板開啟檔案（白板的筆記卡片）；不支援側邊面板的宿主改成一般開啟
+    func openBeside(_ path: String)
     /// 外掛寫了 `addSyncedMetaFolder` 註冊的資料夾內的檔案：排程上傳
     func metaChanged()
     /// 外掛自己在 Vault 內搬移了檔案（例如 PDF 認領孤兒旁檔）：通知同步層保留 file id，並更新索引
@@ -38,6 +40,7 @@ extension DocumentSession {
     public var embedImageReader: @Sendable (_ path: String) async -> Data? { { _ in nil } }
 
     public func fileMoved(from: String, to: String) {}
+    public func openBeside(_ path: String) { open(path, line: nil) }
 
     public func readText(_ path: String) -> String {
         String(decoding: readData(path), as: UTF8.self)
