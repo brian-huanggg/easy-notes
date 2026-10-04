@@ -636,8 +636,8 @@
 - [ ] 外部 URL：筆記內的 `http(s)` 連結怎麼開（尚未檢查 JS 端的點擊處理與 WebView 導覽）；`openLink` 只做檔名比對，已確認安全
 - [ ] 日誌：DEBUG 以外不印筆記內容；`print` 與 `os_log` 全數檢視
 - [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
-- [ ] 跨使用者 RLS 實測：用第二個帳號讀、寫、覆寫第一個帳號的列與 blob（擴充 `scripts/test-sync.sh`）
-- [ ] Storage 上傳大小限制與配額
+- [x] 跨使用者 RLS 實測：`RLSAttackTests` 對本地 Supabase 驗證直接 insert / update / delete `files`（含假冒 `user_id`）、blob upsert 與刪除、`..` 繞進別人資料夾、匿名讀 Storage 與公開網址、維護函式 `purge_deleted_files` 不可呼叫、`commit_file` 只用 `auth.uid()`（13 項整合測試通過；只驗證本地，雲端專案的設定尚未核對）
+- [ ] Storage 上傳大小限制與配額：本地 `file_size_limit = 50MiB`；雲端專案的實際限制、配額與是否開放註冊（本地 `enable_signup = true`、密碼最短 6 字、無信箱驗證）尚未在 Dashboard 核對；`commit_file` 也不驗證 `p_path` 與 `p_size`（客戶端已擋，伺服器端 CHECK 是縱深防禦，需要新 migration 與 `supabase db push`，尚未做）
 - [ ] 解析器模糊測試：Markdown、Excalidraw JSON、`.pdf.ink`、CSV / TSV、Anki 匯入、PDF
 - [ ] 依賴審計：`npm audit` 無已知漏洞（已跑）；SPM 套件的已知漏洞尚未檢查（本機沒有 osv-scanner）
 - [ ] 機密掃描：以 grep 掃過工作樹與歷史（私鑰、JWT、`service_role`、雲端金鑰格式），沒有發現；`.env*` 與憑證檔從未進過版控。尚未用 gitleaks 全面掃描，也沒掃 App bundle
