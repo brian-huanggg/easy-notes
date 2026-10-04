@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 選做 | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -275,7 +275,7 @@
 - [x] 複習忘記的卡片：最近 N 天（含今天）按過 Again 的卡片；可選一個牌組或所有牌組
 - [x] 提前複習：N 天內到期的複習卡；提前作答的紀錄寫 `type: 3`（Anki 的 Filtered），不佔今天的複習上限
 - [x] `StudyScope.filtered`：開始時選定卡片（最多 100 張）、不受上限、不出新卡；畢業的卡片移出這次的選擇，復原時加回
-- [x] 入口：牌組列右鍵選單（iPad 長按）、工具列「自訂複習」；Sheet 顯示會加入幾張卡片
+- [x] 入口：牌組列右鍵選單（iPad 長按）、頁首「自訂複習」按鈕；Sheet 顯示會加入幾張卡片
 
 驗收測試：
 
@@ -283,7 +283,23 @@
 - [ ] 手動：Mac、iPad 各做一次三種自訂複習；在 Mac 增加上限後 iPad 的牌組數字跟著變
 - [ ] 手動：自訂複習中按 U 復原，卡片回到這次的選擇中
 
-尚未驗證：實機畫面（Sheet 在 iPhone 的版面）、跨裝置同步。注意：舊版 App 讀不懂 `type: 3`，會略過這幾行，所以其他裝置要一起更新，否則那台裝置算出的卡片狀態會不同（更新後重播即恢復）。
+尚未驗證：實機畫面（Sheet 在 iPhone 的版面）、跨裝置同步。
+
+### 3f 卡片瀏覽
+
+設計見 [flashcards.md](./architecture/flashcards.md)「卡片瀏覽」。
+
+- [x] `CardQuery`：牌組、狀態（全部 / 新卡 / 學習中 / 複習 / 今天到期 / 已暫停 / Leech）、搜尋（正反面、`#標籤`）、排序（筆記順序 / 到期日 / 遺忘次數）
+- [x] 瀏覽 Sheet：列表、牌組選單、狀態 chip、搜尋欄；右鍵選單：開啟筆記、暫停 / 恢復、重設為新卡（確認）
+- [x] 頁首按鈕：「瀏覽卡片」「自訂複習」「匯出給 Anki」放在篩選 chip 旁（所有牌組）；牌組列右鍵選單有各自的版本
+
+驗收測試：
+
+- [x] 單元測試（`CardQueryTests`）：牌組、各狀態、搜尋、排序
+- [ ] 手動：Mac、iPad、iPhone 開啟瀏覽，暫停後複習佇列不再出現、恢復後回來；重設後變新卡；「開啟筆記」捲到該行
+- [ ] 手動：iPhone 直向時頁首按鈕換行正常、Sheet 版面不擠
+
+尚未驗證：實機畫面與暫停 / 重設後的複習佇列（`ReviewStore` 沒有單元測試）。注意：舊版 App 讀不懂 `type: 3`，會略過這幾行，所以其他裝置要一起更新，否則那台裝置算出的卡片狀態會不同（更新後重播即恢復）。
 
 ## Phase 4 — Whiteboard
 

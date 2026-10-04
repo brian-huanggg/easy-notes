@@ -179,7 +179,7 @@ private struct QueueCount: View {
 }
 
 /// 卡片：正面、答案、來源與標籤
-private struct CardView: View {
+struct CardView: View {
     let card: StudyCard
     let showingAnswer: Bool
     private var store: ReviewStore { .shared }
