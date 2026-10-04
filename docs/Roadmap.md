@@ -582,6 +582,7 @@
 
 ### Editor
 
+- [ ] 注音組字中收到同步或外部修改：變更範圍涵蓋游標時，注音符號（如「ㄓㄨㄥ」）被存進檔案（`applyRemote` 改為組字結束後才套用；Chromium 模擬輸入法的 `web/test/ime.e2e.mjs` 通過，修改前可重現；iPad / Mac 的 WebKit 實機尚未驗證）
 - [ ] 開著筆記時 Claude Code 修改同一篇：停止輸入 300ms 內打的字被外部內容覆蓋；檔案監看通知前存檔會蓋掉外部修改（`applyRemote` 改為 rebase，`web/test/rebase.test.ts` 通過；存檔先比對磁碟，`VaultWriteTests` 尚未在 Mac 執行；實機尚未驗證）
 - [x] CRLF 換行的筆記在 App 內編輯後，整份檔案的換行被改成 LF（CM6 預設統一成 `\n`；改為全部是 CRLF 時保留，`web/test/lineBreak.test.ts`。實機尚未驗證）
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）

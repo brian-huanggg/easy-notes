@@ -4,6 +4,7 @@
 - **實作**：CM6 + Lezer 增量解析；單一預熱 WebView，切換筆記只換 `EditorState`；Bridge 協定見下方。
 - **嵌入**：`LinkTarget` 帶 `hash`（隨 `setLinkTargets` 推送，只在索引變動時送出，不在打字路徑上）；CM6 的 `EmbedWidget` 依完整路徑或「檔名.副檔名」找到目標，放 `<img src="embed:///…?h=<hash>">`。圖片副檔名仍走 `vault://`；`.md` 不嵌入；找不到目標時顯示原始語法。hash 改變時只換 `src`，舊圖留到新圖載入完成。點一下開啟目標，⌘ / ⌥ 點擊顯示原始 md。深色模式用 CSS `invert(93%) hue-rotate(180deg)`。
 - **換行符**：檔案的換行全部是 `\r\n` 時，`EditorState` 加上 `lineSeparator`，寫回用 `sliceDoc()`，換行逐位元組保留；混合的換行照 CM6 預設統一成 `\n`。插入多行文字一律轉成 `Text`（`lineBreak.ts` 的 `lines`），不直接插入含 `\n` 的字串；`applyRemote` 在 doc 座標上算差異，換行符改變時重建 state。
+- **注音組字**：組字中（`view.composing`）不改動文件：存檔延後（`flush` 重新排程），`applyRemote` 收到的內容先暫存，`compositionend` 之後等 CM6 從 DOM 讀進選好的字（約 50ms）再套用。組字中改動涵蓋游標的範圍會打斷輸入法，注音符號會留在文件裡。
 - **合併**：diff3 三方合併。非重疊修改自動合併，重疊才產生衝突副本。編輯中收到遠端變更（同步或外部工具）時，用 `applyRemote` 套用到 CM6，保留游標與 undo。JS 端記住上次與磁碟一致的內容（`saved`）與之後還沒存檔的本地修改（`unsaved`，`ChangeSet`）；遠端變更以 `ChangeSet.map` 轉換到本地修改之上（`rebase.ts`），停止輸入 300ms 內打的字也不會被覆蓋，之後照常寫回合併後的內容。
 
 

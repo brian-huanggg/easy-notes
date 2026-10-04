@@ -102,6 +102,11 @@ const extensions = [
     if (u.focusChanged && !u.view.hasFocus) flush();
   }),
   EditorView.domEventHandlers({
+    compositionend() {
+      // 等 CodeMirror 從 DOM 讀進選好的字再套用，否則重繪會蓋掉它
+      if (pendingRemote) setTimeout(applyPendingRemote, 50);
+      return false;
+    },
     click(e) {
       const tag = (e.target as HTMLElement).closest(".cm-lp-tag") as HTMLElement | null;
       if (tag && !(e.metaKey || e.altKey)) {
@@ -128,6 +133,21 @@ const fromDisk = Annotation.define<boolean>();
 // 上次與磁碟一致的內容，以及之後還沒存檔的本地修改；外部修改進來時據此合併（rebase.ts）
 let saved = Text.empty;
 let unsaved = ChangeSet.empty(0);
+
+// 組字中（注音尚未選字）收到的遠端內容：改動文件會打斷組字、把注音符號留在文件裡，選字結束後才套用
+let pendingRemote: { id: string; text: string } | null = null;
+
+function applyPendingRemote() {
+  if (!pendingRemote) return;
+  // compositionend 之後 CodeMirror 才結束組字狀態
+  if (view.composing) {
+    setTimeout(applyPendingRemote, 50);
+    return;
+  }
+  const { id, text } = pendingRemote;
+  pendingRemote = null;
+  api.applyRemote(id, text);
+}
 
 function markSaved() {
   saved = view.state.doc;
@@ -172,6 +192,7 @@ const api = {
       if (fm) state = state.update({ selection: EditorSelection.cursor(Math.min(fm.to + 1, state.doc.length)) }).state;
     }
     currentId = id;
+    pendingRemote = null;
     view.setState(state);
     markSaved();
     view.dispatch({ effects: [setModified.of(meta.modified ?? null), targetsChanged.of(null)] });
@@ -185,6 +206,11 @@ const api = {
       states.delete(id);
       return;
     }
+    if (view.composing) {
+      pendingRemote = { id, text };
+      return;
+    }
+    pendingRemote = null;
     if (view.state.sliceDoc() === text) {
       markSaved();
       dirty = false;
