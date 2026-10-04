@@ -89,8 +89,8 @@ public enum AnkiExport {
 
     private static func inline(_ text: String) -> String {
         var s = escape(text)
-        s = s.replacing(/\[\[([^\]|]+)\|([^\]]+)\]\]/) { String($0.2) }
-        s = s.replacing(/\[\[([^\]]+)\]\]/) { String($0.1) }
+        s = s.replacing(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/) { String($0.2) }
+        s = s.replacing(/\[\[([^\[\]]+)\]\]/) { String($0.1) }
         s = s.replacing(/\[([^\]]+)\]\(([^)\s]+)\)/) { "<a href=\"\($0.2)\">\($0.1)</a>" }
         s = s.replacing(/\*\*(.+?)\*\*|__(.+?)__/) { "<b>\($0.1 ?? $0.2 ?? "")</b>" }
         s = s.replacing(/\*(.+?)\*/) { "<i>\($0.1)</i>" }

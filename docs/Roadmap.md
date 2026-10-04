@@ -638,7 +638,7 @@
 - [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
 - [x] 跨使用者 RLS 實測：`RLSAttackTests` 對本地 Supabase 驗證直接 insert / update / delete `files`（含假冒 `user_id`）、blob upsert 與刪除、`..` 繞進別人資料夾、匿名讀 Storage 與公開網址、維護函式 `purge_deleted_files` 不可呼叫、`commit_file` 只用 `auth.uid()`（13 項整合測試通過；只驗證本地，雲端專案的設定尚未核對）
 - [ ] Storage 上傳大小限制與配額：本地 `file_size_limit = 50MiB`；雲端專案的實際限制、配額與是否開放註冊（本地 `enable_signup = true`、密碼最短 6 字、無信箱驗證）尚未在 Dashboard 核對；`commit_file` 也不驗證 `p_path` 與 `p_size`（客戶端已擋，伺服器端 CHECK 是縱深防禦，需要新 migration 與 `supabase db push`，尚未做）
-- [ ] 解析器模糊測試：Markdown、Excalidraw JSON、`.pdf.ink`、CSV / TSV、Anki 匯入、PDF
+- [x] 解析器模糊測試：每個套件的 `FuzzSupport.swift`（固定種子的突變與純隨機輸入，崩潰會讓測試程序結束、超過時限視為卡死）加上病態輸入。涵蓋 Diff3、Markdown index / merge / renameLinks、CSV / TSV 文件與合併、`SheetMeta`、Sheet Bridge ops、Excalidraw、`.pdf.ink`、PDF index、卡片語法、複習紀錄。發現並修掉：Sheet ops 的負數 / 極大欄位與 row id 會崩潰（6 種）、Diff3 對兩邊都重寫的大檔是平方成本（8,000 行 10 秒）→ 超過成本上限當衝突、`[[` 正則（Swift 與 JS 共 16 處）對 `[[[[…` 是平方成本（4 萬字元 22 秒）→ 目標與別名排除 `[`。Excalidraw / PDF 旁檔 / 複習紀錄沒有發現問題（單元測試通過；僅在 macOS debug 建置、固定種子跑 數百至數千輪，沒有長時間覆蓋式模糊測試，也沒有針對 PDFKit 與 CoreGraphics 的 crash 做系統性測試；Anki 匯入尚未實作所以未測）
 - [ ] 依賴審計：`npm audit` 無已知漏洞（已跑）；SPM 套件的已知漏洞尚未檢查（本機沒有 osv-scanner）
 - [ ] 機密掃描：以 grep 掃過工作樹與歷史（私鑰、JWT、`service_role`、雲端金鑰格式），沒有發現；`.env*` 與憑證檔從未進過版控。尚未用 gitleaks 全面掃描，也沒掃 App bundle
 - [ ] 建置產物檢查：`codesign -dvvv --entitlements -`、`otool -L`、App bundle 內沒有多餘檔案

@@ -66,7 +66,7 @@ extension SheetKind {
     public static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data? {
         var sheet = SheetDocument(data: data, delimiter: delimiter)
         guard sheet.isEditable else { return nil }
-        let pattern = #"(!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\]\n]*)?\]\])"#
+        let pattern = #"(!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\[\]\n]*)?\]\])"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
         let template = "$1" + NSRegularExpression.escapedTemplate(for: newName) + "$2"
         let changed = sheet.replaceInCells { cell in
@@ -77,7 +77,7 @@ extension SheetKind {
     }
 
     static func wikiLinks(in text: String) -> [String] {
-        guard let regex = try? NSRegularExpression(pattern: #"\[\[([^\]\n|]+)(?:\|[^\]\n]*)?\]\]"#) else { return [] }
+        guard let regex = try? NSRegularExpression(pattern: #"\[\[([^\[\]\n|]+)(?:\|[^\[\]\n]*)?\]\]"#) else { return [] }
         let ns = text as NSString
         return regex.matches(in: text, range: NSRange(location: 0, length: ns.length)).map {
             ns.substring(with: $0.range(at: 1)).trimmingCharacters(in: .whitespaces)

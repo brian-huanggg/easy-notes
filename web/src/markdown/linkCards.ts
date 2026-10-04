@@ -56,9 +56,9 @@ function lookup(target: string): LinkTarget | undefined {
   return targets.get(name);
 }
 
-const CARD = /^\s*\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]\s*$/;
-const IMAGE = /^\s*!\[\[([^\]|\n]+\.(?:png|jpe?g|gif|webp|heic|avif|svg))(?:\|[^\]\n]*)?\]\]\s*$/i;
-const EMBED = /^\s*!\[\[([^\]|\n]+\.[A-Za-z0-9]+)(?:\|[^\]\n]*)?\]\]\s*$/;
+const CARD = /^\s*\[\[([^\[\]|\n]+)(?:\|([^\[\]\n]+))?\]\]\s*$/;
+const IMAGE = /^\s*!\[\[([^\[\]|\n]+\.(?:png|jpe?g|gif|webp|heic|avif|svg))(?:\|[^\[\]\n]*)?\]\]\s*$/i;
+const EMBED = /^\s*!\[\[([^\[\]|\n]+\.[A-Za-z0-9]+)(?:\|[^\[\]\n]*)?\]\]\s*$/;
 
 interface Card {
   target: string;

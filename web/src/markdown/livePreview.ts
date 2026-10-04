@@ -99,7 +99,7 @@ class CalloutIconWidget extends WidgetType {
   }
 }
 
-const WIKILINK = /\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
+const WIKILINK = /\[\[([^\[\]\n|]+)(?:\|([^\[\]\n]+))?\]\]/g;
 // 與 Swift 端 MarkdownKind 的標籤規則一致
 const TAG = /(?<![\p{L}\p{N}_#&\/])#([\p{L}\p{N}_\/-]+)/gu;
 

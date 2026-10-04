@@ -66,11 +66,13 @@ public struct SheetMeta: Equatable, Sendable, Codable {
     // MARK: 增刪欄（編輯器在檔案增刪欄時一起調整）
 
     public mutating func insertColumn(at index: Int) {
+        guard index >= 0 else { return }
         if index < columns.count { columns.insert(Column(), at: index) }
         if index < frozenColumns { frozenColumns += 1 }
     }
 
     public mutating func deleteColumn(at index: Int) {
+        guard index >= 0 else { return }
         if index < columns.count { columns.remove(at: index) }
         if index < frozenColumns { frozenColumns -= 1 }
         normalize()
