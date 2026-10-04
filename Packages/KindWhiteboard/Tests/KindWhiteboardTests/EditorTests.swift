@@ -601,4 +601,27 @@ struct EditorTests {
         editor.cancel()
         #expect(editor.lasso == nil)
     }
+
+    @Test func doubleClickingNoteCardOpensItInsteadOfEditingText() throws {
+        var scene = ExcalidrawScene()
+        let id = scene.insertNoteCard(path: "筆記.md", in: CGRect(x: 0, y: 0, width: 280, height: 160))
+        let (editor, _, _) = try editor(scene)
+        var opened: [String] = []
+        editor.openNote = { opened.append($0) }
+        #expect(editor.editText(at: CGPoint(x: 140, y: 80)))
+        #expect(opened == ["筆記.md"])
+        #expect(editor.textEditing == nil)
+        #expect(editor.element(at: CGPoint(x: 140, y: 80)) == id)
+    }
+
+    @Test func insertNoteCardAddsOneUndoableCardAndSelectsIt() throws {
+        let (editor, _, undo) = try editor()
+        editor.visibleRect = CGRect(x: 0, y: 0, width: 800, height: 600)
+        editor.insertNoteCard(path: "a/b.md")
+        let card = try #require(editor.document.scene.liveElements.first { $0.type == .rectangle })
+        #expect(editor.selection == [card.id])
+        #expect(editor.document.scene.noteCardPath(card.id) == "a/b.md")
+        undo.undo()
+        #expect(editor.document.scene.liveElements.isEmpty)
+    }
 }

@@ -267,4 +267,20 @@ struct ModelEditingTests {
 
         #expect(InkKind.renameLinks(in: out, from: "不存在", to: "x") == nil)
     }
+
+    @Test func noteCardHasLinkFileAndTitleAndFollowsRename() throws {
+        var scene = ExcalidrawScene()
+        let id = scene.insertNoteCard(path: "課程/微積分.md", in: CGRect(x: 10, y: 20, width: 280, height: 160))
+        #expect(scene.noteCardPath(id) == "課程/微積分.md")
+        #expect(scene.element(id)?.link == "[[微積分]]")
+        let title = try #require(scene.liveElements.first { $0.containerId == id })
+        #expect(title.text == "微積分")
+        #expect(scene.noteLinks == ["微積分"])
+
+        let changed = scene.renameLinks(from: "微積分", to: "線性代數")
+        #expect(changed)
+        #expect(scene.noteCardPath(id) == "課程/線性代數.md")
+        #expect(scene.element(id)?.link == "[[線性代數]]")
+        #expect(scene.element(title.id)?.text == "線性代數")
+    }
 }

@@ -85,6 +85,8 @@ final class BoardEditor {
     /// 宿主提供（iOS：`PKCanvasView` 的 undoManager，與筆畫共用一個堆疊）
     @ObservationIgnored var undoManager: UndoManager?
     @ObservationIgnored var onChange: ((BoardChange) -> Void)?
+    /// 宿主提供：雙擊筆記卡片時開啟它指向的檔案（Vault 路徑）
+    @ObservationIgnored var openNote: ((String) -> Void)?
 
     /// 控制點的觸控半徑（螢幕點）
     static let handleRadius: CGFloat = 16

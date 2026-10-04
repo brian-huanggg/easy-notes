@@ -99,7 +99,8 @@
 
 難度中等，前提是白板結構層已完成。
 
-- **格式**：用一個 rectangle 元素代表卡片，`link` 設為 `[[筆記]]`，`customData.easynotes.file` 記錄檔案路徑（改名時由連結改名流程一併更新）。在 excalidraw.com 上會優雅降級成一個帶連結的框。
+- **格式**：用一個 rectangle 元素代表卡片（白底，預設 280×160 螢幕點），`link` 設為 `[[筆記]]`，`customData.easynotes.file` 記錄檔案路徑，標題是綁在矩形內的文字。改名時 `renameLinks` 一併更新三者（標題只在仍等於舊名時才改，使用者改過就不動）。任何檔案類型都可以做成卡片（連結以檔名解析）。在 excalidraw.com 上會優雅降級成一個帶連結的框。
+- **插入**：工具列「筆記卡片」彈出檔案選單（`session.index.files()`，可搜尋、不列白板自己），插在畫面中央、選取、一筆 Undo。
 - **顯示**：白板向 Registry 要 `.md` 的 DocumentPreviewProvider，由 Markdown 外掛產生唯讀預覽（標題 + 前幾段），外掛之間仍不互相依賴。
-- **互動**：點卡片在側邊面板開啟完整編輯器。不做畫布內直接編輯：縮放中的畫布上要同時跑多個 CM6 編輯器，成本高、收益小。
+- **互動**：雙擊卡片（`BoardEditor.editText(at:)` 先判斷卡片，不進文字編輯）呼叫宿主的 `openNote`，白板轉給 `DocumentSession.openBeside`；App 在 Mac / iPad 以 `.inspector` 在主內容右側開啟該檔案的編輯器（`VaultStore.sidePath`，編輯器由 Registry 依類型提供，所以不限筆記），側邊檔案也算「開啟中」（收到外部修改、不被 `close`）。換到別的位置、或檔案被刪就關閉；iPhone 沒有側邊面板，改為一般開啟。不做畫布內直接編輯：縮放中的畫布上要同時跑多個 CM6 編輯器，成本高、收益小。
 - **互通**：需要與 Obsidian Canvas 互通時，另做 JSON Canvas（`.canvas`）匯出即可，不必多維護一種畫布格式。

@@ -31,8 +31,37 @@ extension ExcalidrawScene {
                 }
             }
             changed = true
+            // 卡片的標題文字跟著改名（使用者改過標題就不動）
+            if link != nil, let title = liveElements.first(where: { $0.containerId == el.id && $0.type == .text }),
+               title.text.caseInsensitiveCompare(oldName) == .orderedSame {
+                setText(title.id, to: newName)
+            }
         }
         return changed
+    }
+
+    /// 筆記卡片：`customData.easynotes.file` 記錄的 Vault 路徑；不是卡片回傳 nil
+    public func noteCardPath(_ id: String) -> String? {
+        guard let el = element(id), !el.isDeleted else { return nil }
+        return Self.cardFile(in: el.customData)
+    }
+
+    /// 在 `box` 插入筆記卡片（rectangle + `link: [[筆記名]]` + `customData.easynotes.file`），
+    /// 標題是綁在矩形內的文字，excalidraw.com 顯示為帶連結的框。回傳卡片 id
+    @discardableResult
+    public mutating func insertNoteCard(path: String, in box: CGRect) -> String {
+        let name = (((path as NSString).lastPathComponent) as NSString).deletingPathExtension
+        var card = Element.rectangle(x: box.minX, y: box.minY, width: box.width, height: box.height)
+        card.raw["backgroundColor"] = "#ffffff"
+        card.link = "[[\(name)]]"
+        card.raw["customData"] = [Self.customKey: ["file": path]]
+        insert(card)
+        addBoundText(name, to: card.id)
+        return card.id
+    }
+
+    static func cardFile(in customData: [String: Any]?) -> String? {
+        (customData?[customKey] as? [String: Any])?["file"] as? String
     }
 
     static func wikiTarget(_ link: String) -> String? {

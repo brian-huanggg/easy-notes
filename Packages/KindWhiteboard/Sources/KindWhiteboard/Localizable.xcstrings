@@ -1,6 +1,15 @@
 {
   "sourceLanguage" : "zh-Hant",
   "strings" : {
+    "筆記卡片" : {
+
+    },
+    "搜尋檔案" : {
+
+    },
+    "沒有符合的檔案" : {
+
+    },
     "%@（點一下切換）" : {
       "localizations" : {
         "en" : {

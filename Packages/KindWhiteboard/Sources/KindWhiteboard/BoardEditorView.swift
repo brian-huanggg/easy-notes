@@ -25,14 +25,14 @@ struct BoardEditorView: View {
                         BoardBackgroundMenu(background: $background).padding(16)
                     }
                     // 工具列獨立一排，在導覽列（檔名、設定）下方
-                    .safeAreaInset(edge: .top, spacing: 0) { BoardToolbar(editor: editor, selectionShape: $selectionShape) }
+                    .safeAreaInset(edge: .top, spacing: 0) { BoardToolbar(editor: editor, selectionShape: $selectionShape, thisBoard: path) }
                 #else
                 BoardMacCanvas(document: document, editor: editor, background: background, selectionShape: selectionShape)
                     .overlay(alignment: .bottomTrailing) {
                         BoardBackgroundMenu(background: $background).padding(16)
                     }
                     .safeAreaInset(edge: .top, spacing: 0) {
-                        BoardToolbar(editor: editor, selectionShape: $selectionShape, showsInk: false)
+                        BoardToolbar(editor: editor, selectionShape: $selectionShape, thisBoard: path, showsInk: false)
                     }
                 #endif
             }
@@ -41,7 +41,9 @@ struct BoardEditorView: View {
             if document == nil, let session {
                 let doc = WhiteboardController.shared.open(path, session: session)
                 document = doc
-                editor = BoardEditor(document: doc)
+                let board = BoardEditor(document: doc)
+                board.openNote = { [weak session] in session?.openBeside($0) }
+                editor = board
             }
         }
         .onDisappear { WhiteboardController.shared.close(path: path) }
