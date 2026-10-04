@@ -26,11 +26,17 @@ public struct SRSConfig: Equatable, Sendable {
     /// 資料夾路徑 → preset id；沒有列出的資料夾繼承上層
     public var decks: [String: String]
     public var global: GlobalSettings
+    /// 自訂複習「增加今天的上限」：資料夾路徑 → 新卡 / 複習多加的張數（只在記錄的那一天有效）
+    public var extendNew: [String: LimitExtension]
+    public var extendReview: [String: LimitExtension]
 
-    public init(presets: [String: Preset] = [:], decks: [String: String] = [:], global: GlobalSettings = GlobalSettings()) {
+    public init(presets: [String: Preset] = [:], decks: [String: String] = [:], global: GlobalSettings = GlobalSettings(),
+                extendNew: [String: LimitExtension] = [:], extendReview: [String: LimitExtension] = [:]) {
         self.presets = presets
         self.decks = decks
         self.global = global
+        self.extendNew = extendNew
+        self.extendReview = extendReview
         if self.presets[Self.defaultPresetID] == nil { self.presets[Self.defaultPresetID] = Preset() }
     }
 
@@ -46,6 +52,12 @@ public struct SRSConfig: Equatable, Sendable {
 
     public func preset(for folder: String) -> Preset {
         presets[presetID(for: folder)] ?? Preset()
+    }
+
+    /// 這個牌組今天多加的張數；記錄的不是今天就是 0
+    public func extraLimit(_ folder: String, new: Bool, day: Int) -> Int {
+        guard let ext = (new ? extendNew : extendReview)[folder], ext.day == day else { return 0 }
+        return max(0, ext.n)
     }
 
     /// 依名稱排序，`default` 在最前面
@@ -83,6 +95,17 @@ public struct SRSConfig: Equatable, Sendable {
             }
         }
         return copy
+    }
+}
+
+/// 增加今天的上限：`day` = `DayClock.day(of:)`，`n` = 這一天總共多加幾張
+public struct LimitExtension: Codable, Equatable, Sendable {
+    public var day: Int
+    public var n: Int
+
+    public init(day: Int, n: Int) {
+        self.day = day
+        self.n = n
     }
 }
 
@@ -145,11 +168,16 @@ public enum SRSSettings {
         var presetFields: [String: [String: JSONValue]] = [:]
         var decks: [String: String] = [:]
         var global = JSONValue.encode(GlobalSettings()).objectValue ?? [:]
+        var extendNew: [String: LimitExtension] = [:]
+        var extendReview: [String: LimitExtension] = [:]
         for (key, value) in fields {
             switch (key.first, key.count) {
             case ("presets", 3): presetFields[key[1], default: [:]][key[2]] = value
             case ("decks", 2): if case .string(let id) = value { decks[key[1]] = id }
             case ("global", 2): global[key[1]] = value
+            case ("extend", 3):
+                guard let ext = value.decode(LimitExtension.self) else { break }
+                if key[2] == "new" { extendNew[key[1]] = ext } else if key[2] == "review" { extendReview[key[1]] = ext }
             default: break
             }
         }
@@ -167,7 +195,8 @@ public enum SRSSettings {
             presets[id] = JSONValue.object(object).decode(Preset.self)
         }
         let globalSettings = JSONValue.object(global).decode(GlobalSettings.self) ?? GlobalSettings()
-        return SRSConfig(presets: presets, decks: decks.filter { presets[$0.value] != nil }, global: globalSettings)
+        return SRSConfig(presets: presets, decks: decks.filter { presets[$0.value] != nil }, global: globalSettings,
+                         extendNew: extendNew, extendReview: extendReview)
     }
 
     // MARK: 寫入
@@ -180,6 +209,8 @@ public enum SRSSettings {
         }
         for (path, id) in config.decks { result[["decks", path]] = .string(id) }
         for (name, value) in JSONValue.encode(config.global).objectValue ?? [:] { result[["global", name]] = value }
+        for (path, ext) in config.extendNew { result[["extend", path, "new"]] = JSONValue.encode(ext) }
+        for (path, ext) in config.extendReview { result[["extend", path, "review"]] = JSONValue.encode(ext) }
         return result
     }
 

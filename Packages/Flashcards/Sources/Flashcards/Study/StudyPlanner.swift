@@ -42,6 +42,8 @@ public struct StudyPlanner: Sendable {
     let reviewsToday: [String: Int]
     /// note id → 今天評分過的卡片
     let answeredToday: [String: Set<String>]
+    /// 最後一次按 Again 是第幾天（自訂複習「忘記的卡」）
+    let lastAgainDay: [String: Int]
 
     public init(cards: [StudyCard], schedules: [String: CardSchedule], history: [String: [ReviewEntry]],
                 config: SRSConfig, tags: [String: [String]] = [:], now: Date = Date(),
@@ -58,11 +60,13 @@ public struct StudyPlanner: Sendable {
         var introduced = Set<String>()
         var reviews: [String: Int] = [:]
         var answered: [String: Set<String>] = [:]
+        var again: [String: Int] = [:]
         let noteOf = Dictionary(cards.map { ($0.id, $0.noteID) }, uniquingKeysWith: { a, _ in a })
         for (cid, entries) in history {
             // reset 之後重新算新卡
             let start = entries.lastIndex { $0.op == .reset }.map { $0 + 1 } ?? 0
             let graded = entries[start...].filter { $0.grade != nil }
+            if let last = graded.last(where: { $0.grade == .again }) { again[cid] = clock.day(of: last.date) }
             guard let first = graded.first, let last = graded.last, clock.day(of: last.date) == today else { continue }
             if clock.day(of: first.date) == today { introduced.insert(cid) }
             reviews[cid] = graded.filter { $0.type == .review && clock.day(of: $0.date) == today }.count
@@ -71,6 +75,7 @@ public struct StudyPlanner: Sendable {
         introducedToday = introduced
         reviewsToday = reviews
         answeredToday = answered
+        lastAgainDay = again
     }
 
     public func schedule(_ card: StudyCard) -> CardSchedule {
@@ -107,6 +112,23 @@ public struct StudyPlanner: Sendable {
         let queue = gather(.tag(tag), within: nil)
         let ordered = queue.learningAll + queue.review + queue.new
         return Set(ordered.prefix(Self.filteredLimit).map(\.id))
+    }
+
+    /// 自訂複習開始時決定的卡片（最多 `filteredLimit` 張）；張數也用在 Sheet 的預覽
+    public func customSelection(_ study: CustomStudy) -> Set<String> {
+        let days = max(1, study.days)
+        var candidates = Set<String>()
+        for card in cards where study.contains(card) {
+            switch study.kind {
+            case .forgotten:
+                if let day = lastAgainDay[card.id], day > today - days { candidates.insert(card.id) }
+            case .reviewAhead:
+                let state = schedule(card)
+                if state.phase == .review, let due = state.due, clock.day(of: due) <= today + days { candidates.insert(card.id) }
+            }
+        }
+        let queue = gather(.filtered(study), within: candidates)
+        return Set((queue.learningAll + queue.review).prefix(Self.filteredLimit).map(\.id))
     }
 
     /// 卡片的標籤：所在筆記的標籤，加上虛擬標籤 `leech`
@@ -152,6 +174,9 @@ public struct StudyPlanner: Sendable {
         var learning: [(StudyCard, Date)] = []
         var reviews: [StudyCard] = []
         var news: [StudyCard] = []
+        // 自訂複習：選定的複習卡不論是否到期都出現，不出新卡
+        let custom: Bool
+        if case .filtered = scope { custom = true } else { custom = false }
         for card in cards where contains(scope, card) && allowed?.contains(card.id) != false {
             let state = schedule(card)
             guard !state.suspended else { continue }
@@ -160,9 +185,10 @@ public struct StudyPlanner: Sendable {
                 let due = state.due ?? now
                 if due < tomorrow { learning.append((card, due)) }
             case .review:
-                if let due = state.due, clock.day(of: due) <= today { reviews.append(card) }
+                if custom && allowed != nil { reviews.append(card) }
+                else if let due = state.due, clock.day(of: due) <= today { reviews.append(card) }
             case .new:
-                news.append(card)
+                if !custom { news.append(card) }
             }
         }
         learning.sort { ($0.1, $0.0.id) < ($1.1, $1.0.id) }
@@ -172,7 +198,10 @@ public struct StudyPlanner: Sendable {
         queue.learningAhead = learning.filter { $0.1 > now && $0.1 <= now.addingTimeInterval(Self.learnAhead) }.map(\.0)
 
         let limited: Bool
-        if case .tag = scope { limited = false } else { limited = true }
+        switch scope {
+        case .tag, .filtered: limited = false
+        case .all, .deck, .unfiled: limited = true
+        }
         var limits = Limits(planner: self, scope: scope)
         var takenNotes = Set<String>()
 
@@ -203,6 +232,7 @@ public struct StudyPlanner: Sendable {
         case .deck(let path): card.deck == path || card.deck.hasPrefix(path + "/")
         case .unfiled: card.deck.isEmpty
         case .tag(let tag): tags(of: card).contains { $0.caseInsensitiveCompare(tag) == .orderedSame || $0.lowercased().hasPrefix(tag.lowercased() + "/") }
+        case .filtered(let study): study.contains(card)
         }
     }
 
@@ -289,7 +319,7 @@ struct Limits {
         let start: String
         switch scope {
         case .deck(let path): start = path
-        case .unfiled, .tag: start = ""
+        case .unfiled, .tag, .filtered: start = ""
         case .all: start = deck.split(separator: "/").first.map(String.init) ?? ""
         }
         guard !deck.isEmpty, !start.isEmpty else { return [""] }
@@ -305,6 +335,7 @@ struct Limits {
     private mutating func remaining(_ deck: String, new: Bool) -> Int {
         if let left = new ? newLeft[deck] : reviewLeft[deck] { return left }
         let preset = planner.config.preset(for: deck)
+        let config = planner.config
         // 今天已經在這個牌組（含子牌組；"" 只算根目錄）做過的
         let inDeck = { (card: StudyCard) in
             deck.isEmpty ? card.deck.isEmpty : card.deck == deck || card.deck.hasPrefix(deck + "/")
@@ -316,7 +347,10 @@ struct Limits {
             reviewDone += planner.reviewsToday[card.id] ?? 0
         }
         // 今天學的新卡也算在複習上限內（Anki 23.10 起的預設）
-        let left = new ? preset.newPerDay - newDone : preset.reviewsPerDay - reviewDone - newDone
+        // 自訂複習「增加今天的上限」
+        let newLimit = preset.newPerDay + config.extraLimit(deck, new: true, day: planner.today)
+        let reviewLimit = preset.reviewsPerDay + config.extraLimit(deck, new: false, day: planner.today)
+        let left = new ? newLimit - newDone : reviewLimit - reviewDone - newDone
         if new { newLeft[deck] = left } else { reviewLeft[deck] = left }
         return left
     }

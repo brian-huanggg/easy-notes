@@ -293,6 +293,126 @@ struct StudyTests {
     }
 }
 
+// MARK: - 自訂複習
+
+struct CustomStudyTests {
+    static var noon: Date { StudyTests.noon }
+    static var today: Int { StudyTests.clock.day(of: noon) }
+
+    /// 增加今天的上限：只在當天有效；從母牌組開始時母牌組的上限仍然適用
+    @Test func extendedLimitsApplyOnlyToday() {
+        let cards = StudyTests.notes("a/b/x.md", 40, prefix: "n")
+        var config = SRSConfig()
+        config.extendNew["a/b"] = LimitExtension(day: Self.today, n: 10)
+        let planner = StudyTests.planner(cards, config: config)
+        #expect(planner.counts(.deck("a/b")).new == 30)
+        #expect(planner.counts(.deck("a")).new == 20)
+        config.extendNew["a"] = LimitExtension(day: Self.today, n: 5)
+        #expect(StudyTests.planner(cards, config: config).counts(.deck("a")).new == 25)
+        // 昨天加的不算
+        config.extendNew["a/b"] = LimitExtension(day: Self.today - 1, n: 10)
+        #expect(StudyTests.planner(cards, config: config).counts(.deck("a/b")).new == 20)
+
+        var reviews: [String: CardSchedule] = [:]
+        for card in cards { reviews[card.id] = StudyTests.reviewCard() }
+        var reviewConfig = SRSConfig()
+        reviewConfig.presets["default"]!.reviewsPerDay = 10
+        reviewConfig.extendReview["a/b"] = LimitExtension(day: Self.today, n: 15)
+        #expect(StudyTests.planner(cards, config: reviewConfig, schedules: reviews).counts(.deck("a/b")).review == 25)
+    }
+
+    /// 兩台裝置各加新卡、複習 → 都保留
+    @Test func extensionsSyncPerField() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "srs-extend-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self]))
+        let base = SRSSettings.load(fs)
+        var mac = base
+        mac.extendNew["日文"] = LimitExtension(day: Self.today, n: 10)
+        try SRSSettings.save(mac, replacing: base, fs: fs, deviceID: "mac", now: Self.noon)
+        var ipad = base
+        ipad.extendReview["日文"] = LimitExtension(day: Self.today, n: 50)
+        try SRSSettings.save(ipad, replacing: base, fs: fs, deviceID: "ipad", now: Self.noon.addingTimeInterval(60))
+        let merged = SRSSettings.load(fs)
+        #expect(merged.extraLimit("日文", new: true, day: Self.today) == 10)
+        #expect(merged.extraLimit("日文", new: false, day: Self.today) == 50)
+        #expect(merged.extraLimit("日文", new: true, day: Self.today + 1) == 0)
+        // 不影響其他設定
+        #expect(merged.presets == SRSConfig().presets)
+    }
+
+    private static func again(_ cid: String, daysAgo: Int) -> ReviewEntry {
+        ReviewEntry(id: noon.addingTimeInterval(Double(-daysAgo) * 86_400).millis, cid: cid, ease: 1, ivl: -600,
+                    lastIvl: 3, time: 1000, type: .review)
+    }
+
+    /// 忘記的卡：最近 N 天（含今天）按過 Again，依牌組篩選；選定後不論是否到期都出現，不出新卡
+    @Test func forgottenCards() {
+        let cards = StudyTests.notes("a/x.md", 3, prefix: "a") + StudyTests.notes("b/y.md", 1, prefix: "b")
+        var notDue = StudyTests.reviewCard()
+        notDue.due = StudyTests.clock.start(ofDay: Self.today + 2)
+        let schedules = ["c-a0": notDue, "c-a1": notDue, "c-b0": notDue]
+        let history = ["c-a0": [Self.again("c-a0", daysAgo: 0)], "c-a1": [Self.again("c-a1", daysAgo: 2)],
+                       "c-b0": [Self.again("c-b0", daysAgo: 0)]]
+        let planner = StudyTests.planner(cards, schedules: schedules, history: history)
+        #expect(planner.customSelection(CustomStudy(.forgotten, days: 1, deck: "a")) == ["c-a0"])
+        #expect(planner.customSelection(CustomStudy(.forgotten, days: 3, deck: "a")) == ["c-a0", "c-a1"])
+        let all = CustomStudy(.forgotten, days: 1, deck: nil)
+        let selected = planner.customSelection(all)
+        #expect(selected == ["c-a0", "c-b0"])
+        let counts = planner.counts(.filtered(all), within: selected)
+        #expect(counts.review == 2)
+        #expect(counts.new == 0)
+        // 一般複習時沒到期的卡片不出現
+        #expect(planner.counts(.deck("a")).review == 0)
+    }
+
+    /// 提前複習：N 天內到期的複習卡（含已到期），不受每日上限限制
+    @Test func reviewAhead() {
+        let cards = StudyTests.notes("a/x.md", 4, prefix: "a")
+        var soon = StudyTests.reviewCard()
+        soon.due = StudyTests.clock.start(ofDay: Self.today + 1)
+        var later = StudyTests.reviewCard()
+        later.due = StudyTests.clock.start(ofDay: Self.today + 5)
+        let schedules = ["c-a0": StudyTests.reviewCard(dueDaysAgo: 1), "c-a1": soon, "c-a2": later]
+        var config = SRSConfig()
+        config.presets["default"]!.reviewsPerDay = 0
+        let planner = StudyTests.planner(cards, config: config, schedules: schedules)
+        let study = CustomStudy(.reviewAhead, days: 1, deck: nil)
+        let selected = planner.customSelection(study)
+        #expect(selected == ["c-a0", "c-a1"])
+        #expect(planner.counts(.filtered(study), within: selected).review == 2)
+        #expect(planner.customSelection(CustomStudy(.reviewAhead, days: 5, deck: "a")).count == 3)
+        #expect(planner.counts(.deck("a")).review == 0)
+    }
+
+    /// 提前作答寫成 `type: 3`，不算在今天的複習數內；到期的照常是 `type: 1`
+    @Test func earlyReviewIsFiltered() throws {
+        let scheduler = Scheduler(clock: StudyTests.clock)
+        var early = StudyTests.reviewCard()
+        early.due = StudyTests.clock.start(ofDay: Self.today + 3)
+        let entry = try #require(scheduler.preview(early, cid: "c-a0", now: Self.noon)[.good])
+        #expect(entry.type == .filtered)
+        #expect(entry.ivl > 0)
+        #expect(scheduler.preview(StudyTests.reviewCard(), cid: "c-a0", now: Self.noon)[.good]?.type == .review)
+        #expect(ReviewEntry(line: Substring(entry.line)) == entry)
+
+        // 第一筆是昨天的 learning、今天是 type 3 → 不扣複習上限
+        let cards = StudyTests.notes("a/x.md", 2, prefix: "a")
+        let history = ["c-a0": [ReviewEntry(id: Self.noon.addingTimeInterval(-86_400 * 5).millis, cid: "c-a0", ease: 3,
+                                            ivl: 5, lastIvl: 0, time: 0, type: .learning), entry]]
+        var config = SRSConfig()
+        config.presets["default"]!.reviewsPerDay = 1
+        let planner = StudyTests.planner(cards, config: config,
+                                         schedules: ["c-a1": StudyTests.reviewCard()], history: history)
+        #expect(planner.counts(.deck("a")).review == 1)
+
+        // Again 一樣算 lapse
+        let lapse = try #require(scheduler.preview(early, cid: "c-a0", now: Self.noon)[.again])
+        #expect(scheduler.apply(lapse, to: early).lapses == 1)
+    }
+}
+
 // MARK: - 復原
 
 struct UndoTests {

@@ -81,4 +81,32 @@ public enum StudyScope: Hashable, Sendable {
     case unfiled
     /// 標籤篩選（Anki 的 filtered deck）：跨牌組、不受每日上限限制
     case tag(String)
+    /// 自訂複習（忘記的卡、提前複習）：開始時選定卡片，不受每日上限限制、不出新卡
+    case filtered(CustomStudy)
+}
+
+/// 自訂複習的臨時篩選（見 architecture/flashcards.md「自訂複習」）
+public struct CustomStudy: Hashable, Sendable {
+    public enum Kind: Hashable, Sendable {
+        /// 最近 `days` 天（含今天）按過 Again 的卡片
+        case forgotten
+        /// `days` 天內到期的複習卡（含已到期）
+        case reviewAhead
+    }
+
+    public var kind: Kind
+    public var days: Int
+    /// 牌組路徑；nil = 所有牌組，"" = 未分類（只含根目錄）
+    public var deck: String?
+
+    public init(_ kind: Kind, days: Int, deck: String?) {
+        self.kind = kind
+        self.days = days
+        self.deck = deck
+    }
+
+    func contains(_ card: StudyCard) -> Bool {
+        guard let deck else { return true }
+        return deck.isEmpty ? card.deck.isEmpty : card.deck == deck || card.deck.hasPrefix(deck + "/")
+    }
 }

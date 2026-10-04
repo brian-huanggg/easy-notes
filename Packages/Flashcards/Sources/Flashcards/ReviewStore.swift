@@ -15,8 +15,9 @@ public final class ReviewStore: EditorController {
     public struct Session: Equatable {
         public let scope: StudyScope
         public let title: String
-        /// 標籤篩選開始時選定的卡片；nil = 依牌組與上限
-        let allowed: Set<String>?
+        /// 標籤篩選、自訂複習開始時選定的卡片；nil = 依牌組與上限。
+        /// 自訂複習中畢業（回到 Review）的卡片會移除，否則沒到期的卡片會一直重複出現
+        var allowed: Set<String>?
         public var current: StudyCard?
         public var showingAnswer = false
         /// 這次已經作答的次數
@@ -197,7 +198,7 @@ public final class ReviewStore: EditorController {
 
     public func counts(_ scope: StudyScope) -> StudyPlanner.Counts {
         if let cached = counts[scope] { return cached }
-        if case .tag = scope, let allowed = session?.allowed, session?.scope == scope {
+        if let allowed = session?.allowed, session?.scope == scope {
             return planner.counts(scope, within: allowed)
         }
         return planner.counts(scope)
@@ -206,7 +207,11 @@ public final class ReviewStore: EditorController {
     public func start(_ scope: StudyScope, title: String) {
         rebuild()
         var allowed: Set<String>?
-        if case .tag(let tag) = scope { allowed = planner.filteredSelection(tag) }
+        switch scope {
+        case .tag(let tag): allowed = planner.filteredSelection(tag)
+        case .filtered(let study): allowed = planner.customSelection(study)
+        case .all, .deck, .unfiled: break
+        }
         let total = planner.counts(scope, within: allowed).total
         var session = Session(scope: scope, title: title, allowed: allowed, initialTotal: total)
         session.current = next(for: session)
@@ -249,7 +254,8 @@ public final class ReviewStore: EditorController {
         entry.time = min(60_000, max(0, Int(now.timeIntervalSince(session.shownAt) * 1000)))
         var entries = [entry]
         var state = scheduler.apply(entry, to: before)
-        if entry.type == .review, grade == .again,
+        // 提前複習（`type: 3`）按 Again 也是 lapse
+        if before.phase == .review, grade == .again,
            StudyPlanner.triggersLeech(lapses: state.lapses, threshold: preset.leechThreshold) {
             if preset.leechAction == .suspend {
                 let suspend = ReviewEntry.manual(.suspend, cid: card.id, at: now)
@@ -269,6 +275,7 @@ public final class ReviewStore: EditorController {
         history[card.id, default: []] += entries
         schedules[card.id] = state
         session.undo.append((card, entries))
+        if case .filtered = session.scope, state.phase == .review { session.allowed?.remove(card.id) }
         session.answered += 1
         session.showingAnswer = false
         self.session = session
@@ -291,6 +298,7 @@ public final class ReviewStore: EditorController {
         history[last.card.id] = entries.isEmpty ? nil : entries
         schedules[last.card.id] = entries.isEmpty ? nil : scheduler(for: last.card).replay(entries)
         session.undo.removeLast()
+        if case .filtered = session.scope { session.allowed?.insert(last.card.id) }
         session.answered = max(0, session.answered - 1)
         session.current = last.card
         session.showingAnswer = false
@@ -321,6 +329,29 @@ public final class ReviewStore: EditorController {
     private func scheduler(for card: StudyCard) -> Scheduler {
         Scheduler(preset: config.preset(for: card.deck), clock: DayClock(rolloverHour: config.global.rolloverHour))
     }
+
+    // MARK: 自訂複習
+
+    /// 自訂複習會加入幾張卡片（Sheet 的預覽）
+    public func customCount(_ study: CustomStudy) -> Int {
+        planner.customSelection(study).count
+    }
+
+    /// 這個牌組今天已經多加的張數
+    public func extraLimit(_ deck: String, new: Bool) -> Int {
+        config.extraLimit(deck, new: new, day: today)
+    }
+
+    /// 增加今天的上限：`new` / `review` 是今天總共多加幾張（不是累加），跟著設定檔同步
+    public func extendLimits(_ deck: String, new: Int, review: Int) {
+        var updated = config
+        let day = today
+        updated.extendNew[deck] = LimitExtension(day: day, n: max(0, new))
+        updated.extendReview[deck] = LimitExtension(day: day, n: max(0, review))
+        save(updated)
+    }
+
+    private var today: Int { DayClock(rolloverHour: config.global.rolloverHour).day(of: Date()) }
 
     // MARK: 設定
 
