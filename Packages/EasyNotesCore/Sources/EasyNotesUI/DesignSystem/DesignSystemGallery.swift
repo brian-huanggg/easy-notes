@@ -24,8 +24,8 @@ public struct DesignSystemGallery: View {
                         bars
                         EmptyState("This folder is empty", message: "Drop files here, or create something new in this folder.",
                                    symbol: "folder", style: .dropZone) {
-                            Button("New Note", systemImage: "doc.text") {}.buttonStyle(.enPrimary)
-                            Button("New Whiteboard", systemImage: "scribble") {}.buttonStyle(.enSecondary(size: .large))
+                            Button(String("New Note"), systemImage: "doc.text") {}.buttonStyle(.enPrimary)
+                            Button(String("New Whiteboard"), systemImage: "scribble") {}.buttonStyle(.enSecondary(size: .large))
                         }
                     }
                 }
@@ -80,16 +80,16 @@ public struct DesignSystemGallery: View {
                 .init(0, symbol: "square.grid.2x2", help: "Grid"),
                 .init(1, symbol: "list.bullet", help: "List"),
             ])
-            Button("Recently edited", systemImage: "arrow.up.arrow.down") {}.buttonStyle(.enSecondary)
-            Button("New Document", systemImage: "plus") {}.buttonStyle(.enPrimary)
+            Button(String("Recently edited"), systemImage: "arrow.up.arrow.down") {}.buttonStyle(.enSecondary)
+            Button(String("New Document"), systemImage: "plus") {}.buttonStyle(.enPrimary)
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 5) {
-                Text("All Documents").textStyle(.pageTitle).foregroundStyle(Palette.textPrimary)
-                Text("24 documents · 4 folders").textStyle(.pageSubtitle).foregroundStyle(Palette.textTertiary)
+                Text(verbatim: "All Documents").textStyle(.pageTitle).foregroundStyle(Palette.textPrimary)
+                Text(verbatim: "24 documents · 4 folders").textStyle(.pageSubtitle).foregroundStyle(Palette.textTertiary)
             }
             HStack(spacing: 6) {
                 ForEach(Array(["All", "Notes", "Boards", "PDFs", "Sheets"].enumerated()), id: \.offset) { i, title in
@@ -192,8 +192,8 @@ public struct DesignSystemGallery: View {
     EmptyState("Your vault is empty",
                message: "Everything you create lives as a plain file on disk. Start with a note or a whiteboard.",
                symbol: "doc.badge.plus") {
-        Button("New Note", systemImage: "doc.text") {}.buttonStyle(.enPrimary(size: .large))
-        Button("New Whiteboard", systemImage: "scribble") {}.buttonStyle(.enSecondary(size: .large))
+        Button(String("New Note"), systemImage: "doc.text") {}.buttonStyle(.enPrimary(size: .large))
+        Button(String("New Whiteboard"), systemImage: "scribble") {}.buttonStyle(.enSecondary(size: .large))
     }
     .frame(width: 800, height: 600)
     .background(Palette.bgPanel)
