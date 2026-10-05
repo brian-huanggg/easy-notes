@@ -17,7 +17,8 @@
     "@lezer/highlight": "^1.2.5",
     "@lezer/markdown": "^1.7.2",
     "@revolist/revogrid": "^4.28.2",
-    "@stencil/core": "^4.43.5"
+    "@stencil/core": "^4.43.5",
+    "katex": "^0.19.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

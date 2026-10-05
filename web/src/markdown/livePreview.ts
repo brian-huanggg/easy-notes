@@ -10,6 +10,7 @@ import {
   ViewUpdate,
   WidgetType,
 } from "@codemirror/view";
+import { mathLoaded, mathSource, MathWidget } from "./math";
 
 // 語法標記節點：非游標行時隱藏
 const HIDDEN_MARKS = new Set([
@@ -22,6 +23,7 @@ const HIDDEN_MARKS = new Set([
 ]);
 
 const hide = Decoration.replace({});
+const mathSrc = Decoration.mark({ class: "cm-lp-math-inline" });
 
 class BulletWidget extends WidgetType {
   eq() {
@@ -105,7 +107,7 @@ const TAG = /(?<![\p{L}\p{N}_#&\/])#([\p{L}\p{N}_\/-]+)/gu;
 
 export function inCode(state: EditorState, pos: number): boolean {
   for (let n: ReturnType<typeof syntaxTree>["topNode"] | null = syntaxTree(state).resolveInner(pos, 1); n; n = n.parent) {
-    if (n.name === "InlineCode" || n.name === "FencedCode" || n.name === "CodeBlock") return true;
+    if (n.name === "InlineCode" || n.name === "FencedCode" || n.name === "CodeBlock" || n.name === "InlineMath" || n.name === "BlockMath") return true;
   }
   return false;
 }
@@ -200,6 +202,17 @@ function build(view: EditorView): DecorationSet {
           if (info) ranges.push({ from: info.from, to: info.to, deco: Decoration.mark({ class: "cm-lp-codeinfo" }) });
           return false; // 程式碼區塊內不處理其他標記
         }
+        // 區塊公式由 math.ts 的 StateField 處理；行內公式非游標行換成 KaTeX
+        if (name === "BlockMath") return false;
+        if (name === "InlineMath") {
+          if (isActive(node.from)) {
+            ranges.push({ from: node.from, to: node.to, deco: mathSrc });
+          } else {
+            const { tex, display } = mathSource(state.sliceDoc(node.from, node.to));
+            if (tex) ranges.push({ from: node.from, to: node.to, deco: Decoration.replace({ widget: new MathWidget(tex, display) }) });
+          }
+          return false;
+        }
         if (name === "Emphasis") ranges.push({ from: node.from, to: node.to, deco: Decoration.mark({ class: "cm-lp-em" }) });
         if (name === "StrongEmphasis") ranges.push({ from: node.from, to: node.to, deco: Decoration.mark({ class: "cm-lp-strong" }) });
         if (name === "Strikethrough") ranges.push({ from: node.from, to: node.to, deco: Decoration.mark({ class: "cm-lp-strike" }) });
@@ -261,7 +274,7 @@ export const livePreview = ViewPlugin.fromClass(
       this.decorations = build(view);
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged) {
+      if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged || u.transactions.some((tr) => tr.effects.some((e) => e.is(mathLoaded)))) {
         this.decorations = build(u.view);
       }
     }
