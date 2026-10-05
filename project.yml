@@ -39,7 +39,7 @@ settings:
     MARKETING_VERSION: "1.1.0"
     CURRENT_PROJECT_VERSION: "1"
     # Sparkle 更新簽章的公鑰（./scripts/sparkle-tools.sh generate-keys 產生）；空的時候 App 不啟動更新檢查
-    SPARKLE_PUBLIC_ED_KEY: ""
+    SPARKLE_PUBLIC_ED_KEY: "qHUM8ofW/waWiQq6XcvQZP4gA37QlEaiOmQyDFCbk9E="
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
