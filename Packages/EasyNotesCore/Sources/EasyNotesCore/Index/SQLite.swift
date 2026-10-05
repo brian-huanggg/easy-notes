@@ -1,7 +1,7 @@
 import Foundation
 import SQLite3
 
-/// 極簡 SQLite 包裝：只提供索引需要的功能，不引入第三方相依。
+/// A minimal SQLite wrapper: provides only what the index needs, with no third-party dependency.
 final class SQLiteDB {
     enum Value {
         case text(String)
@@ -44,7 +44,7 @@ final class SQLiteDB {
         _ = try query(sql, args) { _ in () }
     }
 
-    /// 執行查詢；每一列交給 `row` 轉換。Statement 會被快取重用。
+    /// Runs a query; each row goes to `row` for conversion. Statements are cached and reused.
     func query<T>(_ sql: String, _ args: [Value] = [], row: (Row) throws -> T) throws -> [T] {
         let stmt = try prepare(sql)
         defer { sqlite3_reset(stmt); sqlite3_clear_bindings(stmt) }

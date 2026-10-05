@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 設計稿 `C/Sidebar Item`：圖示 16、標題 13 medium、右側計數。
-/// 選取時 `bg-selected` 底、accent 文字；`indent` 用於展開資料夾後的子檔案。
+/// Design `C/Sidebar Item`: icon 16, title 13 medium, count on the right.
+/// When selected: `bg-selected` background, accent text; `indent` is for child files after expanding a folder.
 public struct SidebarItem: View {
     let title: String
     let symbol: String
@@ -11,7 +11,7 @@ public struct SidebarItem: View {
     let isSelected: Bool
     let indent: Int
 
-    /// `symbolTint`：檔案用類型顏色；nil = text-secondary。`countTint`：例如複習數用 `card-due`
+    /// `symbolTint`: files use the type color; nil = text-secondary. `countTint`: for example the review count uses `card-due`
     public init(_ title: String, symbol: String, symbolTint: ColorToken? = nil, count: Int? = nil,
                 countTint: ColorToken? = nil, isSelected: Bool = false, indent: Int = 0) {
         self.title = title
@@ -55,7 +55,7 @@ public struct SidebarItem: View {
     }
 }
 
-/// 側邊欄的分組標題「SPACES」「TAGS」，右側可放一個動作（新增資料夾、管理標籤）
+/// Sidebar section headings "SPACES" and "TAGS", with an action on the right (new folder, manage tags)
 public struct SidebarGroupLabel: View {
     let title: String
     let actionSymbol: String?
@@ -89,7 +89,7 @@ public struct SidebarGroupLabel: View {
     }
 }
 
-/// Vault 標頭：圖示（App 提供的 logo；沒有時為名稱首字）+ Vault 名稱 + 帳號。單一 Vault，不可切換
+/// Vault header: icon (the app-provided logo; the name's first character if none) + vault name + account. A single vault, not switchable
 public struct VaultHeader: View {
     let name: String
     let account: String?
@@ -130,7 +130,7 @@ public struct VaultHeader: View {
     }
 }
 
-/// 兩行狀態列：圖示 + 標題 + 小字（同步狀態「Synced · 2 min ago」）
+/// Two-line status row: icon + title + small text (sync status "Synced · 2 min ago")
 public struct StatusRow: View {
     let symbol: String
     let tint: ColorToken
@@ -161,7 +161,7 @@ public struct StatusRow: View {
     }
 }
 
-/// 區段標題「📌 Pinned 4 ……… See all」
+/// Section heading "📌 Pinned 4 ……… See all"
 public struct SectionHeader: View {
     let title: String
     let symbol: String

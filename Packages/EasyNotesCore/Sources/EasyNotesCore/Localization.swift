@@ -1,7 +1,7 @@
 import Foundation
 
-/// 這個模組的在地化字串（規則見 docs/architecture/translation.md）。
-/// `#bundle` 要在各模組自己展開，所以每個模組各放一份，不能共用。
+/// Localized strings of this module (rules in docs/architecture/translation.md).
+/// `#bundle` must expand in each module itself, so every module keeps its own copy; it cannot be shared.
 func L(_ value: String.LocalizationValue) -> String {
     String(localized: value, bundle: #bundle)
 }

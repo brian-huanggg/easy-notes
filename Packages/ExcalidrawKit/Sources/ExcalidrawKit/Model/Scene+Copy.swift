@@ -1,18 +1,18 @@
 import CoreGraphics
 import Foundation
 
-/// Undo 的寫回、再製、複製與貼上
+/// Undo write-back, duplicate, copy and paste
 extension ExcalidrawScene {
-    /// 元素 id → 原始字典（nil = 當時不存在）。Undo 記下操作前後各一份
+    /// Element id → raw dictionary (nil = did not exist then). Undo records one copy before and one after the operation
     public typealias Snapshot = [String: [String: Any]?]
 
-    /// 寫回 `snapshot` 的內容，但 `version` 一律繼續遞增（不回到舊版號），其他裝置合併時才不會丟掉復原。
-    /// nil = 當時不存在的元素（例如新建的）→ 標記刪除。
+    /// Writes back the content of `snapshot` but `version` always keeps increasing (never returning to the old number), so other devices do not drop the undo when merging.
+    /// nil = an element that did not exist then (for example newly created) → marked deleted.
     public mutating func restore(_ snapshot: Snapshot) {
         edit { $0.restore(snapshot) }
     }
 
-    /// 再製：複製到最上層並位移；形狀內的文字、frame 的子元素一起複製，彼此的綁定改指向複本。回傳新元素的 id
+    /// Duplicate: copies to the top and offsets; text inside shapes and a frame's children are copied along, with their mutual bindings pointing at the copies. Returns the new elements' ids
     @discardableResult
     public mutating func duplicate(_ ids: Set<String>, offset: CGPoint) -> [String] {
         let copies = Self.copies(of: closure(of: ids), offset: offset)
@@ -20,11 +20,11 @@ extension ExcalidrawScene {
         return copies.map(\.id)
     }
 
-    // MARK: 剪貼簿（與 Excalidraw 相同的 `excalidraw/clipboard` JSON）
+    // MARK: Clipboard (the same `excalidraw/clipboard` JSON as Excalidraw)
 
     public static let clipboardType = "excalidraw/clipboard"
 
-    /// 複製選取的元素（含形狀內的文字、frame 的子元素與用到的圖片）
+    /// Copies the selected elements (including text inside shapes, a frame's children and the images used)
     public func clipboardData(_ ids: Set<String>) -> Data? {
         let elements = closure(of: ids)
         guard !elements.isEmpty else { return nil }
@@ -35,7 +35,7 @@ extension ExcalidrawScene {
         ], options: [.sortedKeys])
     }
 
-    /// 貼上剪貼簿的元素，整體中心放在 `center`。不是 Excalidraw 剪貼簿回傳 nil
+    /// Pastes clipboard elements with their overall center at `center`. Returns nil if it is not an Excalidraw clipboard
     public mutating func paste(_ data: Data, center: CGPoint) -> [String]? {
         guard let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               dict["type"] as? String == Self.clipboardType,
@@ -51,9 +51,9 @@ extension ExcalidrawScene {
         return copies.map(\.id)
     }
 
-    // MARK: 內部
+    // MARK: Internal
 
-    /// 選取的元素加上跟著它們的元素（形狀內的文字、frame 的子元素），依渲染順序
+    /// The selected elements plus the elements that follow them (text inside shapes, a frame's children), in render order
     private func closure(of ids: Set<String>) -> [Element] {
         let live = liveElements
         var included = ids
@@ -64,7 +64,7 @@ extension ExcalidrawScene {
         return live.filter { included.contains($0.id) }
     }
 
-    /// 新 id、新版號、位移；群組、容器、frame、箭頭綁定只在複本之間保留，指向外部的清除
+    /// New ids, new versions, offset; groups, containers, frames and arrow bindings are kept only among the copies, and references to outside are cleared
     private static func copies(of elements: [Element], offset: CGPoint) -> [Element] {
         var ids: [String: String] = [:]
         for el in elements { ids[el.id] = randomID() }
@@ -113,7 +113,7 @@ extension SceneEditor {
                 el.touch()
                 elements[i] = el
             } else {
-                // 之後被外部整個移除（不是墓碑）：放回去
+                // Later removed entirely from outside (not a tombstone): put it back
                 el.touch()
                 elements.append(el)
                 appended = true

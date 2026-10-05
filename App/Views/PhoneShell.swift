@@ -3,8 +3,8 @@ import EasyNotesUI
 import SwiftUI
 
 #if os(iOS)
-/// iPhone：底部浮動分頁（`C/M Tab Bar`）取代 NavigationSplitView 的摺疊行為。
-/// 每個分頁各有一個導覽堆疊；資料夾點下去是推入下一層，不會跳到空白頁
+/// iPhone: bottom floating tabs (`C/M Tab Bar`) replace NavigationSplitView's collapsing behavior.
+/// Each tab has its own navigation stack; tapping a folder pushes the next level and never jumps to a blank page
 struct PhoneShell: View {
     enum Tab: Hashable { case docs, search, spaces, me }
 
@@ -35,7 +35,7 @@ struct PhoneShell: View {
             }
         }
         .animation(.snappy(duration: 0.2), value: currentPath.isEmpty)
-        // 從編輯器內的 [[連結]]、新增檔案等改變位置時，推入目前分頁
+        // When a [[link]] in the editor, new file and so on change the location, push onto the current tab
         .onChange(of: store.route) { _, route in
             switch route {
             case .file, .folder: if currentPath.last != route { push(route) }
@@ -73,7 +73,7 @@ struct PhoneShell: View {
     }
 }
 
-/// 推入的頁面；出現時把 `store.route` 換成自己（不記入歷史），讓新增檔案等作用在目前位置
+/// A pushed page; on appearing it replaces `store.route` with itself (not recorded in history), so new file and similar act on the current location
 private struct PhoneDestination: View {
     @Environment(VaultStore.self) private var store
     let route: Route
@@ -95,7 +95,7 @@ private struct PhoneDestination: View {
             .navigationTitle(store.displayName(path))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // 設計稿：中間是儲存狀態（標題已在文件頭），右側釘選、分享、更多
+                // Design: save status in the middle (the title is already in the document header), pin, share and more on the right
                 ToolbarItem(placement: .principal) { DocumentStatusPill(path: path) }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     PinButton(path: path)
@@ -113,7 +113,7 @@ private struct PhoneDestination: View {
     }
 }
 
-/// 文件分頁：Vault 標頭 + 所有文件
+/// Documents tab: vault header + all documents
 private struct PhoneDocs: View {
     @Environment(VaultStore.self) private var store
     @Environment(SyncCoordinator.self) private var sync
@@ -132,7 +132,7 @@ private struct PhoneDocs: View {
     }
 }
 
-/// Spaces 分頁：所有文件 / 最近 / 釘選、外掛面板、第一層資料夾
+/// Spaces tab: all documents / recents / pinned, plugin panels, first-level folders
 private struct PhoneSpaces: View {
     @Environment(VaultStore.self) private var store
     let push: (Route) -> Void
@@ -196,7 +196,7 @@ private struct PhoneSpaces: View {
     }
 }
 
-/// iPhone 導覽列的「+」：與 Desktop 的 New Document 選單相同的項目
+/// The "+" of the iPhone navigation bar: the same items as Desktop's New Document menu
 private struct PhoneNewMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell

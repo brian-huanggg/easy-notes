@@ -4,10 +4,10 @@ import Observation
 import Sparkle
 #endif
 
-/// 啟動 Sparkle 並提供「檢查更新…」。iOS 沒有更新通道（TestFlight），`canCheck` 恆為 false。
+/// Starts Sparkle and provides "Check for Updates…". iOS has no update channel (TestFlight), so `canCheck` is always false.
 ///
-/// 只有 Info.plist 的 `SUPublicEDKey` 有值才會啟動：更新的簽章公鑰是 `project.yml` 的 `SPARKLE_PUBLIC_ED_KEY`，
-/// 還沒產生金鑰的建置不會連網檢查更新。
+/// Starts only when `SUPublicEDKey` in Info.plist has a value: the update signing public key is `SPARKLE_PUBLIC_ED_KEY` in `project.yml`,
+/// and a build without a generated key never checks for updates over the network.
 @MainActor @Observable
 public final class AppUpdater {
     public private(set) var canCheck = false
@@ -17,7 +17,7 @@ public final class AppUpdater {
     private var observation: NSKeyValueObservation?
     #endif
 
-    /// - Parameter enabled: UI 測試等情境傳 false，完全不啟動
+    /// - Parameter enabled: pass false in UI tests and similar, which never start it
     public init(enabled: Bool = true) {
         #if os(macOS)
         let key = Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") as? String ?? ""

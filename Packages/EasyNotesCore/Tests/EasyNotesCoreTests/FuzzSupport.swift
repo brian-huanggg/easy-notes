@@ -1,7 +1,7 @@
 import Foundation
 
-/// 決定性的突變式模糊測試工具：固定種子，失敗時可重現（崩潰會讓整個測試程序結束）。
-/// 每個套件各放一份（測試 target 之間不共用）；修改時一起改。
+/// A deterministic mutation-based fuzz tool: fixed seed, reproducible on failure (a crash ends the whole test process).
+/// One copy per package (test targets do not share); change them together.
 struct FuzzRNG: RandomNumberGenerator {
     var state: UInt64
     init(seed: UInt64) { state = seed &+ 0x9E37_79B9_7F4A_7C15 }
@@ -15,7 +15,7 @@ struct FuzzRNG: RandomNumberGenerator {
 }
 
 enum Fuzz {
-    /// 會讓解析器出事的常見片段
+    /// Common fragments that trip parsers
     static let tokens: [[UInt8]] = [
         [0], [13, 10], [13], [34], [34, 34], [44], [9], [10, 10, 10], [0xEF, 0xBB, 0xBF], [0xFF, 0xFE], [0xC0, 0x80], [0xED, 0xA0, 0x80],
         Array("[[".utf8), Array("]]".utf8), Array("---\n".utf8), Array("```".utf8), Array("{".utf8), Array("}".utf8), Array("[".utf8),
@@ -43,7 +43,7 @@ enum Fuzz {
         return Data(bytes)
     }
 
-    /// 對每個種子跑 `rounds` 次突變，另外餵純隨機資料；每次執行超過 `limit` 秒就視為卡死
+    /// Runs `rounds` mutations for each seed plus purely random data; any single run over `limit` seconds counts as hung
     static func run(seeds: [Data], rounds: Int = 400, limit: Double = 3, seed: UInt64 = 1,
                     _ body: (Data) -> Void) -> [String] {
         var rng = FuzzRNG(seed: seed)

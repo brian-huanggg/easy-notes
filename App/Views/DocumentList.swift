@@ -2,12 +2,12 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 列表頁的排列方式與排序（工具列切換，列表頁讀取；每台裝置各自記住）
+/// Layout and sort of the list page (toggled in the toolbar, read by the list page; remembered per device)
 enum ListLayout: String { case grid, list }
 enum ListSort: String { case modified, name }
 
-/// 所有文件、最近、釘選、資料夾、標籤的列表頁（設計稿 `RZ0Lk` / `CIaUn`）：
-/// 標題 + 統計、類型篩選、釘選區、子資料夾、文件區。類型、顏色、縮圖都來自 Registry。
+/// List pages for all documents, recents, pinned, folders and tags (design `RZ0Lk` / `CIaUn`):
+/// title + stats, type filter, pinned area, subfolders, documents. Types, colors and thumbnails all come from the Registry.
 struct DocumentList: View {
     enum Style { case desktop, mobile }
 
@@ -16,15 +16,15 @@ struct DocumentList: View {
     @AppStorage("listSort") private var sort = ListSort.modified
     let route: Route
     var style = Style.desktop
-    /// iPhone：由導覽堆疊推入頁面；Desktop：改變 `store.route`
+    /// iPhone: pushed by the navigation stack; Desktop: changes `store.route`
     var open: ((Route) -> Void)?
 
     @State private var tagged: [IndexedFile] = []
-    /// 類型篩選（Kind id）；nil = 全部
+    /// Type filter (Kind id); nil = all
     @State private var filter: String?
     @State private var isDropTargeted = false
 
-    /// Desktop 釘選區只顯示一列，其餘在「釘選」頁
+    /// Desktop's pinned area shows only one row; the rest are on the "Pinned" page
     private static let pinnedLimit = 4
 
     private var mobile: Bool { style == .mobile }
@@ -81,7 +81,7 @@ struct DocumentList: View {
         let files: [IndexedFile]
     }
 
-    // MARK: 資料
+    // MARK: Data
 
     private var documents: [IndexedFile] {
         let files: [IndexedFile] = switch route {
@@ -92,7 +92,7 @@ struct DocumentList: View {
         case .tag: tagged
         case .file, .panel: []
         }
-        // 最近：永遠依修改時間
+        // Recents: always by modification time
         guard sort == .name, route != .recents else { return files }
         return files.sorted { store.displayName($0.path).localizedStandardCompare(store.displayName($1.path)) == .orderedAscending }
     }
@@ -102,7 +102,7 @@ struct DocumentList: View {
         return (store.node(at: folder)?.children ?? []).filter(\.isFolder).map(\.path)
     }
 
-    /// 所有文件與資料夾頁把釘選的文件放在上方的釘選區
+    /// The all-documents and folder pages put pinned documents in the pinned area above
     private var showsPinnedSection: Bool {
         switch route {
         case .all, .folder: true
@@ -110,7 +110,7 @@ struct DocumentList: View {
         }
     }
 
-    /// 可以拖入檔案的資料夾：Vault 根目錄（所有文件）或目前資料夾
+    /// Folders that accept dropped files: the vault root (all documents) or the current folder
     private var dropFolder: String? {
         switch route {
         case .all: ""
@@ -123,7 +123,7 @@ struct DocumentList: View {
         route == .all && docs.isEmpty && store.tree.isEmpty
     }
 
-    // MARK: 標題
+    // MARK: Title
 
     private func header(docs: Int, folders: Int) -> some View {
         VStack(alignment: .leading, spacing: mobile ? 5 : 5) {
@@ -154,9 +154,9 @@ struct DocumentList: View {
         }
     }
 
-    // MARK: 篩選
+    // MARK: Filter
 
-    /// 全部 + Registry 中已註冊的類型；尚未實作的外掛不會出現
+    /// All + the types registered in the Registry; plugins not implemented do not appear
     private var filterBar: some View {
         ScrollView(.horizontal) {
             HStack(spacing: mobile ? 8 : 6) {
@@ -174,7 +174,7 @@ struct DocumentList: View {
         .padding(.bottom, mobile ? 20 : 26)
     }
 
-    // MARK: 區段
+    // MARK: Sections
 
     private func pinnedSection(_ pinned: [IndexedFile]) -> some View {
         VStack(alignment: .leading, spacing: mobile ? 13 : 14) {
@@ -257,7 +257,7 @@ struct DocumentList: View {
         return sort == .modified || route == .recents ? "clock.arrow.circlepath" : "doc.on.doc"
     }
 
-    /// Desktop 網格：卡片寬約 234（設計稿每列 4 張）
+    /// Desktop grid: card width about 234 (4 per row in the design)
     private func grid(_ docs: [IndexedFile]) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: Metrics.gridSpacing, alignment: .top)],
                   spacing: Metrics.gridSpacing) {
@@ -278,7 +278,7 @@ struct DocumentList: View {
             .contextMenu { NodeMenu(path: file.path, isFolder: false) }
     }
 
-    /// frontmatter 的 emoji icon 放在標題前；SF Symbol icon 取代類型圖示（見 `symbol(_:)`）
+    /// The frontmatter emoji icon goes before the title; an SF Symbol icon replaces the type icon (see `symbol(_:)`)
     private func title(_ file: IndexedFile) -> String {
         let name = store.displayName(file.path)
         return DocIcon(file.icon)?.emoji.map { "\($0) \(name)" } ?? name
@@ -289,7 +289,7 @@ struct DocumentList: View {
     }
     private func tint(_ file: IndexedFile) -> KindTint { store.plugins.tint(for: store.kindID(file.path)) }
 
-    /// 外掛的一行摘要 + 相對時間：「1,240 字 · 2 小時前」
+    /// A plugin's one-line summary + relative time: "1,240 words · 2 hours ago"
     private func meta(_ file: IndexedFile) -> String {
         [file.summary, file.mtime.formatted(.relative(presentation: .named))].compactMap(\.self).joined(separator: " · ")
     }
@@ -298,9 +298,9 @@ struct DocumentList: View {
         if let open { open(target) } else { store.navigate(target) }
     }
 
-    // MARK: 空狀態
+    // MARK: Empty state
 
-    /// 設計稿 `xGsaX`
+    /// Design `xGsaX`
     private var emptyVault: some View {
         EmptyState(L("Vault 是空的"),
                    message: L("所有內容都是磁碟上的一般檔案。建立第一份筆記或白板，或把檔案拖進來。"),
@@ -316,7 +316,7 @@ struct DocumentList: View {
     private var empty: some View {
         switch route {
         case .folder:
-            // 設計稿 `m4Bb4`：可拖入檔案的空資料夾
+            // Design `m4Bb4`: an empty folder that accepts dropped files
             EmptyState(L("這個資料夾是空的"), message: L("把檔案拖到這裡，或在這個資料夾中建立新文件。"), symbol: "folder",
                        style: .dropZone) {
                 NewFileButtons(limit: 2)
@@ -336,7 +336,7 @@ struct DocumentList: View {
     }
 }
 
-/// 卡片縮圖：外掛註冊的預覽（依內容 hash 快取、背景產生），載入前與沒有預覽的類型顯示骨架佔位
+/// Card thumbnail: the plugin-registered preview (cached by content hash, generated in the background); a skeleton placeholder shows before loading and for types without a preview
 private struct CardPreview: View {
     @Environment(VaultStore.self) private var store
     let file: IndexedFile
@@ -356,7 +356,7 @@ private struct CardPreview: View {
     }
 }
 
-/// 空狀態的建立按鈕：第一個是主要按鈕，其餘次要；項目來自 Registry
+/// Create buttons of the empty state: the first is primary, the rest secondary; items come from the Registry
 struct NewFileButtons: View {
     @Environment(VaultStore.self) private var store
     var limit = Int.max
@@ -373,7 +373,7 @@ struct NewFileButtons: View {
 }
 
 extension VaultStore {
-    /// 檔案樹中 `path` 的節點
+    /// The file tree node for `path`
     func node(at path: String) -> VaultNode? {
         func find(_ nodes: [VaultNode]) -> VaultNode? {
             for node in nodes {

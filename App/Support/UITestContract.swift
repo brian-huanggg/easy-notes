@@ -1,22 +1,22 @@
-// App 與 E2E 測試 target（Tests/E2E）共用的約定：啟動參數與 accessibility identifier（見 project.yml）。
-// 兩邊編譯同一份檔案，所以改名不會只改到一邊。
+// Contract shared by the app and the E2E test target (Tests/E2E): launch arguments and accessibility identifiers (see project.yml).
+// Both sides compile the same file, so a rename cannot change only one side.
 
-/// E2E 的啟動參數名稱（UserDefaults 的 argument domain：`-EasyNotesVaultRoot <路徑>`）；只在 DEBUG 生效
+/// Launch argument names for E2E (UserDefaults argument domain: `-EasyNotesVaultRoot <path>`); effective only in DEBUG
 enum LaunchKey {
-    /// 測試用的 Vault 資料夾
+    /// The vault folder for the test
     static let vaultRoot = "EasyNotesVaultRoot"
-    /// `off`：不同步、不碰網路
+    /// `off`: no sync, no network
     static let sync = "EasyNotesSync"
-    /// 以這個資料夾當遠端（FolderSyncBackend），測試程序扮演另一台裝置
+    /// Uses this folder as the remote (FolderSyncBackend), with the test process playing another device
     static let syncFolder = "EasyNotesSyncFolder"
-    /// `YES`：UI 測試中（關閉動畫）
+    /// `YES`: in a UI test (animations off)
     static let uiTest = "EasyNotesUITest"
-    /// 啟動後開啟的檔案（Vault 相對路徑）
+    /// The file to open after launch (vault-relative path)
     static let open = "EasyNotesOpen"
 }
 
-/// UI 測試用的 accessibility identifier。測試只用 identifier 找元素，不用介面文字，所以翻譯或改字不會讓測試壞掉。
-/// 含 Vault 路徑的 identifier 直接帶路徑（例如 `sidebar.node:Projects/a.md`）。
+/// Accessibility identifiers for UI tests. Tests find elements by identifier only, never by UI text, so translation or rewording cannot break them.
+/// An identifier that contains a vault path carries the path directly (for example `sidebar.node:Projects/a.md`).
 enum A11yID {
     enum Sidebar {
         static let all = "sidebar.all"
@@ -41,7 +41,7 @@ enum A11yID {
     enum Tabs {
         static let bar = "tabs.bar"
         static let new = "tabs.new"
-        /// 分頁的位置：檔案帶 Vault 相對路徑，其他為 `all`、`recents`…
+        /// A tab's location: a file carries its vault-relative path, others are `all`, `recents`…
         static func tab(_ key: String) -> String { "tabs.tab:\(key)" }
         static func close(_ key: String) -> String { "tabs.close:\(key)" }
     }
@@ -74,11 +74,11 @@ enum A11yID {
     }
 
     enum Editor {
-        /// 內容區的編輯器容器，`kindID` 是 DocumentKind.id（markdown、ink、pdf、csv…）
+        /// The editor container of the content area; `kindID` is the DocumentKind.id (markdown, ink, pdf, csv…)
         static func container(_ kindID: String) -> String { "editor:\(kindID)" }
         static let unsupported = "editor.unsupported"
     }
 
-    /// 外掛面板（`addPanel`）的內容容器
+    /// The content container of a plugin panel (`addPanel`)
     static func panel(_ id: String) -> String { "panel:\(id)" }
 }

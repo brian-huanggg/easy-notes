@@ -2,8 +2,8 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 外殼。iPhone（compact 寬度）用底部分頁；Mac 與 iPad 用側邊欄 + 內容區。
-/// ⌘K、匯入、最近刪除、重新命名等跨畫面的 UI 都掛在這裡
+/// The shell. iPhone (compact width) uses bottom tabs; Mac and iPad use sidebar + content area.
+/// Cross-screen UI such as ⌘K, import, recently deleted and rename hangs here
 struct ContentView: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell
@@ -25,7 +25,7 @@ struct ContentView: View {
             .sheet(isPresented: $shell.showSettings) { NavigationStack { MeView() } }
             .sheet(item: $shell.whatsNew) { WhatsNewView(notes: $0) }
             .task {
-                // E2E 的畫面不能被視窗擋住
+                // The E2E view must not be covered by the window
                 guard !TestHooks.isUITest else { return }
                 shell.whatsNew = WhatsNew.pendingOnLaunch(isFreshInstall: store.isFreshInstall)
             }
@@ -97,7 +97,7 @@ struct SplitShell: View {
     }
 }
 
-/// 側邊面板：白板的筆記卡片在主內容旁開啟完整編輯器（與主內容各自獨立）
+/// Side panel: a whiteboard's note card opens a full editor beside the main content (independent of it)
 struct SidePanel: View {
     @Environment(VaultStore.self) private var store
 
@@ -131,7 +131,7 @@ struct SidePanel: View {
     }
 }
 
-/// 內容區：依目前位置顯示列表頁、編輯器或外掛面板，工具列一致
+/// Content area: shows a list page, editor or plugin panel for the current location, with a consistent toolbar
 struct ShellDetail: View {
     @Environment(VaultStore.self) private var store
     let route: Route
@@ -154,7 +154,7 @@ struct ShellDetail: View {
         switch route {
         case .file(let path):
             editor(for: path)
-                // 容器本身成為一個元素（不覆蓋子元素的 identifier），E2E 用它確認編輯器已開啟
+                // The container itself becomes an element (without covering children's identifiers); E2E uses it to confirm the editor has opened
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier(A11yID.Editor.container(store.kindID(path) ?? "none"))
         case .panel(let id):
@@ -168,7 +168,7 @@ struct ShellDetail: View {
         }
     }
 
-    /// 編輯器由各外掛向 PluginRegistry 註冊
+    /// Editors are registered by each plugin with PluginRegistry
     @ViewBuilder
     private func editor(for path: String) -> some View {
         if let editor = store.plugins.editor(for: store.kindID(path), path: path) {
@@ -180,7 +180,7 @@ struct ShellDetail: View {
     }
 }
 
-/// 工具列：上一頁 / 下一頁、麵包屑、網格 / 列表、排序、在 Finder 中顯示、New Document
+/// Toolbar: back / forward, breadcrumb, grid / list, sort, reveal in Finder, New Document
 struct ShellToolbar: ToolbarContent {
     @Environment(VaultStore.self) private var store
     @AppStorage("listLayout") private var layout = ListLayout.grid
@@ -210,7 +210,7 @@ struct ShellToolbar: ToolbarContent {
         FlexibleToolbarSpace()
         #endif
         if isList {
-            // 分段控制有自己的底色，不放進工具列共用的玻璃底（否則邊緣露白）
+            // The segmented control has its own background, so it is not put in the toolbar's shared glass background (otherwise the edge shows white)
             ToolbarItem(placement: Self.trailing) {
                 IconSegmentedControl(selection: $layout, segments: [
                     .init(.grid, symbol: "square.grid.2x2", help: L("網格")),
@@ -220,7 +220,7 @@ struct ShellToolbar: ToolbarContent {
             .withoutSharedBackground()
         }
         if let path = route.filePath {
-            // 編輯器：釘選、更多（在 Finder 中顯示、複製路徑、用其他 App 開啟…）
+            // Editor: pin, more (reveal in Finder, copy path, open with another app…)
             ToolbarItemGroup(placement: Self.trailing) {
                 PinButton(path: path)
                 DocumentMoreMenu(path: path)
@@ -252,7 +252,7 @@ struct ShellToolbar: ToolbarContent {
         }
     }
 
-    /// macOS 的 `.primaryAction` 在前緣；設計稿的這組按鈕在尾端
+    /// On macOS `.primaryAction` is at the leading edge; this group of buttons is at the trailing end in the design
     #if os(macOS)
     private static let trailing = ToolbarItemPlacement.automatic
     #else
@@ -266,7 +266,7 @@ struct ShellToolbar: ToolbarContent {
         }
     }
 
-    /// 資料夾 → 該資料夾；其他列表頁 → Vault 根目錄（檔案的「在 Finder 中顯示」在更多選單）
+    /// Folder → that folder; other list pages → vault root (a file's "Reveal in Finder" is in the more menu)
     private var revealURL: URL? {
         switch route {
         case .file: nil
@@ -277,7 +277,7 @@ struct ShellToolbar: ToolbarContent {
     }
 }
 
-/// 設計稿的 New Document 選單：新增檔案（`addNewFile`）、匯入（`addImport`）、新資料夾
+/// The design's New Document menu: new file (`addNewFile`), import (`addImport`), new folder
 struct NewDocumentMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell
@@ -297,7 +297,7 @@ struct NewDocumentMenu: View {
     }
 }
 
-/// New Document 選單的項目；工具列選單與 App 的「檔案」選單共用（Commands 拿不到 environment，所以明確傳入）
+/// Items of the New Document menu; shared by the toolbar menu and the app's "File" menu (Commands cannot get the environment, so it is passed explicitly)
 struct NewDocumentItems: View {
     let store: VaultStore
     let shell: ShellState
@@ -323,7 +323,7 @@ struct NewDocumentItems: View {
 }
 
 private extension ToolbarContent {
-    /// macOS / iOS 26 起同一位置的項目共用一個玻璃底；麵包屑是文字，不要底
+    /// From macOS / iOS 26, items in the same position share one glass background; the breadcrumb is text and gets none
     @ToolbarContentBuilder
     func withoutSharedBackground() -> some ToolbarContent {
         if #available(macOS 26, iOS 26, *) {
@@ -335,7 +335,7 @@ private extension ToolbarContent {
 }
 
 #if os(macOS)
-/// 把後面的項目推到工具列尾端（macOS 26 起 `.automatic` 會緊接在前緣項目之後）
+/// Pushes the following items to the end of the toolbar (from macOS 26 `.automatic` follows right after leading items)
 private struct FlexibleToolbarSpace: ToolbarContent {
     var body: some ToolbarContent {
         if #available(macOS 26, *) {

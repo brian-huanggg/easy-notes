@@ -38,11 +38,11 @@ struct Diff3Tests {
 
     @Test func insertionsAndDeletions() {
         let base = "1\n2\n3\n4\n5\n"
-        // 本地在開頭插入、遠端刪掉第 4 行
+        // Local inserts at the start, remote deletes line 4
         #expect(merge(base, "0\n1\n2\n3\n4\n5\n", "1\n2\n3\n5\n") == "0\n1\n2\n3\n5\n")
-        // 兩邊在檔尾各自附加不同內容 → 衝突
+        // Both sides append different content at the end → conflict
         #expect(merge(base, base + "L\n", base + "R\n") == nil)
-        // 兩邊在不同位置附加
+        // Both sides append at different positions
         #expect(merge(base, "1\nL\n2\n3\n4\n5\n", "1\n2\n3\n4\n5\nR\n") == "1\nL\n2\n3\n4\n5\nR\n")
     }
 
@@ -54,7 +54,7 @@ struct Diff3Tests {
     @Test func missingTrailingNewline() {
         let base = "a\nb\nc"
         #expect(merge(base, "A\nb\nc", "a\nb\nC") == "A\nb\nC")
-        // 一邊在檔尾附加（最後一行多了 \n），另一邊改開頭
+        // One side appends at the end (the last line gains \n), the other changes the start
         #expect(merge(base, "a\nb\nc\nd", "X\nb\nc") == "X\nb\nc\nd")
     }
 
@@ -67,9 +67,9 @@ struct Diff3Tests {
 
     @Test func resolveSettlesConflictingBlocks() {
         let base = ["a", "b", "c"]
-        // 預設沒有 resolve：同一行兩邊改成不同值 → 衝突
+        // No resolve by default: the same line changed to different values on both sides → conflict
         #expect(Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) == nil)
-        // resolve 拿到的是衝突區塊本身，回傳值取代該區塊
+        // resolve receives the conflict hunk itself and its return value replaces that hunk
         var seen: [[String]] = []
         let merged = Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) { o, l, r in
             seen = [Array(o), Array(l), Array(r)]
@@ -77,7 +77,7 @@ struct Diff3Tests {
         }
         #expect(merged == ["a", "B1+B2", "c"])
         #expect(seen == [["b"], ["B1"], ["B2"]])
-        // resolve 回傳 nil 仍是衝突；不衝突的區塊不經過 resolve
+        // resolve returning nil is still a conflict; non-conflicting hunks do not pass through resolve
         #expect(Diff3.merge(base: base, local: ["a", "B1", "c"], remote: ["a", "B2", "c"]) { _, _, _ in nil } == nil)
         #expect(Diff3.merge(base: base, local: ["A", "b", "c"], remote: ["a", "b", "C"]) { _, _, _ in Issue.record(); return nil }
                 == ["A", "b", "C"])

@@ -3,36 +3,36 @@ import EasyNotesUI
 import Foundation
 import Observation
 
-/// App 層的 Vault 狀態：檔案樹、選取、搜尋、反向連結、標籤。
-/// 所有內容都存在檔案裡；索引（SQLite）只是可重建的加速結構。
-/// 不認識任何檔案類型：類型相關的行為交給 DocumentKind，編輯器狀態交給各外掛的 EditorController。
+/// App-level vault state: file tree, selection, search, backlinks, tags.
+/// All content lives in files; the index (SQLite) is only a rebuildable acceleration structure.
+/// Knows no file types: type-specific behavior goes to DocumentKind and editor state to each plugin's EditorController.
 @MainActor @Observable
 final class VaultStore: DocumentSession {
     let fs: VaultFS
     @ObservationIgnored let plugins: PluginRegistry
     private(set) var tree: [VaultNode] = []
-    /// 目前位置；`navigate` 會記入上一頁 / 下一頁的歷史
+    /// Current location; `navigate` records it in the back / forward history
     private(set) var route: Route = .all {
         didSet {
             guard route != oldValue else { return }
             tabs.active.route = route
-            // 側邊面板屬於開啟它的那張白板：換到別的位置就關閉
+            // A side panel belongs to the whiteboard that opened it: it closes when navigating elsewhere
             if sidePath != nil, route.filePath != oldValue.filePath { sidePath = nil }
             refreshBacklinks()
-            // 離開開啟中的檔案：之前延後的 ContentFixer 現在可以處理
+            // Leaving an open file: the previously deferred ContentFixer can handle it now
             if let old = oldValue.filePath, old != route.filePath, pendingFixes.contains(old) { scheduleFixes([]) }
         }
     }
-    /// 主內容旁側邊面板開啟的檔案（白板的筆記卡片）；只有 Mac / iPad 的外殼支援
+    /// The file open in the side panel next to the main content (a whiteboard's note card); supported only by the Mac / iPad shell
     var sidePath: String?
     @ObservationIgnored var supportsSide = false
     private(set) var backStack: [Route] = [] { didSet { tabs.active.back = backStack } }
     private(set) var forwardStack: [Route] = [] { didSet { tabs.active.forward = forwardStack } }
-    /// 分頁（Mac / iPad）：背景分頁只存位置與歷史，不持有編輯器；目前分頁的內容與上面的 `route`、歷史同步
+    /// Tabs (Mac / iPad): background tabs store only location and history and hold no editor; the current tab's content stays in sync with `route` and the history above
     private(set) var tabs = TabSet(TabState(route: .all)) { didSet { saveTabs() } }
     var supportsTabs = false
     @ObservationIgnored private var tabsRestored = false
-    /// 開啟中的檔案；設為 nil 時回到它所在的資料夾（不記入歷史）
+    /// The open file; setting it to nil returns to its containing folder (not recorded in history)
     var selection: String? {
         get { route.filePath }
         set {
@@ -40,7 +40,7 @@ final class VaultStore: DocumentSession {
             else if route.filePath != nil { replace(with: currentFolder.isEmpty ? .all : .folder(currentFolder)) }
         }
     }
-    /// 索引中的所有檔案，最近修改的在前（列表頁、側邊欄計數）
+    /// All files in the index, most recently modified first (list pages, sidebar counts)
     private(set) var files: [IndexedFile] = []
     var searchText = "" {
         didSet { runSearch() }
@@ -49,7 +49,7 @@ final class VaultStore: DocumentSession {
     private(set) var backlinks: [SearchHit] = []
     private(set) var tags: [TagCount] = []
     private(set) var lastError: String?
-    /// 這次啟動才建立 Vault 的範例內容（全新安裝）；「新功能」視窗據此略過第一次啟動
+    /// The vault's sample content was created in this launch (fresh install); the "What's New" window uses it to skip the first launch
     @ObservationIgnored private(set) var isFreshInstall = false
 
     @ObservationIgnored let index: VaultIndex?
@@ -57,17 +57,17 @@ final class VaultStore: DocumentSession {
     @ObservationIgnored private let writer: VaultWriter
     @ObservationIgnored private var searchTask: Task<Void, Never>?
     @ObservationIgnored private var derivedTask: Task<Void, Never>?
-    /// App 最近一次寫入（開啟中的檔案也包含讀取）的內容：用來分辨外部修改與自己的寫入，
-    /// 也是存檔時的比對基準（磁碟已不是這份 → 外部工具剛改過，先合併再寫）
+    /// Content the app last wrote (including what was read for an open file): used to tell external edits from its own writes,
+    /// and the comparison base when saving (if the disk no longer matches this → an external tool just changed it, so merge before writing)
     @ObservationIgnored private var lastWritten: [String: Data] = [:]
     @ObservationIgnored private var watcher: VaultWatcher?
-    /// 等待外掛 ContentFixer 處理的檔案（本機的變動）；開啟中的檔案留到離開後
+    /// Files waiting for a plugin's ContentFixer (local changes); open files wait until they are left
     @ObservationIgnored private var pendingFixes = Set<String>()
     @ObservationIgnored private var fixTask: Task<Void, Never>?
 
-    /// 本地內容有變動（App 內編輯或外部工具）：同步層據此排程上傳
+    /// Local content changed (in-app edit or external tool): the sync layer schedules an upload from it
     @ObservationIgnored var onLocalChange: (() -> Void)?
-    /// App 內改名或搬移：同步層直接更新路徑，保留 file id
+    /// In-app rename or move: the sync layer updates the path directly and keeps the file id
     @ObservationIgnored var onMove: ((_ from: String, _ to: String) -> Void)?
 
     init(plugins: PluginRegistry, kinds: KindRegistry, root: URL = VaultStore.defaultRoot()) {
@@ -81,12 +81,12 @@ final class VaultStore: DocumentSession {
         writeVaultGuideIfNeeded()
         refresh()
         Task {
-            // App 關閉期間的外部修改（例如 Claude Code）也交給 ContentFixer
+            // External edits made while the app was closed (for example by Claude Code) also go to ContentFixer
             scheduleFixes(await syncIndex())
             scheduleDerivedRefresh()
         }
         #if DEBUG
-        // UI 測試用：xcrun simctl launch … -EasyNotesOpen <path> -EasyNotesSearch <query>
+        // For UI tests: xcrun simctl launch … -EasyNotesOpen <path> -EasyNotesSearch <query>
         if let open = UserDefaults.standard.string(forKey: LaunchKey.open) { route = .file(open) }
         if let query = UserDefaults.standard.string(forKey: "EasyNotesSearch") { searchText = query }
         #endif
@@ -98,15 +98,15 @@ final class VaultStore: DocumentSession {
 
     private var editors: [any EditorController] { plugins.controllers }
 
-    /// 讓編輯器把尚未回報的變更寫回；改名、刪除、進入背景前呼叫
+    /// Makes editors write back changes not yet reported; called before rename, delete and going to the background
     func flushEditors() async {
         for editor in editors { await editor.flush() }
     }
 
-    /// macOS：~/Documents/EasyNotes（Finder 與其他編輯器可直接開啟）
-    /// iOS：App 的 Documents，透過「檔案」App 可見
+    /// macOS: ~/Documents/EasyNotes (Finder and other editors can open it directly)
+    /// iOS: the app's Documents, visible through the Files app
     static func defaultRoot() -> URL {
-        if let root = TestHooks.vaultRoot { return root } // E2E：每個測試一個暫存 Vault
+        if let root = TestHooks.vaultRoot { return root } // E2E: one temporary vault per test
         #if os(macOS)
         return FileManager.default.homeDirectoryForCurrentUser.appending(path: "Documents/EasyNotes")
         #else
@@ -118,27 +118,27 @@ final class VaultStore: DocumentSession {
         do { tree = try fs.scan() } catch { report(error) }
     }
 
-    // MARK: 導覽
+    // MARK: Navigation
 
     func navigate(_ target: Route) {
         guard target != route else { return }
-        // 有分頁時開啟檔案一律在新分頁（已開著就切過去）；資料夾、列表等位置留在目前分頁
+        // With tabs, opening a file always uses a new tab (switching if already open); folders, lists and other locations stay in the current tab
         if supportsTabs, case .file = target { return openInTab(target) }
         backStack.append(route)
         forwardStack.removeAll()
         route = target
     }
 
-    // MARK: 分頁
+    // MARK: Tabs
 
-    /// 分頁的狀態：位置與各自的上一頁 / 下一頁
+    /// A tab's state: location plus its own back / forward
     struct TabState {
         var route: Route
         var back: [Route] = []
         var forward: [Route] = []
     }
 
-    /// 分頁的位置；目前分頁以 `route` 為準
+    /// A tab's location; the current tab follows `route`
     func tabRoute(_ tab: TabSet<TabState>.Tab) -> Route {
         tab.id == tabs.activeID ? route : tab.state.route
     }
@@ -176,7 +176,7 @@ final class VaultStore: DocumentSession {
         let path = tabRoute(closing).filePath
         tabs.close(id, blank: TabState(route: .all))
         load(tabs.active)
-        // 不再開著的檔案：編輯器丟掉它保留的狀態（再開時以磁碟內容重建）
+        // A file no longer open: the editor drops the state it kept (rebuilt from disk content when reopened)
         if let path, path != selection, path != sidePath {
             for editor in editors { editor.close(path: path) }
         }
@@ -197,13 +197,13 @@ final class VaultStore: DocumentSession {
         if let data = try? JSONEncoder().encode(saved) { UserDefaults.standard.set(data, forKey: Self.tabsKey) }
     }
 
-    /// 外殼支援分頁時呼叫（Mac / iPad 的 SplitShell）；第一次啟用時還原上次開著的分頁（跟著裝置，不同步）
+    /// Called when the shell supports tabs (SplitShell on Mac / iPad); on first enable restores the tabs left open last time (per device, not synced)
     func enableTabs() {
         supportsTabs = true
         guard !tabsRestored else { return }
         tabsRestored = true
         #if DEBUG
-        // E2E 與指定開啟的檔案：從乾淨的狀態開始
+        // E2E and explicitly opened files: start from a clean state
         if TestHooks.vaultRoot != nil || UserDefaults.standard.string(forKey: LaunchKey.open) != nil { return }
         #endif
         guard let data = UserDefaults.standard.data(forKey: Self.tabsKey),
@@ -220,7 +220,7 @@ final class VaultStore: DocumentSession {
         var active: Int
     }
 
-    /// 換掉目前位置但不記入歷史（iPhone 的導覽堆疊、刪除後回到資料夾）
+    /// Replaces the current location without recording history (iPhone's navigation stack, returning to the folder after delete)
     func replace(with target: Route) {
         route = target
     }
@@ -251,7 +251,7 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    /// 改名、搬移後，目前位置與歷史中指向舊路徑的項目一併更新
+    /// After rename or move, the current location and history entries pointing at the old path are updated together
     private func routesMoved(from: String, to: String) {
         if let side = sidePath, case .file(let moved) = Route.file(side).moved(from: from, to: to) { sidePath = moved }
         tabs.update { state in
@@ -262,10 +262,10 @@ final class VaultStore: DocumentSession {
         load(tabs.active)
     }
 
-    /// 刪除後，目前位置若在被刪的路徑下，回到上一層
+    /// After delete, if the current location is under the deleted path, go back one level
     private func routesDeleted(_ path: String) {
         if let side = sidePath, Route.file(side).points(into: path) { sidePath = nil }
-        // 背景分頁指向被刪的檔案或資料夾：直接關掉
+        // A background tab points at a deleted file or folder: just close it
         for tab in tabs.tabs where tab.id != tabs.activeID && tab.state.route.points(into: path) {
             tabs.close(tab.id, blank: TabState(route: .all))
         }
@@ -274,7 +274,7 @@ final class VaultStore: DocumentSession {
         route = parent.isEmpty ? .all : .folder(parent)
     }
 
-    // MARK: 讀寫
+    // MARK: Read / write
 
     func readText(_ path: String) -> String {
         String(decoding: readData(path), as: UTF8.self)
@@ -282,22 +282,22 @@ final class VaultStore: DocumentSession {
 
     func readData(_ path: String) -> Data {
         let data = (try? fs.read(path)) ?? Data()
-        // 編輯器開檔時讀到的內容：之後存檔時用來判斷外部工具有沒有先改過
+        // Content read when the editor opened the file: used at save time to tell whether an external tool changed it first
         if isOpen(path) { lastWritten[path] = data }
         return data
     }
 
-    /// 寫入在背景的序列 actor 進行，不擋主執行緒且保持順序；寫完立即更新該檔索引。
-    /// 存檔前外部工具剛改過、檔案監看還沒通知時，寫入合併結果並推回編輯器，不覆蓋外部的修改
+    /// Writes run on a background serial actor, so the main thread is not blocked and order is kept; the file's index is updated right after writing.
+    /// When an external tool just changed the file before saving and file watching has not notified yet, the merged result is written and pushed back to the editor without overwriting the external change
     func write(_ data: Data, to path: String) {
-        guard VaultFS.isSafe(path: path) else { return } // 路徑來自 Bridge 等外部輸入時不寫到 Vault 外
+        guard VaultFS.isSafe(path: path) else { return } // A path from external input such as the Bridge is never written outside the vault
         let expected = lastWritten[path]
         lastWritten[path] = data
         let device = SyncCoordinator.deviceName
         Task { [writer, index] in
             do {
                 let result = try await writer.write(data, to: path, expecting: expected, deviceName: device)
-                // 之後又有新的存檔時交給它處理（它會再跟磁碟比對一次）
+                // When another save arrives later it is handed to this (it compares with the disk once more)
                 if result.data != data, lastWritten[path] == data {
                     lastWritten[path] = result.data
                     if isOpen(path) { for editor in editors { editor.externalChange(path: path, data: result.data) } }
@@ -317,17 +317,17 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    // MARK: 外部修改
+    // MARK: External changes
 
-    /// 本機的外部修改（Finder、Claude Code、「檔案」App）：更新索引並交給外掛的 ContentFixer。
-    /// macOS 由 FSEvents 觸發，只重掃事件帶來的 `paths`；iOS 在回到前景時完整比對（`paths` 為 nil）。
+    /// Local external changes (Finder, Claude Code, the Files app): updates the index and hands them to plugins' ContentFixer.
+    /// On macOS FSEvents triggers it and only the event's `paths` are rescanned; on iOS a full comparison runs when returning to the foreground (`paths` is nil).
     func scanLocalChanges(paths: Set<String>? = nil) async {
         let changed = await syncIndex(paths: paths)
         scheduleFixes(changed)
         onLocalChange?()
     }
 
-    /// 比對磁碟與索引：新增、修改、刪除的檔案會更新索引、檔案樹，並推送到開啟中的編輯器。回傳有變動的路徑
+    /// Compares disk with the index: added, modified and deleted files update the index and file tree and are pushed to open editors. Returns the changed paths
     @discardableResult
     func syncIndex(paths: Set<String>? = nil) async -> Set<String> {
         guard let index else { return [] }
@@ -342,7 +342,7 @@ final class VaultStore: DocumentSession {
                     routesDeleted(current)
                 }
             }
-            // 開啟中檔案的伴隨檔（例如 PDF 的標註旁檔）被外部修改：交給同一個編輯器合併
+            // A companion of an open file (for example a PDF's annotation sidecar) was changed externally: hand it to the same editor to merge
             if let current = selection {
                 for companion in changed where fs.kinds.mainFile(ofCompanion: companion) == current && fs.exists(companion) {
                     pushExternalChange(companion)
@@ -364,16 +364,16 @@ final class VaultStore: DocumentSession {
         for editor in editors { editor.externalChange(path: path, data: data) }
     }
 
-    /// 開啟中的檔案或它的伴隨檔
+    /// An open file or its companion
     private func isOpen(_ path: String) -> Bool {
         let main = fs.kinds.mainFile(ofCompanion: path) ?? path
         return main == selection || main == sidePath
     }
 
-    // MARK: 外掛的背景改寫（ContentFixer）
+    // MARK: Background rewrites by plugins (ContentFixer)
 
-    /// 只處理本機產生的變動（App 內編輯、外部工具），不處理同步拉下來的內容。
-    /// 連續變動合併後才執行：Claude Code 搬移內容時，兩個檔案都寫完再判斷。
+    /// Handles only locally produced changes (in-app edits, external tools), never content pulled by sync.
+    /// Runs after consecutive changes are coalesced: when Claude Code moves content, decide after both files are written.
     private func scheduleFixes(_ paths: Set<String>) {
         guard !plugins.contentFixers.isEmpty else { return }
         pendingFixes.formUnion(paths.filter { fs.kinds.kind(for: $0) != nil })
@@ -386,7 +386,7 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    /// 開啟中的檔案不改寫（不在打字、注音組字中插入文字），留在佇列等離開後再處理
+    /// Open files are not rewritten (no text inserted during typing or Zhuyin composition); they stay in the queue until left
     private func runFixes() async {
         guard let index else { return }
         let paths = pendingFixes.filter { $0 != selection }
@@ -399,7 +399,7 @@ final class VaultStore: DocumentSession {
                 if let fixed = await fixer.fix(path: path, kindID: kind.id, data: data, index: index) { data = fixed }
             }
             guard data != original else { continue }
-            // 處理期間被打開了：留到離開後
+            // Opened during processing: leave it until it is left
             guard path != selection else {
                 pendingFixes.insert(path)
                 continue
@@ -419,9 +419,9 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    // MARK: 檔案操作
+    // MARK: File operations
 
-    /// 新檔案放在目前所在的資料夾（或開啟中檔案所在的資料夾）；其他頁面放在 Vault 根目錄
+    /// A new file goes in the current folder (or the folder of the open file); other pages use the vault root
     var currentFolder: String {
         switch route {
         case .folder(let path): path
@@ -450,7 +450,7 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 新增第一層資料夾（側邊欄 Spaces 的 +）
+    /// Adds a first-level folder (the + of the sidebar Spaces)
     func createSpace() {
         do {
             let path = try fs.createFolder(named: uniqueFolderName(in: ""), in: "")
@@ -459,7 +459,7 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 把 Vault 外的檔案（匯入 PDF、CSV…）複製進 `folder`（預設為目前所在的資料夾）；`open` 時匯入後開啟
+    /// Copies files from outside the vault (import PDF, CSV…) into `folder` (default: the current folder); with `open`, opens it after import
     func importFile(_ url: URL, into folder: String? = nil, open: Bool = true) async {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
@@ -472,15 +472,15 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 拖入列表頁的檔案：只接受已註冊的類型，匯入後留在原頁面
+    /// Files dropped onto a list page: only registered types are accepted, and the user stays on the page after import
     func importDropped(_ urls: [URL], into folder: String) async -> Bool {
         let accepted = urls.filter { fs.kinds.kind(for: $0) != nil }
         for url in accepted { await importFile(url, into: folder, open: false) }
         return !accepted.isEmpty
     }
 
-    /// 釘選寫在檔案內（Markdown 為 frontmatter），由 DocumentKind 決定格式。
-    /// 寫入後還原 mtime：釘選不算編輯，不應讓文件跑到「最近」最上面。
+    /// Pinning is written inside the file (frontmatter for Markdown), with the format decided by DocumentKind.
+    /// Restores mtime after writing: pinning is not an edit and must not push the document to the top of "Recents".
     func setPinned(_ path: String, _ pinned: Bool) async {
         guard let kind = fs.kinds.kind(for: path) else { return }
         await flushEditors()
@@ -497,7 +497,7 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 改名後，把其他筆記中的 `[[舊名]]` 一併更新（保留別名）
+    /// After a rename, also updates `[[old name]]` in other notes (keeping aliases)
     func rename(_ path: String, to newName: String) async {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -529,7 +529,7 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 拖曳到另一個資料夾（`""` = 根目錄）：名稱不變，所以連結不必改寫
+    /// Drag to another folder (`""` = root): the name is unchanged, so links need no rewriting
     func move(_ path: String, toFolder folder: String) async {
         guard fs.exists(path), folder.isEmpty || isFolder(folder),
               (path as NSString).deletingLastPathComponent != folder else { return }
@@ -545,7 +545,7 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// 伴隨檔由 `fs.rename` / `fs.move` 一起搬移；同步層、編輯器與導覽也要知道
+    /// Companions move together through `fs.rename` / `fs.move`; the sync layer, editors and navigation must know too
     private func didMove(from path: String, to newPath: String, companions: [(from: String, to: String)]) {
         for move in [(from: path, to: newPath)] + companions where fs.exists(move.to) {
             onMove?(move.from, move.to)
@@ -562,7 +562,7 @@ final class VaultStore: DocumentSession {
         await flushEditors()
         do {
             let companions = fs.companions(of: path)
-            try fs.trash(path) // 伴隨檔一起刪除
+            try fs.trash(path) // Companions are deleted together
             for closed in [path] + companions { for editor in editors { editor.close(path: closed) } }
             routesDeleted(path)
             refresh()
@@ -571,14 +571,14 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    // MARK: 同步
+    // MARK: Sync
 
-    /// 同步要改寫、搬移或刪除檔案前：讓編輯器把未存的變更寫回，同步層才能讀到最新內容再合併
+    /// Before sync rewrites, moves or deletes a file: lets editors write back unsaved changes so the sync layer reads the latest content before merging
     func prepareForSync(_ path: String) async {
         await flushEditors()
     }
 
-    /// 同步改寫、搬移或刪除了本地檔案：更新檔案樹、索引與編輯器
+    /// Sync rewrote, moved or deleted a local file: updates the file tree, index and editors
     func applySyncChange(path: String, oldPath: String?, data: Data?) async {
         refresh()
         if let oldPath {
@@ -596,12 +596,12 @@ final class VaultStore: DocumentSession {
         }
         let paths = Set([path] + (oldPath.map { [$0] } ?? []))
         await syncIndex(paths: paths)
-        // `.easynotes/` 下同步的檔案（例如複習紀錄）不進索引，另外通知外掛
+        // Synced files under `.easynotes/` (for example review logs) do not enter the index; plugins are notified separately
         let meta = paths.filter { $0.hasPrefix(VaultFS.metaFolder + "/") }
         if !meta.isEmpty { for editor in editors { editor.vaultChanged(meta) } }
     }
 
-    /// [[連結]]：找到就開啟，找不到就在目前資料夾建立預設類型（第一個註冊的外掛）
+    /// [[link]]: opens it if found, otherwise creates the default kind (the first registered plugin) in the current folder
     func openLink(_ target: String) {
         do {
             if let path = try fs.resolveLink(target) {
@@ -665,7 +665,7 @@ final class VaultStore: DocumentSession {
         return { path in try? fs.read(path) }
     }
 
-    /// `embed://`：檔案預覽的圖（依 hash 快取，沒有就在背景產生）
+    /// `embed://`: the file preview image (cached by hash, generated in the background if missing)
     var embedImageReader: @Sendable (String) async -> Data? {
         { [weak self] path in
             guard let self, let file = await file(at: path) else { return nil }
@@ -696,7 +696,7 @@ final class VaultStore: DocumentSession {
         return name
     }
 
-    // MARK: 搜尋、反向連結、標籤
+    // MARK: Search, backlinks, tags
 
     private func runSearch() {
         searchTask?.cancel()
@@ -721,13 +721,13 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    /// 索引變動後更新標籤、反向連結、自動完成清單；合併短時間內的多次變動
+    /// After the index changes, updates tags, backlinks and the autocomplete list; coalesces several changes in a short time
     private func scheduleDerivedRefresh() {
         derivedTask?.cancel()
         derivedTask = Task { [index] in
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled, let index else { return }
-            refresh() // `write` 寫入新檔（Anki 匯入、同步）後 FSEvents 不再報變動，檔案樹要在這裡更新
+            refresh() // After `write` creates a new file (Anki import, sync) FSEvents no longer reports a change, so the file tree is updated here
             tags = (try? await index.tags()) ?? []
             files = (try? await index.files()) ?? []
             let targets = linkTargets()
@@ -737,7 +737,7 @@ final class VaultStore: DocumentSession {
         }
     }
 
-    /// `[[` 自動完成與連結卡片：類型的圖示與顏色從 PluginRegistry 取，編輯器不認識其他外掛
+    /// `[[` autocomplete and link cards: type icon and color come from PluginRegistry, so the editor knows no other plugin
     private func linkTargets() -> [LinkTarget] {
         files.map { file in
             let kindID = kindID(file.path)
@@ -748,9 +748,9 @@ final class VaultStore: DocumentSession {
         .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
-    // MARK: 列表
+    // MARK: Lists
 
-    /// `folder` 之下（含子資料夾）的檔案數
+    /// Number of files under `folder` (including subfolders)
     func fileCount(in folder: String) -> Int {
         files.count { $0.path.hasPrefix(folder + "/") }
     }
@@ -759,7 +759,7 @@ final class VaultStore: DocumentSession {
         files.first { $0.path == path }
     }
 
-    /// 列表卡片的縮圖資料：依內容 hash 快取，在背景產生；外掛沒有註冊預覽時回傳 nil
+    /// Thumbnail data for list cards: cached by content hash and generated in the background; nil when no plugin registered a preview
     func preview(for file: IndexedFile) async -> DocumentPreview? {
         guard let kindID = kindID(file.path), let provider = plugins.preview(for: kindID) else { return nil }
         let fs = fs
@@ -771,7 +771,7 @@ final class VaultStore: DocumentSession {
         (try? await index?.files(taggedWith: tag)) ?? []
     }
 
-    /// 顯示名稱：去掉已註冊的副檔名
+    /// Display name: the registered extension removed
     func displayName(_ path: String) -> String {
         fs.kinds.displayName(path)
     }
@@ -785,14 +785,14 @@ final class VaultStore: DocumentSession {
         print("[vault] \(error)")
     }
 
-    // MARK: Vault 的 CLAUDE.md
+    // MARK: The vault's CLAUDE.md
 
-    /// Vault 根目錄沒有 `CLAUDE.md` 時，以各外掛的段落建立；已存在就不改寫（使用者可以自行編輯）
+    /// When the vault root has no `CLAUDE.md`, creates it from the plugins' sections; an existing one is never rewritten (the user may edit it)
     private func writeVaultGuideIfNeeded() {
         let path = "CLAUDE.md"
         guard !plugins.vaultGuides.isEmpty,
               !FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) else { return }
-        // l10n:fixed Vault 的 CLAUDE.md 給 Claude Code 讀，內容固定用英文（見 translation.md）
+        // l10n:fixed The vault's CLAUDE.md is read by Claude Code and is always English (see translation.md)
         let header = """
             # EasyNotes Vault
 
@@ -806,7 +806,7 @@ final class VaultStore: DocumentSession {
         do { try fs.write(Data(text.utf8), to: path) } catch { report(error) }
     }
 
-    // MARK: 首次啟動的範例內容
+    // MARK: First-launch sample content
 
     private func seedIfNeeded() {
         let marker = fs.url(for: "\(VaultFS.metaFolder)/seeded")

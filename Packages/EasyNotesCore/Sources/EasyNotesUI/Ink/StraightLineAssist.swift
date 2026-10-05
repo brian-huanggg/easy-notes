@@ -3,7 +3,7 @@ import PencilKit
 import UIKit
 
 extension InkToolSpec {
-    /// 換成 PencilKit 的工具；粗細 = 墨水 / 橡皮擦的 `defaultWidth` × 倍數，夾在 `validWidthRange` 內
+    /// Converts to a PencilKit tool; width = the ink / eraser's `defaultWidth` × multiplier, clamped to `validWidthRange`
     public var pkTool: PKTool {
         switch self {
         case let .ink(raw, color, scale):
@@ -23,7 +23,7 @@ extension InkToolSpec {
 }
 
 extension UIColor {
-    /// `#rrggbb`（畫布固定淺色，顏色不隨深色模式反轉）
+    /// `#rrggbb` (the canvas is always light, so colors do not invert in dark mode)
     convenience init(inkHex hex: String) {
         let digits = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
         let value = UInt64(digits.prefix(6), radix: 16) ?? 0x1e1e1e
@@ -32,27 +32,27 @@ extension UIColor {
     }
 }
 
-/// 「停住變直線」（Apple 備忘錄 / GoodNotes 式，見 architecture/ui.md「手寫工具列」）：畫一筆後筆尖停住，
-/// 這一筆變成起點到目前位置的直線；不放開筆可以繼續調整終點。每個 `PKCanvasView` 掛一個。
+/// "Hold to straighten" (Apple Notes / GoodNotes style, see "Ink toolbar" in architecture/ui.md): after drawing a stroke the pen tip holds still,
+/// and the stroke becomes a straight line from the start to the current position; keep the pen down to keep adjusting the end point. One per `PKCanvasView`.
 ///
-/// 調整期間 `drawing` 的變動不該寫回（宿主檢查 `isAdjusting`）；放開時加進直線的那一次變動才寫回。
+/// `drawing` changes during adjustment must not be written back (the host checks `isAdjusting`); only the change that adds the line on release is written back.
 @MainActor
 public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
-    /// 調整直線中：宿主的 `canvasViewDrawingDidChange` 不寫回
+    /// Adjusting a line: the host's `canvasViewDrawingDidChange` does not write back
     public private(set) var isAdjusting = false
 
     private weak var canvas: PKCanvasView?
     private let observer = TouchObserver()
     private var detector = HoldDetector()
     private var timer: Timer?
-    /// 開始畫這一筆時的筆畫（取消 PencilKit 進行中的筆畫後以它為準）
+    /// The strokes when this stroke began (the reference after cancelling PencilKit's in-progress stroke)
     private var snapshot: PKDrawing?
-    /// 畫布座標（`PKCanvasView` 的 bounds 座標，含縮放）
+    /// Canvas coordinates (`PKCanvasView` bounds coordinates, including zoom)
     private var start: CGPoint = .zero
     private var end: CGPoint = .zero
     private var tool: PKInkingTool?
     private let preview = CAShapeLayer()
-    /// 調整期間停用的手勢與它們原本的狀態
+    /// The gestures disabled during adjustment and their original states
     private var suspended: [UIGestureRecognizer] = []
 
     public init(canvas: PKCanvasView) {
@@ -69,9 +69,9 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
         preview.actions = ["path": NSNull(), "position": NSNull(), "bounds": NSNull()]
     }
 
-    // MARK: 觸控
+    // MARK: Touches
 
-    /// 只看 `drawingPolicy` 允許書寫的觸控，且畫布正在用畫筆 / 螢光筆
+    /// Only touches the `drawingPolicy` allows to write, and only while the canvas is using the pen / highlighter
     fileprivate func shouldTrack(_ touch: UITouch) -> Bool {
         guard let canvas, canvas.drawingGestureRecognizer.isEnabled, canvas.isUserInteractionEnabled,
               canvas.tool is PKInkingTool else { return false }
@@ -112,7 +112,7 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
     fileprivate func cancelled() {
         timer?.invalidate()
         if isAdjusting, let canvas, let snapshot {
-            // 筆畫已被取消：維持開始時的內容
+            // The stroke was cancelled: keep the content from the start
             canvas.drawing = snapshot
         }
         reset()
@@ -132,16 +132,16 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
         beginAdjusting()
     }
 
-    // MARK: 調整
+    // MARK: Adjusting
 
     private func beginAdjusting() {
         guard let canvas, let snapshot else { return }
         isAdjusting = true
-        // 停用再開啟會取消 PencilKit 進行中的筆畫；放開前保持停用，避免 PencilKit 從目前的觸控重新起筆。
-        // 捲動也先停用（PencilKit 不畫之後，Pencil 的移動可能變成捲動）
+        // Disabling and re-enabling cancels PencilKit's in-progress stroke; stay disabled until release so PencilKit does not start a new stroke from the current touch.
+        // Scrolling is disabled first too (once PencilKit stops drawing, Pencil movement could turn into scrolling)
         suspended = [canvas.drawingGestureRecognizer, canvas.panGestureRecognizer].filter(\.isEnabled)
         suspended.forEach { $0.isEnabled = false }
-        // 取消後 PencilKit 仍留下這一筆時，換回開始時的內容
+        // When PencilKit still leaves the stroke after cancelling, restore the content from the start
         if canvas.drawing.strokes.count != snapshot.strokes.count { canvas.drawing = snapshot }
         end = StraightLine.snapped(from: start, to: end)
         preview.strokeColor = previewColor.cgColor
@@ -170,7 +170,7 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
         preview.path = path
     }
 
-    /// 放開：把直線加進開始時的內容（同一種墨水、顏色與粗細），註冊一筆 Undo
+    /// Release: adds the line to the starting content (same ink, color and width) and registers one Undo
     private func commit() {
         guard let canvas, let snapshot, let tool else { return }
         let zoom = max(canvas.zoomScale, 0.01)
@@ -189,11 +189,11 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
         var next = snapshot
         next.strokes.append(stroke)
         let before = canvas.drawing
-        isAdjusting = false // 這一次變動要寫回
+        isAdjusting = false // This change must be written back
         Self.set(next, previous: before, on: canvas)
     }
 
-    /// 設定筆畫並在畫布的 undoManager 註冊反向操作（白板與筆畫共用那個堆疊；PDF 的是私有的，由模型 Undo 負責）
+    /// Sets the strokes and registers the inverse on the canvas's undoManager (the whiteboard shares that stack with strokes; PDF's is private and the model Undo handles it)
     private static func set(_ drawing: PKDrawing, previous: PKDrawing, on canvas: PKCanvasView) {
         canvas.drawing = drawing
         canvas.undoManager?.registerUndo(withTarget: canvas) { canvas in
@@ -213,14 +213,14 @@ public final class StraightLineAssist: NSObject, UIGestureRecognizerDelegate {
 
     // MARK: UIGestureRecognizerDelegate
 
-    /// 只觀察：與所有手勢同時辨識，不影響書寫、捲動與點選
+    /// Observe only: recognized simultaneously with all gestures, without affecting writing, scrolling or tapping
     public func gestureRecognizer(_ g: UIGestureRecognizer,
                                   shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         true
     }
 }
 
-/// 只觀察觸控、永遠不辨識的手勢（追蹤第一個可書寫的觸控）
+/// A gesture that only observes touches and never recognizes (tracks the first writable touch)
 private final class TouchObserver: UIGestureRecognizer {
     weak var assist: StraightLineAssist?
     private var tracked: UITouch?
@@ -231,7 +231,7 @@ private final class TouchObserver: UIGestureRecognizer {
                 tracked = touch
                 assist?.began(touch)
             } else if tracked != nil, assist?.isAdjusting != true {
-                // 第二根手指（捲動、縮放）：這一筆不變直線
+                // A second finger (scroll, zoom): this stroke does not become a straight line
                 assist?.cancelledTracking()
                 tracked = nil
                 state = .failed
@@ -273,20 +273,20 @@ private final class TouchObserver: UIGestureRecognizer {
 }
 
 extension StraightLineAssist {
-    /// 還沒開始調整就放棄追蹤（例如第二根手指）
+    /// Gives up tracking before adjustment starts (for example a second finger)
     fileprivate func cancelledTracking() {
         guard !isAdjusting else { return }
         cancelled()
     }
 }
 
-/// Pencil 點兩下（取代 `PKToolPicker` 原本的行為）：依系統設定切換橡皮擦 / 上一個工具，或收起 / 叫回選項膠囊
+/// Pencil double-tap (replacing `PKToolPicker`'s original behavior): switches eraser / previous tool or collapses / restores the options capsule per system setting
 @MainActor
 public final class InkPencilInteraction: NSObject, UIPencilInteractionDelegate {
     public let interaction = UIPencilInteraction()
     private let isActive: () -> Bool
 
-    /// `isActive`：是否在手寫模式（不在時點兩下不處理）
+    /// `isActive`: whether in ink mode (a double-tap is not handled otherwise)
     public init(isActive: @escaping () -> Bool) {
         self.isActive = isActive
         super.init()

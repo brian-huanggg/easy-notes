@@ -1,26 +1,29 @@
 # EasyNotes
 
-本地優先、檔案即真相的筆記 App（iOS / iPadOS / macOS）。架構與技術方案見
-[EasyNotes 架構與技術方案](./docs/architecture/README.md) 以及 [待辦事項](./docs/Roadmap.md)。
+A local-first, files-are-the-truth notes app for iOS, iPadOS and macOS. Design: [Architecture](./docs/architecture/README.md). Open work: [Status](./docs/Status.md). Release history: [Changelog](./docs/Changelog.md).
 
-## 結構
+## Layout
 
-| 路徑 | 內容 |
+| Path | Contents |
 | --- | --- |
-| `App/` | SwiftUI 外殼、編輯器（WebView / PencilKit）、VaultStore |
-| `App/Resources/Editor/` | 打包後的 CodeMirror 6 編輯器（`index.html` + `editor.js`，由 `web/` 產生） |
-| `web/` | CodeMirror 6 + Live Preview + Swift Bridge 原始碼（TypeScript） |
-| `Packages/EasyNotesCore/` | 核心：Vault 檔案操作、DocumentKind、Markdown 索引、PencilKit ⇄ Excalidraw |
-| `project.yml` | XcodeGen 設定（`EasyNotes.xcodeproj` 由它產生） |
+| `App/` | SwiftUI shell, store, sync wiring, resources |
+| `Packages/EasyNotesCore/` | Core (Vault, index, sync engine, DocumentKind) and EasyNotesUI (plugin registry, design system, WebView host) |
+| `Packages/Kind*`, `Packages/Flashcards` | Compile-time plugins: Markdown, Whiteboard, PDF, Sheets, Flashcards |
+| `Packages/ExcalidrawKit`, `SupabaseSync`, `AppUpdater` | Shared Excalidraw model / renderer, Supabase backend, Sparkle wrapper |
+| `web/` | TypeScript sources of the WebView editors (CodeMirror 6, RevoGrid); bundled into the plugins |
+| `supabase/` | Database migrations |
+| `scripts/` | Test, build and release scripts |
+| `Tests/E2E/` | XCUITest end-to-end tests |
+| `project.yml` | XcodeGen configuration (`EasyNotes.xcodeproj` is generated from it) |
 
-## 開發
+## Development
 
 ```sh
 brew install xcodegen
-pnpm install && (cd web && pnpm build)   # 修改 web/src 後需重新 build
+pnpm install && (cd web && pnpm build)     # rebuild after changing web/src
 xcodegen generate && open EasyNotes.xcodeproj
-(cd Packages/EasyNotesCore && swift test)  # 核心單元測試（含 Spike S2）
+(cd Packages/EasyNotesCore && swift test)  # Core unit tests; run `swift test` in each package
 ```
 
-Vault 位置：macOS `~/Documents/EasyNotes`；iOS 為 App 的 Documents（「檔案」App 可見）。
-Debug build 可用 Safari → 開發 → 檢查 WebView 除錯編輯器。
+Vault location: macOS `~/Documents/EasyNotes`; iOS uses the app's Documents (visible in the Files app).
+Debug builds can be inspected with Safari → Develop → the WebView. See [CLAUDE.md](./CLAUDE.md) for the full command list and contribution rules.

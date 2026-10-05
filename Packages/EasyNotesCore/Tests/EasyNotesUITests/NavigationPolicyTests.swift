@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesUI
 
-/// WebView 不能被導覽到別處（security.md 不變條件 4）
+/// The WebView must never be navigated elsewhere (security.md invariant 4)
 struct NavigationPolicyTests {
     let page = URL(filePath: "/App/Editor/index.html")
 

@@ -3,7 +3,7 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 同步狀態的顯示：已同步 / 同步中 / 待上傳 / 衝突 / 錯誤 / 未登入
+/// Display of sync status: synced / syncing / pending upload / conflict / error / signed out
 extension SyncCoordinator {
     var statusSymbol: String {
         guard case .signedIn = account else { return "icloud.slash" }
@@ -23,7 +23,7 @@ extension SyncCoordinator {
         return L("已同步")
     }
 
-    /// 「2 分鐘前」；未登入或從未同步時為 nil
+    /// "2 minutes ago"; nil when signed out or never synced
     var statusDetail: String? {
         guard case .signedIn = account, let last = status.lastSynced else { return nil }
         return last.formatted(.relative(presentation: .named))
@@ -41,7 +41,7 @@ extension SyncCoordinator {
     }
 }
 
-/// 側邊欄底部的同步狀態列，點開可登入、立即同步、查看衝突副本
+/// The sync status row at the bottom of the sidebar; click to sign in, sync now, or view conflict copies
 struct SyncStatusRow: View {
     @Environment(SyncCoordinator.self) private var sync
     @State private var showPanel = false
@@ -132,7 +132,7 @@ struct SyncPanel: View {
     }
 }
 
-/// 30 天內刪除的檔案（任何裝置刪的都在這裡），可用同一個 file id 還原
+/// Files deleted within 30 days (deleted on any device show here), restorable with the same file id
 struct RecentlyDeletedView: View {
     @Environment(SyncCoordinator.self) private var sync
     @Environment(\.dismiss) private var dismiss

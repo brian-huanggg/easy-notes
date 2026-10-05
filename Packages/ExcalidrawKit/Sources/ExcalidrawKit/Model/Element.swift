@@ -20,7 +20,7 @@ public enum ElementType: Equatable, Sendable {
         }
     }
 
-    /// 可以當文字容器、箭頭綁定目標的形狀
+    /// Shapes that can serve as text containers and arrow binding targets
     public var isBindableShape: Bool {
         switch self {
         case .rectangle, .diamond, .ellipse, .image, .text: true
@@ -29,12 +29,12 @@ public enum ElementType: Equatable, Sendable {
     }
 }
 
-/// 箭頭端點對形狀的綁定（`startBinding` / `endBinding`）
+/// An arrow endpoint's binding to a shape (`startBinding` / `endBinding`)
 public struct Binding: Equatable {
     public var elementId: String
     public var focus: Double
     public var gap: Double
-    /// 端點在形狀上的位置，0...1 的比例（形狀未旋轉時的座標）
+    /// The endpoint's position on the shape, a 0...1 ratio (coordinates when the shape is unrotated)
     public var fixedPoint: CGPoint?
 
     public init(elementId: String, focus: Double = 0, gap: Double = 5, fixedPoint: CGPoint? = nil) {
@@ -48,8 +48,8 @@ public enum ArrowEnd: Sendable {
     var key: String { self == .start ? "startBinding" : "endBinding" }
 }
 
-/// 型別化的元素包裝。底層仍是原始字典：不認識的欄位與類型原樣保留，寫回時不會遺失。
-/// setter 只改欄位，不遞增 version；要遞增請走 `ExcalidrawScene.mutate`。
+/// A typed element wrapper. The underlying value is still a raw dictionary: unknown fields and types are preserved and not lost on write-back.
+/// Setters only change fields and do not increment version; to increment, go through `ExcalidrawScene.mutate`.
 public struct Element {
     public var raw: [String: Any]
 
@@ -57,7 +57,7 @@ public struct Element {
         self.raw = raw
     }
 
-    // MARK: 共用欄位
+    // MARK: Shared fields
 
     public var id: String { raw["id"] as? String ?? "" }
     public var type: ElementType { ElementType(raw["type"] as? String ?? "") }
@@ -88,7 +88,7 @@ public struct Element {
     public var rect: CGRect { CGRect(x: x, y: y, width: width, height: height) }
     public var center: CGPoint { CGPoint(x: x + width / 2, y: y + height / 2) }
 
-    /// `boundElements`：綁在這個形狀上的箭頭與文字
+    /// `boundElements`: arrows and text bound to this shape
     public var boundElements: [(id: String, type: String)] {
         get {
             (raw["boundElements"] as? [[String: Any]] ?? []).compactMap { e in
@@ -109,7 +109,7 @@ public struct Element {
     public var lineHeight: Double { num("lineHeight", default: 1.25) }
     public var textAlign: String { raw["textAlign"] as? String ?? "left" }
     public var verticalAlign: String { raw["verticalAlign"] as? String ?? "top" }
-    /// 文字綁定的容器形狀
+    /// The container shape the text is bound to
     public var containerId: String? {
         get { raw["containerId"] as? String }
         set { raw["containerId"] = newValue ?? NSNull() }
@@ -117,7 +117,7 @@ public struct Element {
 
     // MARK: line / arrow
 
-    /// 相對於 (x, y) 的點
+    /// Points relative to (x, y)
     public var points: [CGPoint] {
         get {
             (raw["points"] as? [[Any]] ?? []).compactMap { p in
@@ -129,14 +129,14 @@ public struct Element {
         set { raw["points"] = newValue.map { [Double($0.x), Double($0.y)] } }
     }
 
-    /// 絕對座標的點（未考慮 `angle`，線與箭頭一律 0）
+    /// Points in absolute coordinates (not accounting for `angle`; always 0 for lines and arrows)
     public var absolutePoints: [CGPoint] {
         points.map { CGPoint(x: x + $0.x, y: y + $0.y) }
     }
 
     public var isElbowArrow: Bool { raw["elbowed"] as? Bool == true }
 
-    /// 以絕對座標設定所有點：原點移到第一個點，`width` / `height` 為點的範圍
+    /// Sets all points in absolute coordinates: the origin moves to the first point and `width` / `height` are the points' extent
     public mutating func setAbsolutePoints(_ pts: [CGPoint]) {
         guard let first = pts.first else { return }
         let rel = pts.map { CGPoint(x: $0.x - first.x, y: $0.y - first.y) }
@@ -159,7 +159,7 @@ public struct Element {
                        gap: (b["gap"] as? NSNumber)?.doubleValue ?? 5, fixedPoint: fixed)
     }
 
-    /// 寫入綁定；綁定字典裡不認識的欄位保留
+    /// Writes the binding; unknown fields inside the binding dictionary are kept
     public mutating func setBinding(_ end: ArrowEnd, _ binding: Binding?) {
         guard let binding else { raw[end.key] = NSNull(); return }
         var dict = raw[end.key] as? [String: Any] ?? [:]
@@ -174,9 +174,9 @@ public struct Element {
 
     public var fileId: String? { raw["fileId"] as? String }
 
-    // MARK: 修改
+    // MARK: Modify
 
-    /// 遞增 `version`、重抽 `versionNonce`、更新 `updated`
+    /// Increments `version`, redraws `versionNonce`, updates `updated`
     mutating func touch() {
         raw["version"] = version + 1
         raw["versionNonce"] = Int.random(in: 1...Int(Int32.max))
@@ -192,7 +192,7 @@ public struct Element {
     }
 }
 
-// MARK: 建立新元素
+// MARK: Creating new elements
 
 extension Element {
     private static func base(_ type: String, x: Double, y: Double, width: Double, height: Double) -> [String: Any] {
@@ -232,7 +232,7 @@ extension Element {
         Element(raw: base("diamond", x: x, y: y, width: width, height: height))
     }
 
-    /// 便條紙：無外框、黃色填滿的方角矩形（文字以 `containerId` 放在裡面）
+    /// Sticky note: a borderless, yellow-filled square-cornered rectangle (text sits inside it through `containerId`)
     public static func stickyNote(x: Double, y: Double, size: Double) -> Element {
         var el = rectangle(x: x, y: y, width: size, height: size, rounded: false)
         el.raw["backgroundColor"] = "#ffec99"
@@ -244,7 +244,7 @@ extension Element {
         Element(raw: base("ellipse", x: x, y: y, width: width, height: height))
     }
 
-    /// 直線箭頭，從 `from` 到 `to`（絕對座標）
+    /// A straight arrow from `from` to `to` (absolute coordinates)
     public static func arrow(from: CGPoint, to: CGPoint) -> Element {
         var raw = base("arrow", x: from.x, y: from.y, width: abs(to.x - from.x), height: abs(to.y - from.y))
         raw["roundness"] = ["type": 2]
@@ -258,13 +258,13 @@ extension Element {
         return Element(raw: raw)
     }
 
-    /// 文字元素；尺寸由 `ExcalidrawScene.setText` 依排版決定
+    /// A text element; the size is decided by layout in `ExcalidrawScene.setText`
     public static func text(_ text: String, x: Double, y: Double, fontSize: Double = 20) -> Element {
         var raw = base("text", x: x, y: y, width: 0, height: 0)
         raw["text"] = text
         raw["originalText"] = text
         raw["fontSize"] = fontSize
-        raw["fontFamily"] = 2 // Helvetica；顯示時一律用系統字型
+        raw["fontFamily"] = 2 // Helvetica; display always uses system fonts
         raw["textAlign"] = "left"
         raw["verticalAlign"] = "top"
         raw["containerId"] = NSNull()

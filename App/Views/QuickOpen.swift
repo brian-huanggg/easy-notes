@@ -2,14 +2,14 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// ⌘K 快速開啟：取代側邊欄的 `.searchable`。空白時列出最近的文件，輸入後用 FTS5 搜尋（`#標籤` 查標籤）。
-/// ↑↓ 移動、Return 開啟、Esc 關閉
+/// ⌘K quick open: replaces the sidebar's `.searchable`. When empty lists recent documents; typing searches with FTS5 (`#tag` queries tags).
+/// ↑↓ move, Return opens, Esc closes
 struct QuickOpen: View {
     @Environment(VaultStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
     @State private var highlighted = 0
-    /// iPhone 的 Search 分頁：開啟後不關閉，交給呼叫端
+    /// iPhone's Search tab: does not close after opening, leaving that to the caller
     var open: ((String) -> Void)?
 
     var body: some View {
@@ -51,7 +51,7 @@ struct QuickOpen: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier(A11yID.QuickOpen.hit(hit.path))
-                            // 以路徑當 id（與 ForEach 相同）：用 index 會讓搜尋結果沿用「最近」同一列的舊畫面
+                            // Use the path as id (same as ForEach): using the index would make search results reuse the old view of the same "Recents" row
                             .id(hit.path)
                         }
                     }
@@ -86,7 +86,7 @@ struct QuickOpen: View {
         }
     }
 
-    /// 空白時：最近修改的 20 份文件
+    /// When empty: the 20 most recently modified documents
     private var results: [SearchHit] {
         if store.searchText.isEmpty {
             return store.files.prefix(20).map { SearchHit(path: $0.path, title: $0.title, snippet: "") }
@@ -107,7 +107,7 @@ struct QuickOpen: View {
     }
 }
 
-/// 標題 + 片段 + 路徑；片段中命中的文字（\u{1}…\u{2}）以粗體與強調色顯示
+/// Title + snippet + path; matched text in the snippet (\u{1}…\u{2}) shows in bold with the accent color
 struct HitRow: View {
     let hit: SearchHit
     var symbol: String?

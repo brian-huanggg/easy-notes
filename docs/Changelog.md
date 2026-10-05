@@ -1,106 +1,106 @@
 # Changelog
 
-本專案的重要變更都記錄在這裡。格式依 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，版本號依 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
+All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [1.2.0] - 2026-10-05
 
 ### Added
 
-- 表格可以直接編輯：點格子就能打字（格內的粗體、連結等會照樣顯示），Tab / Enter 移到下一格並在最後自動新增一列；表格右側、下方的「+」新增欄與列，格子的「⋯」選單可插入、移動、刪除列欄與設定對齊。
-- 數學公式：支援 LaTeX，`$…$` 為行內公式、`$$…$$` 為獨立公式；游標移進公式時顯示原始碼與即時預覽。
-- 屬性面板：筆記的 frontmatter 顯示在標題下方，可以直接修改值、改名、切換型別（文字、清單、核取方塊、日期）、新增或刪除屬性；標籤以標籤樣式顯示，點一下開啟該標籤。沒有屬性的筆記可從文件頭的「新增屬性」開始。
-- 卡片支援 Markdown 與 LaTeX 公式（不需要寫 HTML）：`**粗體**`、`*斜體*`、`~~刪除線~~`、`==螢光==`、`` `程式碼` ``、連結，以及行內公式 `$E=mc^2$` 與置中的獨立公式 `$$…$$`；複習畫面與卡片瀏覽直接顯示排版結果，克漏字也可以挖空整個公式。匯出給 Anki 時公式會轉成 Anki 的 MathJax 格式。
-- 白板與 PDF 的新工具列（GoodNotes 式）：工具置中排成一排（選取、畫筆、螢光筆、橡皮擦、套索與插入工具），選了畫筆後下方浮出選項列，可選鋼筆 / 原子筆 / 鉛筆、三段粗細與顏色，也能用「+」加入自訂顏色（長按刪除）；Undo / Redo 移到左下方的浮動按鈕。筆的設定在白板與 PDF 之間共用，重開 App 會記住。Apple Pencil 點兩下可切換橡皮擦或上一個工具。
-- 畫完一筆後停住不動約半秒，這一筆會變成直線；不放開筆可以繼續調整終點，接近水平、垂直或 45° 時會自動對齊（白板與 PDF 都適用）。
-- 多行卡片：清單項目以 ` ::`（或 ` ;;`）結尾時，底下縮排的子項目都屬於同一張卡片，可以寫清單、段落與程式碼區塊；單獨一行的 `::` 分開正反面，克漏字可以寫在任何一行，分界線之後的內容只在背面顯示。卡片也可以放圖片 `![[x.png]]`，克漏字可以挖空整段行內程式碼。匯出給 Anki 時保留清單、程式碼與圖片的位置。
-- 從 Anki 匯入：複習頁首的「從 Anki 匯入」選擇 `.apkg`，牌組變成資料夾、卡片寫成筆記（保留清單、圖片、公式與克漏字），複習紀錄與到期日一併帶過來；匯入前先顯示摘要與略過的項目（圖片遮蓋、自訂筆記類型），重複匯入不會產生重複的卡片。
-- 表格（CSV / TSV）上方新增工具列與編輯列：工具列可以復原 / 重做、插入或刪除列欄、依此欄排序、凍結首欄、切換第一列是標題；編輯列顯示目前的儲存格位置與完整內容（含換行），適合編輯長文字，Enter 寫入、⇧Enter 換行、Esc 取消。下方的狀態列顯示列數與欄數，選取多格時顯示平均、計數與加總。
-- 在筆記中尋找：按 ⌘F 在編輯器上方開啟搜尋列，標示所有相符的文字並顯示「第幾個 / 共幾個」；Enter / ⇧Enter 跳到下一個 / 上一個，可切換區分大小寫，Esc 關閉。
-- 表格的列與欄可以拖曳排序：滑過列的左側或欄名上方會出現把手，拖到想要的位置放開即可；點一下把手開啟該列欄的選單。
-- 游標在行內公式（`$…$`）裡時，下方會浮出公式的預覽。
-- 多分頁（Mac / iPad）：開啟筆記、白板、PDF、表格預設開在新分頁，已開著的檔案會直接切過去；⌘T 新分頁、⌘W 關閉、⇧⌘[ / ⇧⌘] 切換，右鍵可關閉其他分頁。重新開啟 App 會還原上次的分頁。
-- 卡片中的音檔（`![[x.mp3]]`，含從 Anki 匯入的 `[sound:]`）顯示播放鈕，點一下播放、再點停止；支援 mp3、m4a、wav、aac、ogg、flac。
-- macOS 自動更新：App 會檢查 GitHub 上的新版本，在「EasyNotes」選單的「檢查更新…」可以手動檢查；更新有簽章驗證。
-- 「新功能」視窗：更新後第一次開啟時列出這一版的變更，之後可以從「說明」選單的「版本新功能…」再看一次。
+- Tables are directly editable: click a cell to type (bold, links and other inline formatting still render inside cells), Tab / Enter moves to the next cell and adds a row at the end automatically; the "+" at the right and bottom of a table adds columns and rows, and a cell's "⋯" menu inserts, moves and deletes rows and columns and sets alignment.
+- Math: LaTeX support, with `$…$` for inline math and `$$…$$` for display math; moving the cursor into a formula shows the source and a live preview.
+- Property panel: a note's frontmatter shows below the title, where you can edit values, rename properties, switch types (text, list, checkbox, date), and add or delete properties; tags render as tag chips and a click opens that tag. A note with no properties can start from "Add property" in the document header.
+- Cards support Markdown and LaTeX math (no HTML needed): `**bold**`, `*italic*`, `~~strikethrough~~`, `==highlight==`, `` `code` ``, links, inline math `$E=mc^2$` and centered display math `$$…$$`; the review screen and card browser show the typeset result directly, and a cloze can hide a whole formula. When exporting to Anki, formulas are converted to Anki's MathJax format.
+- New toolbar for whiteboard and PDF (GoodNotes style): tools are centered in one row (select, pen, highlighter, eraser, lasso and insert tools); after choosing a pen an options bar floats below, offering fountain pen / ballpoint / pencil, three widths and colors, plus "+" to add custom colors (long-press to delete); Undo / Redo moved to a floating button at the lower left. Pen settings are shared between whiteboard and PDF and remembered across launches. Double-tapping Apple Pencil switches the eraser or the previous tool.
+- After drawing a stroke, holding still for about half a second turns it into a straight line; keep the pen down to adjust the end point, which snaps when near horizontal, vertical or 45° (whiteboard and PDF).
+- Multi-line cards: when a list item ends with ` ::` (or ` ;;`), the indented child items below belong to the same card and can contain lists, paragraphs and code blocks; a line with only `::` separates front and back, a cloze can be on any line, and content after the divider shows only on the back. Cards can also include images `![[x.png]]`, and a cloze can hide a whole piece of inline code. Lists, code and image positions are preserved when exporting to Anki.
+- Import from Anki: "Import from Anki" at the top of the review page takes an `.apkg`; decks become folders and cards become notes (preserving lists, images, formulas and clozes), with review logs and due dates carried over; a summary and skipped items (image occlusion, custom note types) are shown before importing, and re-importing creates no duplicate cards.
+- Tables (CSV / TSV) get a toolbar and formula bar on top: the toolbar offers undo / redo, insert or delete rows and columns, sort by this column, freeze first column, and toggle first row as header; the formula bar shows the current cell's position and full content (including line breaks), suited to editing long text, with Enter to write, ⇧Enter for a newline and Esc to cancel. A status bar below shows row and column counts, and with several cells selected shows average, count and sum.
+- Find in note: press ⌘F to open a search bar above the editor that highlights all matches and shows "n of m"; Enter / ⇧Enter jumps to next / previous, case sensitivity can be toggled, and Esc closes it.
+- Table rows and columns can be reordered by dragging: a handle appears when hovering the left of a row or above a column name; drag to the desired position and release; a click on the handle opens that row or column's menu.
+- When the cursor is inside inline math (`$…$`), a preview of the formula floats below.
+- Multiple tabs (Mac / iPad): notes, whiteboards, PDFs and tables open in a new tab by default, and a file that is already open is switched to; ⌘T new tab, ⌘W close, ⇧⌘[ / ⇧⌘] switch, and the context menu closes other tabs. Reopening the app restores the last tabs.
+- Audio in cards (`![[x.mp3]]`, including `[sound:]` imported from Anki) shows a play button, one click plays and another stops; mp3, m4a, wav, aac, ogg and flac are supported.
+- macOS auto-update: the app checks GitHub for new versions, and "Check for Updates…" in the "EasyNotes" menu checks manually; updates are signature-verified.
+- "What's New" window: the first launch after an update lists this version's changes, and it can be reopened from "What's New…" in the Help menu.
 
 ### Changed
 
-- 手寫工具改用新的工具列，不再顯示系統浮動工具盤；白板手寫工具不再提供尺（改用停住變直線）。
-- 編輯器只保留最近 20 篇筆記的游標與復原紀錄，系統記憶體不足時會清掉不在畫面上的，降低開很多筆記時的記憶體用量。
+- Ink tools use the new toolbar and no longer show the system floating tool palette; the whiteboard ink tools no longer offer a ruler (hold to straighten instead).
+- The editor keeps cursor and undo history only for the 20 most recent notes and drops those not on screen when system memory is low, reducing memory use when many notes are open.
 
 ### Fixed
 
-- 匯入 Anki 後，新建的資料夾（空間）沒有出現在側邊欄，要重開 App 才看得到。
-- 「從 Anki 匯入」的按鈕與匯入視窗、手寫工具列（筆、橡皮擦、顏色、復原 / 重做）、側邊視窗的按鈕在英文介面下沒有翻譯。
-- 打 `$$` 換行時，`$$` 那一行會立刻被渲染成空白公式而看不到原始碼；現在還沒打結尾 `$$` 的公式維持原始碼，換行時也會自動補上結尾 `$$`。
+- After importing from Anki, newly created folders (spaces) did not appear in the sidebar until the app was restarted.
+- The "Import from Anki" button and sheet, the ink toolbar (pen, eraser, colors, undo / redo) and the side-panel buttons were untranslated in the English interface.
+- Typing `$$` and a newline immediately rendered that line as a blank formula with no visible source; a formula with no closing `$$` now stays as source, and a newline automatically adds the closing `$$`.
 
 ## [1.1.0] - 2026-10-05
 
 ### Added
 
-- 自訂複習：可以增加某個牌組今天的新卡 / 複習上限（會同步到其他裝置）、複習最近幾天忘記的卡片，或提前複習幾天內到期的卡片。從複習頁上方的「自訂複習」按鈕或牌組的右鍵選單開啟。
-- 瀏覽卡片：列出所有或某個牌組的卡片，可以依狀態篩選、搜尋文字或標籤、依到期日或遺忘次數排序；可直接開啟筆記、暫停 / 恢復或重設卡片。
-- 匯出給 Anki：把所有卡片或某個牌組的卡片匯出成 Anki 可以匯入的文字檔（基本、雙向、克漏字各一個檔），保留牌組、標籤與粗體等格式；重複匯入會更新原本的卡片。
-- 白板筆記卡片：工具列的「筆記卡片」可把 Vault 內任何檔案放進白板；雙擊卡片在右側面板開啟（Mac / iPad），卡片顯示檔案的標題與前幾行內容、高度跟著內容調整（手動縮放後不再自動調整），筆記改名後卡片標題與連結跟著更新，在 excalidraw.com 顯示為帶連結的框。
-- macOS 側邊欄：雙擊檔案或資料夾可直接改名；檔案和資料夾可拖曳到其他資料夾，拖到「空間」標題則移到最上層。
-- 支援 English：介面跟隨系統語言；macOS 可在設定（⌘,）選擇語言，重新啟動後生效；首次啟動的範例筆記也會依語言產生。
+- Custom Study: raise a deck's new / review limit for today (synced to other devices), review cards forgotten in the last few days, or review cards due within the next few days early. Open it from the "Custom Study" button at the top of the review page or a deck's context menu.
+- Card browser: lists the cards of all decks or one deck, with filtering by state, text or tag search, and sorting by due date or lapses; notes can be opened directly, and cards suspended / resumed or reset.
+- Export to Anki: exports all cards or one deck's cards as text files Anki can import (one file each for basic, bidirectional and cloze), preserving decks, tags and formatting such as bold; re-importing updates the existing cards.
+- Whiteboard note cards: the toolbar's "Note card" puts any file in the vault onto the whiteboard; double-click a card to open it in a side panel (Mac / iPad), the card shows the file's title and first few lines with its height following the content (no longer auto-adjusted after a manual resize), the card title and link follow when the note is renamed, and on excalidraw.com it shows as a box with a link.
+- macOS sidebar: double-click a file or folder to rename it in place; files and folders can be dragged to another folder, and dragging onto the "Spaces" header moves them to the top level.
+- English support: the interface follows the system language; on macOS the language can be chosen in Settings (⌘,) and takes effect after a restart; the first-launch sample notes are also generated by language.
 
 ### Fixed
 
-- 筆記含大量 `[[` 時（例如貼上亂碼）不再讓索引與預覽卡住數十秒；兩邊都大幅改寫的超大檔案同步時改留衝突副本，不再卡住同步。
-- 點擊含 `../` 的 `[[連結]]` 不會再把新筆記建到 Vault 以外的位置。
-- 同步更嚴格地檢查雲端資料：路徑指向 Vault 以外的檔案會被略過，下載內容的雜湊與紀錄不符時不再套用。
-- ⌘K 快速開啟：輸入關鍵字後，結果列表可能還顯示「最近」清單的舊文件，點下去開錯檔案。
-- 今天的卡片都複習完時，「開始複習」按鈕現在會變灰。
-- 同步收到其他裝置的修改時，正在下載的那幾秒內打的字可能被覆蓋。
-- 用注音輸入時剛好收到同步或外部修改，注音符號可能被留在筆記裡、選好的字跑到別處。
-- 開著筆記、白板或表格時用 Claude Code 等外部工具修改同一個檔案，外部的修改或剛打的字可能被覆蓋；現在兩邊都會保留。
-- Windows 換行（CRLF）的筆記在 App 內編輯後，整份檔案的換行被改掉。
-- 兩台裝置幾乎同時建立同名檔案（例如「未命名」）時，其中一份可能被另一份覆蓋；現在會保留成衝突副本。
+- A note with many `[[` (for example pasted gibberish) no longer freezes indexing and previews for tens of seconds; syncing an oversized file that both sides rewrote heavily now leaves a conflict copy instead of hanging sync.
+- Clicking a `[[link]]` containing `../` no longer creates the new note outside the vault.
+- Sync checks cloud data more strictly: files whose path points outside the vault are skipped, and downloaded content whose hash does not match the record is no longer applied.
+- ⌘K quick open: after typing a keyword the result list could still show stale documents from the "Recents" list, and clicking opened the wrong file.
+- The "Start Review" button now turns gray when all of today's cards are done.
+- When sync received another device's change, text typed during the few seconds of the download could be overwritten.
+- When using Zhuyin input and a sync or external change arrived at that moment, Zhuyin symbols could be left in the note and the chosen characters land elsewhere.
+- Modifying the same file with an external tool such as Claude Code while a note, whiteboard or table was open could overwrite the external change or freshly typed text; both are now preserved.
+- Editing a Windows line-ending (CRLF) note in the app changed the line endings of the whole file.
+- When two devices created a file with the same name (for example "Untitled") almost at the same time, one could be overwritten by the other; it is now kept as a conflict copy.
 
 ## [1.0.0] - 2026-10-04
 
-首次正式發佈（iOS / iPadOS 經 TestFlight；macOS 經 DMG）。
+First public release (iOS / iPadOS through TestFlight; macOS through DMG).
 
 ### Added
 
-- Markdown 筆記：Live Preview、`[[連結]]` 與 `[[` 自動完成、連結改名、標籤、全文搜尋、反向連結索引、callout、核取清單、文件頭（封面、圖示、標籤）、浮動格式工具列與 iOS 鍵盤工具列。注音輸入相容。
-- 手寫：Apple Pencil 手寫畫面，存成標準 `.excalidraw` 筆畫。
-- 檔案即真相：Vault 是磁碟上的真實檔案（macOS：`~/Documents/EasyNotes`），外部工具修改會被偵測並同步。
-- 同步：Supabase 跨裝置同步（Mac、iPad、iPhone），離線編輯、Markdown 三方合併、白板元素合併、同步狀態顯示、最近刪除（保留 30 天，可還原）。
-- 介面：全新設計系統與外殼（側邊欄、⌘K 快速開啟、文件列表與縮圖、釘選、類型篩選、深色模式），iPhone 改為底部分頁。
-- Flashcards：在 Markdown 內以 `::`、`;;`、`{{}}` 寫卡片；FSRS-6 排程（與 Anki 對齊）、牌組與設定 preset、每日上限、複習介面、復原、標籤篩選學習；多裝置複習紀錄自動合併。
-- App 圖示。
-- 白板：原生 Excalidraw 白板編輯器，檔案維持標準 `.excalidraw`，可在 excalidraw.com 開啟。支援矩形、橢圓、菱形、箭頭、文字、圖片、便條紙、Frame 與 Apple Pencil 手寫。
-- 白板：箭頭可綁定形狀，並吸附到形狀上、右、下、左的連接點；形狀移動時箭頭跟著走。
-- 白板：Freeform 式上方工具列、樣式面板（填色、外框、文字、透明度）、矩形 / 套索選取、畫布背景（無 / 網格 / 點狀）、無限畫布。
-- 白板：開啟中的白板會接收同步與外部工具（例如 Claude Code）寫入的變動，不會被舊內容覆蓋。
-- 白板：macOS 可編輯結構元素（滑鼠與觸控板、鍵盤快捷鍵、拖曳到邊緣自動捲動、拖放圖片、工具游標）；手寫只能檢視。
-- 白板：文件列表顯示縮圖，Markdown 可用 `![[x.excalidraw]]` 嵌入預覽。
-- PDF：開啟 PDF 並顯示標註（筆畫、螢光筆、便利貼），原始 PDF 不被修改；文件列表顯示第 1 頁縮圖與頁數；新增選單「匯入 PDF…」（⌘O）。
-- PDF：PDF 檔被換掉時提示「PDF 已變更，標註可能錯位」，可選「保留標註」。
-- PDF：macOS 可在 PDF 上新增、拖曳移動、縮放、編輯與刪除便利貼。
-- PDF：iPad / iPhone 可在 PDF 上手寫（工具列的「畫筆」：鋼筆、螢光筆、橡皮擦、套索），可跨頁復原 / 重做，停止操作後自動存檔。
-- PDF：iPad / iPhone 可在 PDF 上新增、移動、縮放、編輯與刪除便利貼，並可復原 / 重做。
-- PDF：「匯出」把筆畫、螢光筆與便利貼壓平成一份新的 PDF（原始 PDF 不變），可分享或存到 PDF 所在資料夾（`<檔名>（標註）.pdf`，同名自動編號、不覆蓋）；大檔顯示頁數進度並可取消。
-- 表格：開啟並編輯 CSV / TSV。可插入、刪除列與欄，復原 / 重做，排序與篩選（只影響畫面），以及「依此欄排序並寫入」；未修改的列寫回時逐位元組不變。
-- 表格：Big5 編碼的 CSV 以唯讀開啟，可一鍵轉成 UTF-8。
-- 表格：記住欄寬、凍結首欄與「第一列是標題」設定（存在 `.csv.meta.json`，CSV 本身不變），並跨裝置同步。
-- 表格：文件列表顯示表格縮圖，Markdown 可用 `![[x.csv]]` 嵌入預覽；新增選單加入「新表格」與「匯入 CSV…」。
-- 封面圖片支援貼上剪貼簿的圖片（⌘V）。
-- 設定：外觀可切換淺色、深色或跟隨系統。
+- Markdown notes: Live Preview, `[[links]]` and `[[` autocomplete, link rename, tags, full-text search, backlink index, callouts, checklists, document header (cover, icon, tags), floating format toolbar and iOS keyboard toolbar. Zhuyin input compatible.
+- Ink: an Apple Pencil drawing surface saved as standard `.excalidraw` strokes.
+- Files are the truth: the vault is real files on disk (macOS: `~/Documents/EasyNotes`), and external tool edits are detected and synced.
+- Sync: Supabase sync across devices (Mac, iPad, iPhone) with offline editing, Markdown three-way merge, whiteboard element merge, sync status display, and Recently Deleted (kept 30 days, restorable).
+- Interface: a new design system and shell (sidebar, ⌘K quick open, document list with thumbnails, pinning, type filter, dark mode), with iPhone using bottom tabs.
+- Flashcards: write cards in Markdown with `::`, `;;`, `{{}}`; FSRS-6 scheduling (aligned with Anki), decks and settings presets, daily limits, review UI, undo, tag-filtered study; multi-device review logs merge automatically.
+- App icon.
+- Whiteboard: a native Excalidraw whiteboard editor whose files stay standard `.excalidraw` and open on excalidraw.com. Supports rectangles, ellipses, diamonds, arrows, text, images, sticky notes, frames and Apple Pencil ink.
+- Whiteboard: arrows can bind to shapes and snap to connection points at the top, right, bottom and left of a shape; arrows follow when shapes move.
+- Whiteboard: Freeform-style top toolbar, style panel (fill, stroke, text, opacity), rectangle / lasso selection, canvas background (none / grid / dots), infinite canvas.
+- Whiteboard: an open whiteboard receives changes from sync and external tools (for example Claude Code) and is never overwritten by stale content.
+- Whiteboard: macOS can edit structural elements (mouse and trackpad, keyboard shortcuts, autoscroll when dragging to the edge, drag-and-drop images, tool cursors); ink is view-only.
+- Whiteboard: the document list shows thumbnails, and Markdown can embed a preview with `![[x.excalidraw]]`.
+- PDF: open a PDF and show annotations (strokes, highlighter, sticky notes) without modifying the original PDF; the document list shows a page-1 thumbnail and page count; the New menu gains "Import PDF…" (⌘O).
+- PDF: when a PDF file is replaced, a notice "The PDF has changed; annotations may be misaligned" appears with a "Keep annotations" option.
+- PDF: macOS can add, drag, resize, edit and delete sticky notes on a PDF.
+- PDF: iPad / iPhone can write on a PDF (toolbar "Pen": fountain pen, highlighter, eraser, lasso) with cross-page undo / redo and automatic saving after interaction stops.
+- PDF: iPad / iPhone can add, move, resize, edit and delete sticky notes on a PDF, with undo / redo.
+- PDF: "Export" flattens strokes, highlighter and sticky notes into a new PDF (the original is unchanged) that can be shared or saved to the PDF's folder (`<name> (annotated).pdf`, auto-numbered on a name clash, never overwriting); large files show page progress and can be cancelled.
+- Tables: open and edit CSV / TSV. Insert and delete rows and columns, undo / redo, sort and filter (view only), and "sort by this column and write"; unmodified rows are written back byte for byte.
+- Tables: Big5-encoded CSV opens read-only with one-click conversion to UTF-8.
+- Tables: remembers column widths, frozen first column and "first row is header" (stored in `.csv.meta.json`, the CSV itself unchanged) and syncs across devices.
+- Tables: the document list shows table thumbnails and Markdown can embed a preview with `![[x.csv]]`; the New menu gains "New Table" and "Import CSV…".
+- Cover images support pasting an image from the clipboard (⌘V).
+- Settings: appearance can be set to light, dark or follow system.
 
 ### Changed
 
-- 側邊欄的 Vault 標頭改用 App 圖示。
-- 新的附件（封面、插入與貼上的圖片）改存於 `Attachments/`；舊版的 `附件/` 不需搬動，既有的圖片與連結照常顯示。
-- 新建立的 Vault 導覽檔 `CLAUDE.md` 改用英文；既有的不會被改寫。
+- The sidebar's vault header uses the app icon.
+- New attachments (cover, inserted and pasted images) are stored in `Attachments/`; the legacy `附件/` need not be moved and existing images and links display as before.
+- The `CLAUDE.md` guide file of a newly created vault is now in English; existing ones are not rewritten.
 
 ### Fixed
 
-- 淺色主題下，選擇文件圖示時看不到圖示。
-- 使用 SF Symbol 當文件圖示時，編輯器中顯示空白。
-- iPhone 直向的複習牌組列表內容超出螢幕。
+- The document icon was not visible when choosing an icon in the light theme.
+- The editor showed blank when an SF Symbol was used as the document icon.
+- The iPhone portrait review deck list content overflowed the screen.
 
 [Unreleased]: https://github.com/brian-huanggg/easy-notes/compare/v1.1.0...HEAD
 [1.1.0]: https://github.com/brian-huanggg/easy-notes/compare/v1.0.0...v1.1.0

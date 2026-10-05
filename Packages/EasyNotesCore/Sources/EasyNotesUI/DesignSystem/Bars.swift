@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 設計稿 `C/M Tab Bar`：iPhone 底部浮動分頁列（半透明 + 模糊 + 陰影），選取項目 accent-soft 底
+/// Design `C/M Tab Bar`: the iPhone bottom floating tab bar (translucent + blur + shadow), selected item on an accent-soft background
 public struct TabBar<ID: Hashable>: View {
     public struct Item {
         let id: ID
@@ -45,7 +45,7 @@ public struct TabBar<ID: Hashable>: View {
     }
 }
 
-/// 一個工具列按鈕：圖示 + 說明 + 動作；有 `menu` 時按下展開選單（項目以 `help` 為標題）
+/// A toolbar button: icon + help + action; with `menu` it expands a menu on press (items titled by `help`)
 public struct ToolItem: Identifiable {
     public var id: String { symbol + help }
     let symbol: String
@@ -71,7 +71,7 @@ public struct ToolItem: Identifiable {
     }
 }
 
-/// 格式工具列。`.floating`：Desktop 編輯器右下的浮動膠囊；`.keyboard`：iOS 鍵盤上方的 Format Bar，右側是收鍵盤
+/// Format toolbar. `.floating`: the floating capsule at the lower right of the Desktop editor; `.keyboard`: the Format Bar above the iOS keyboard, with dismiss-keyboard on the right
 public struct FormatBar: View {
     public enum Style: Sendable { case floating, keyboard }
 
@@ -149,7 +149,7 @@ private struct FormatBarBackground: ViewModifier {
 }
 
 public extension View {
-    /// 浮動元件的底：surface-glass + 模糊 + 邊框 + 柔和陰影（Tab Bar、浮動格式工具列）
+    /// The background of floating elements: surface-glass + blur + border + soft shadow (Tab Bar, floating format toolbar)
     func glassBackground<S: InsettableShape>(_ shape: S) -> some View {
         background {
             shape.fill(.ultraThinMaterial)

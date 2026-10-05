@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// 一個有深淺兩組值的顏色 token，名稱與 `design/easy-notes-ui.pen` 的 variable 相同。
-/// 當作 ShapeStyle 使用時依環境的 `colorScheme` 解析（`.foregroundStyle(Palette.textPrimary)`），
-/// 需要 `Color` 的 API（`.tint`）用 `.color`。同一組值也輸出成 CM6 的 CSS variables（`Palette.css`）。
+/// A color token with light and dark values, named after the variable in `design/easy-notes-ui.pen`.
+/// Used as a ShapeStyle it resolves by the environment's `colorScheme` (`.foregroundStyle(Palette.textPrimary)`);
+/// APIs that need a `Color` (`.tint`) use `.color`. The same values are also emitted as CM6 CSS variables (`Palette.css`).
 public struct ColorToken: ShapeStyle, Hashable, Sendable {
-    /// Pen variable 名稱，也是 CSS variable 名稱（`--bg-canvas`）
+    /// The Pen variable name, which is also the CSS variable name (`--bg-canvas`)
     public let name: String
     public let light: String
     public let dark: String
     private let lightRGBA: RGBA
     private let darkRGBA: RGBA
 
-    /// `light`、`dark`：`#RRGGBB` 或 `#RRGGBBAA`
+    /// `light`, `dark`: `#RRGGBB` or `#RRGGBBAA`
     public init(_ name: String, light: String, dark: String) {
         self.name = name
         self.light = light
@@ -20,7 +20,7 @@ public struct ColorToken: ShapeStyle, Hashable, Sendable {
         darkRGBA = RGBA(hex: dark)
     }
 
-    /// 透明；三元運算中與其他 token 同型別時使用
+    /// Transparent; used when it must have the same type as other tokens in a ternary
     public static let clear = ColorToken("clear", light: "#00000000", dark: "#00000000")
 
     public func resolve(in environment: EnvironmentValues) -> Color.Resolved {
@@ -31,7 +31,7 @@ public struct ColorToken: ShapeStyle, Hashable, Sendable {
         scheme == .dark ? darkRGBA : lightRGBA
     }
 
-    /// 跟隨系統深淺色的平台動態顏色，給只接受 `Color` 的 API
+    /// A platform dynamic color that follows system light / dark, for APIs that accept only `Color`
     public var color: Color {
         #if os(iOS)
         Color(uiColor: UIColor { [lightRGBA, darkRGBA] traits in
@@ -71,7 +71,7 @@ struct RGBA: Hashable, Sendable {
     var platform: NSColor { NSColor(srgbRed: r, green: g, blue: b, alpha: a) }
     #endif
 
-    /// CSS 的 `rgb()` / `rgba()`
+    /// CSS `rgb()` / `rgba()`
     var css: String {
         let rgb = "\(Int((r * 255).rounded())), \(Int((g * 255).rounded())), \(Int((b * 255).rounded()))"
         return a >= 1 ? "rgb(\(rgb))" : "rgba(\(rgb), \(String(format: "%.3g", a)))"

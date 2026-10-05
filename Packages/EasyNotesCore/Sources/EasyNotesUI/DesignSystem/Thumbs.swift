@@ -1,8 +1,8 @@
 import SwiftUI
 
-// 卡片縮圖（放在 PreviewFrame 內）。元件不認識檔案類型：顏色由呼叫端傳入外掛註冊的 KindTint。
+// Card thumbnails (placed inside PreviewFrame). Components know no file types: colors come from the KindTint plugins registered, passed in by the caller.
 
-/// 文字文件的真實預覽：標題 + 前幾行（設計稿 Doc Card 的 Preview Lines 換成真實文字）
+/// The real preview of a text document: title + first lines (the design's Doc Card Preview Lines replaced by real text)
 public struct TextPreview: View {
     let title: String?
     let lines: [String]
@@ -36,7 +36,7 @@ public struct TextPreview: View {
     }
 }
 
-/// 設計稿 `C/Thumb Board`：點狀格線 + 便利貼、方框、圓、連接線、手寫線
+/// Design `C/Thumb Board`: dot grid + sticky note, box, circle, connector, ink line
 public struct ThumbBoard: View {
     let tint: KindTint
     let scale: CGFloat
@@ -89,7 +89,7 @@ public struct ThumbBoard: View {
     }
 }
 
-/// 設計稿 `C/Thumb PDF`：灰底上的一頁紙、左上類型標記、右上頁數
+/// Design `C/Thumb PDF`: a sheet of paper on gray, type badge top-left, page count top-right
 public struct ThumbPDF: View {
     let tint: KindTint
     let badge: String
@@ -147,7 +147,7 @@ public struct ThumbPDF: View {
     }
 }
 
-/// 設計稿 `C/Thumb CSV`：類型色的表頭 + 灰條儲存格
+/// Design `C/Thumb CSV`: a header in the type color + gray-bar cells
 public struct ThumbTable: View {
     let tint: KindTint
     let columns: [String]

@@ -22,7 +22,7 @@ private struct HoverBackground: ViewModifier {
     }
 }
 
-/// 可點擊的列表項目：macOS 滑鼠移過時游標變成手指；iPad 指標移過時有系統的 highlight
+/// A clickable list item: on macOS the cursor becomes a pointing hand on mouse-over; on iPad the pointer gets the system highlight
 private struct ClickablePointer: ViewModifier {
     func body(content: Content) -> some View {
         #if os(macOS)
@@ -34,18 +34,18 @@ private struct ClickablePointer: ViewModifier {
 }
 
 public extension View {
-    /// macOS 滑鼠移過時顯示 `bg-hover`；iOS 不做事。`outset`：hover 底色超出內容的距離（內容本身沒有內距時）
+    /// On macOS shows `bg-hover` on mouse-over; does nothing on iOS. `outset`: how far the hover background extends beyond the content (when the content itself has no padding)
     func hoverBackground(cornerRadius: CGFloat = Metrics.radiusSmall, outset: CGFloat = 0, isActive: Bool = true) -> some View {
         modifier(HoverBackground(cornerRadius: cornerRadius, outset: outset, isActive: isActive))
     }
 
-    /// 文件、資料夾等可點擊項目的游標
+    /// The cursor for clickable items such as documents and folders
     func clickablePointer() -> some View {
         modifier(ClickablePointer())
     }
 }
 
-/// 滑鼠是否在 view 上（只有 macOS 會變成 true）
+/// Whether the mouse is over the view (true only on macOS)
 struct Hovering: ViewModifier {
     @Binding var isHovering: Bool
 
@@ -58,13 +58,13 @@ struct Hovering: ViewModifier {
     }
 }
 
-// MARK: - 按鈕
+// MARK: - Buttons
 
-/// 主要按鈕：accent 底、白字（New Document、空狀態的 New Note）
+/// Primary button: accent background, white text (New Document, the empty state's New Note)
 public struct PrimaryButtonStyle: ButtonStyle {
     public enum Size: Sendable { case regular, large }
     let size: Size
-    /// 停用時改成灰底灰字（`.disabled(_:)` 不會自動改變自訂樣式的外觀）
+    /// When disabled it turns gray background and gray text (`.disabled(_:)` does not change a custom style's appearance automatically)
     @Environment(\.isEnabled) private var isEnabled
 
     public init(size: Size = .regular) { self.size = size }
@@ -83,7 +83,7 @@ public struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-/// 次要按鈕：surface-raised 底、邊框（New Whiteboard、排序）
+/// Secondary button: surface-raised background, border (New Whiteboard, sort)
 public struct SecondaryButtonStyle: ButtonStyle {
     let size: PrimaryButtonStyle.Size
 
@@ -113,7 +113,7 @@ public extension ButtonStyle where Self == SecondaryButtonStyle {
     static func enSecondary(size: PrimaryButtonStyle.Size) -> SecondaryButtonStyle { SecondaryButtonStyle(size: size) }
 }
 
-/// 圖示與文字間距較緊的 Label
+/// A Label with tighter spacing between icon and text
 public struct CompactLabelStyle: LabelStyle {
     let spacing: CGFloat
     public init(spacing: CGFloat = 6) { self.spacing = spacing }
@@ -125,7 +125,7 @@ public struct CompactLabelStyle: LabelStyle {
     }
 }
 
-/// 設計稿 `C/Icon Button`：28×28、16pt 圖示，滑鼠移過時有底色
+/// Design `C/Icon Button`: 28×28, 16 pt icon, background on mouse-over
 public struct IconButton: View {
     let symbol: String
     let help: String
@@ -133,7 +133,7 @@ public struct IconButton: View {
     let tint: ColorToken
     let action: () -> Void
 
-    /// `size`：Desktop 工具列 28、Mobile 導覽列 32–34
+    /// `size`: Desktop toolbar 28, Mobile navigation bar 32–34
     public init(_ symbol: String, help: String, size: CGFloat = 28, tint: ColorToken = Palette.textSecondary,
                 action: @escaping () -> Void) {
         self.symbol = symbol
@@ -158,9 +158,9 @@ public struct IconButton: View {
     }
 }
 
-// MARK: - Chip、Pill
+// MARK: - Chip, Pill
 
-/// 類型篩選 chip。選取時為實心深色；未選取為 surface-raised + 邊框，圖示用類型顏色
+/// Type filter chip. Selected: solid dark; unselected: surface-raised + border, with the icon in the type color
 public struct FilterChip: View {
     let title: String
     let symbol: String?
@@ -200,7 +200,7 @@ public struct FilterChip: View {
     }
 }
 
-/// 小膠囊：「已儲存」狀態、文件標籤（可帶色點）
+/// Small capsule: the "Saved" status, document tags (can carry a color dot)
 public struct Pill: View {
     let title: String
     let symbol: String?
@@ -225,9 +225,9 @@ public struct Pill: View {
     }
 }
 
-// MARK: - 工具列元件
+// MARK: - Toolbar components
 
-/// 網格 / 列表等以圖示切換的分段控制（設計稿的 View Toggle）
+/// A segmented control that switches by icon, such as grid / list (the design's View Toggle)
 public struct IconSegmentedControl<Value: Hashable>: View {
     public struct Segment {
         let value: Value
@@ -272,7 +272,7 @@ public struct IconSegmentedControl<Value: Hashable>: View {
     }
 }
 
-/// 麵包屑：資料夾 / … / 目前項目
+/// Breadcrumb: folder / … / current item
 public struct Breadcrumb: View {
     let symbol: String
     let components: [String]
@@ -298,7 +298,7 @@ public struct Breadcrumb: View {
     }
 }
 
-/// 搜尋入口（按下開啟 ⌘K 快速開啟，不是輸入框）
+/// Search entry (opens ⌘K quick open when pressed; not an input field)
 public struct SearchFieldButton: View {
     public enum Size: Sendable { case sidebar, mobile }
     let placeholder: String

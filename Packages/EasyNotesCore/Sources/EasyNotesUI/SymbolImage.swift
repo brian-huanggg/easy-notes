@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 把 SF Symbol 畫成 PNG data URI，給沒有 SF Symbols 的 WebView 使用。
-/// 輸出黑色單色圖，網頁端當 CSS mask 用，顏色由 CSS 決定（跟隨深淺色）。
+/// Draws an SF Symbol as a PNG data URI for WebViews, which have no SF Symbols.
+/// Outputs a black monochrome image that the web side uses as a CSS mask, with the color decided by CSS (following light / dark).
 @MainActor
 public enum SymbolImage {
     private static var cache: [String: Data] = [:]

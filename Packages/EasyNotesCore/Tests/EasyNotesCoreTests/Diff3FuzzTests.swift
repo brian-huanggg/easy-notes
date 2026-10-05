@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// 同步合併吃的是遠端的內容：不能崩潰，也不能因病態輸入卡死
+/// Sync merge consumes remote content: it must not crash and must not hang on pathological input
 struct Diff3FuzzTests {
     @Test func mergeSurvivesAnyBytes() {
         let seeds = ["a\nb\nc\n", "一\r\n二\r\n三", "\n\n\n", "x"].map { Data($0.utf8) }
@@ -18,20 +18,20 @@ struct Diff3FuzzTests {
     @Test func largeUnrelatedFilesFinishQuickly() {
         func lines(_ prefix: String, _ n: Int) -> Data { Data((0..<n).map { "\(prefix)\($0)\n" }.joined().utf8) }
         let cases: [(Data, Data, Data)] = [
-            (lines("a", 20_000), lines("b", 20_000), lines("c", 20_000)),       // 完全不同
+            (lines("a", 20_000), lines("b", 20_000), lines("c", 20_000)),       // Completely different
             (Data(String(repeating: "x\n", count: 50_000).utf8), lines("y", 100), Data(String(repeating: "x\n", count: 49_000).utf8)),
-            (lines("a", 200_000), lines("a", 200_001), lines("a", 199_999)),   // 大檔小改
+            (lines("a", 200_000), lines("a", 200_001), lines("a", 199_999)),   // A big file with a small change
         ]
         for (i, (base, local, remote)) in cases.enumerated() {
             let start = ContinuousClock.now
             let merged = Diff3.merge(base: base, local: local, remote: remote)
             let seconds = Double((ContinuousClock.now - start).components.seconds)
             #expect(seconds < 10, "case \(i) took \(seconds)s")
-            if i == 0 { #expect(merged == nil) } // 超過成本上限：當成衝突，不合併
+            if i == 0 { #expect(merged == nil) } // Above the cost cap: treated as a conflict, not merged
         }
     }
 
-    /// 一般使用不受影響：大檔小改、貼上大量新行都照常合併
+    /// Ordinary use is unaffected: a big file with a small change, or pasting many new lines, still merges
     @Test func ordinaryLargeEditsStillMerge() {
         let base = Data((0..<50_000).map { "line \($0)\n" }.joined().utf8)
         var l = (0..<50_000).map { "line \($0)\n" }; l[10] = "LOCAL\n"

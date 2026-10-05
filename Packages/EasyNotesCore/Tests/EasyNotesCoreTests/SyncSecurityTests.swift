@@ -7,7 +7,7 @@ extension FakeBackend {
     func tamper(hash: String, with data: Data) { blobs[hash] = data }
 }
 
-/// 同步不信任遠端：路徑要留在 Vault 內、下載的內容要符合 hash（見 security.md 不變條件 1、2）
+/// Sync does not trust the remote: paths must stay inside the vault and downloaded content must match its hash (see security.md invariants 1 and 2)
 struct SyncSecurityTests {
     let backend = FakeBackend()
 
@@ -48,7 +48,7 @@ struct SyncSecurityTests {
     }
 }
 
-/// 新檔案的標題來自 `[[連結]]`，不能讓檔名離開 Vault（security.md 不變條件 1）
+/// A new file's title comes from a `[[link]]` and must not let the file name leave the vault (security.md invariant 1)
 struct VaultCreateSecurityTests {
     @Test func linkTitleCannotEscapeVault() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: "create-\(UUID().uuidString)")

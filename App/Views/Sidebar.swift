@@ -2,19 +2,19 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 設計稿 `C/Sidebar Desktop`（`YXFMc`）：Vault 標頭、搜尋、導覽、Spaces、Tags，底部是最近刪除、同步狀態、設定。
-/// 外掛的項目（`addPanel`）接在 All Documents 之後；App 不寫死任何外掛。
+/// Design `C/Sidebar Desktop` (`YXFMc`): vault header, search, navigation, Spaces, Tags; at the bottom recently deleted, sync status, settings.
+/// Plugin items (`addPanel`) follow All Documents; the app hardcodes no plugin.
 struct Sidebar: View {
     @Environment(VaultStore.self) private var store
     @Environment(SyncCoordinator.self) private var sync
     @Environment(ShellState.self) private var shell
-    /// 展開中的資料夾（Spaces 檔案樹）
+    /// Expanded folders (the Spaces file tree)
     @State private var expanded: Set<String> = []
-    /// 就地改名中的路徑（Mac 雙擊）
+    /// The path being renamed in place (Mac double-click)
     @State private var editing: String?
     @State private var draftName = ""
     @FocusState private var nameFocused: Bool
-    /// 拖曳經過的資料夾（`""` = 「空間」標題 = 根目錄）
+    /// The folder being dragged over (`""` = the "Spaces" header = root)
     @State private var dropTarget: String?
 
     var body: some View {
@@ -39,7 +39,7 @@ struct Sidebar: View {
         .onChange(of: store.route) { _, route in reveal(route) }
     }
 
-    // MARK: 導覽
+    // MARK: Navigation
 
     private var navigation: some View {
         VStack(spacing: 1) {
@@ -69,7 +69,7 @@ struct Sidebar: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: Spaces = 第一層資料夾
+    // MARK: Spaces = first-level folders
 
     private var spaces: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -100,7 +100,7 @@ struct Sidebar: View {
         let kind = store.kindID(node.path)
         let symbol = node.isFolder ? (expanded.contains(node.path) ? "folder.fill" : "folder")
                                    : store.plugins.symbol(for: kind)
-        // 放到檔案上 = 放進它所在的資料夾
+        // Dropping onto a file = dropping into its containing folder
         let folder = node.isFolder ? node.path : (node.path as NSString).deletingLastPathComponent
         return Group {
             if editing == node.path {
@@ -127,9 +127,9 @@ struct Sidebar: View {
         node.isFolder ? node.name : store.displayName(node.path)
     }
 
-    // MARK: 就地改名
+    // MARK: Rename in place
 
-    /// 與 `SidebarItem` 同樣的排版，標題換成文字欄位
+    /// The same layout as `SidebarItem` with the title replaced by a text field
     private func renameField(symbol: String, depth: Int) -> some View {
         HStack(spacing: 9) {
             Image(systemName: symbol)
@@ -162,7 +162,7 @@ struct Sidebar: View {
         editing = node.path
     }
 
-    /// Return 與失去焦點都會呼叫；Esc 先把 `editing` 清掉，之後失去焦點就不會再改名
+    /// Called on Return and on losing focus; Esc clears `editing` first, so losing focus afterwards does not rename again
     private func commitRename() {
         guard let path = editing else { return }
         editing = nil
@@ -172,13 +172,13 @@ struct Sidebar: View {
         Task { await store.rename(path, to: name) }
     }
 
-    // MARK: 拖曳搬移
+    // MARK: Drag to move
 
     private func setDropTarget(_ folder: String, _ targeted: Bool) {
         if targeted { dropTarget = folder } else if dropTarget == folder { dropTarget = nil }
     }
 
-    /// 只接受 Vault 內存在的路徑（拖進來的也可能是一般文字）
+    /// Accepts only paths that exist in the vault (dragged content may also be plain text)
     private func drop(_ paths: [String], into folder: String) -> Bool {
         let moves = paths.filter { $0 != folder && store.vault.exists($0) }
         guard !moves.isEmpty else { return false }
@@ -187,7 +187,7 @@ struct Sidebar: View {
         return true
     }
 
-    /// Mac 雙擊改名；單擊照常開啟（雙擊的第一下已經開啟過）
+    /// Mac double-click renames; a single click opens as usual (the first click of a double-click already opened it)
     private func click(_ node: VaultNode) {
         #if os(macOS)
         if NSApp.currentEvent?.clickCount == 2 { return startRename(node) }
@@ -195,7 +195,7 @@ struct Sidebar: View {
         open(node)
     }
 
-    /// 點資料夾：開啟資料夾頁並展開；再點一次已選取的資料夾則收合
+    /// Clicking a folder: opens the folder page and expands it; clicking the selected folder again collapses it
     private func open(_ node: VaultNode) {
         guard node.isFolder else { return store.navigate(.file(node.path)) }
         if store.route == .folder(node.path) {
@@ -206,7 +206,7 @@ struct Sidebar: View {
         }
     }
 
-    /// 從別處（⌘K、連結、上一頁）開啟的檔案：展開它所在的資料夾
+    /// A file opened from elsewhere (⌘K, a link, back): expands its containing folder
     private func reveal(_ route: Route) {
         guard case .file(let path) = route else { return }
         var folder = (path as NSString).deletingLastPathComponent
@@ -227,7 +227,7 @@ struct Sidebar: View {
         }
     }
 
-    // MARK: 底部
+    // MARK: Bottom
 
     private var footer: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -244,7 +244,7 @@ struct Sidebar: View {
     }
 }
 
-/// 設定：macOS 開啟 Settings 視窗，iOS 以 sheet 顯示
+/// Settings: macOS opens the Settings window, iOS shows a sheet
 private struct SettingsButton: View {
     @Environment(ShellState.self) private var shell
 
@@ -261,7 +261,7 @@ private struct SettingsButton: View {
     }
 }
 
-/// 檔案與資料夾的右鍵選單：重新命名、在 Finder 中顯示、移到垃圾桶
+/// Context menu for files and folders: rename, reveal in Finder, move to trash
 struct NodeMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell

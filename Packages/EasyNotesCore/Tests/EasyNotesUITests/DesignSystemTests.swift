@@ -35,7 +35,7 @@ struct DesignSystemTests {
         #expect(Palette.textPrimary.resolve(in: env) == RGBA(hex: "#1D1C1A").resolved)
     }
 
-    /// `EASYNOTES_SNAPSHOT_DIR=… swift test` 時把一覽頁輸出成 PNG，與 Pen 設計稿並排比對
+    /// With `EASYNOTES_SNAPSHOT_DIR=… swift test`, outputs the overview page as PNG for side-by-side comparison with the Pen design
     @MainActor @Test func gallerySnapshot() throws {
         guard let dir = ProcessInfo.processInfo.environment["EASYNOTES_SNAPSHOT_DIR"] else { return }
         for scheme in [ColorScheme.light, .dark] {

@@ -2,7 +2,7 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 帳號、同步、最近刪除與 Vault 位置。iPhone 的「我」分頁、iPad 的設定 sheet、macOS 的 Settings 視窗共用
+/// Account, sync, recently deleted and vault location. Shared by iPhone's "Me" tab, iPad's settings sheet and macOS's Settings window
 struct MeView: View {
     @Environment(VaultStore.self) private var store
     @State private var showDeleted = false
@@ -59,7 +59,7 @@ struct MeView: View {
 }
 
 #if os(macOS)
-/// 寫入 `AppleLanguages`，重新啟動後生效（不做執行中即時切換，見 translation.md）。iOS 用系統設定
+/// Writes `AppleLanguages`, taking effect after a restart (no live switching, see translation.md). iOS uses system Settings
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system, zhHant = "zh-Hant", en
 
@@ -68,7 +68,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .system: L("跟隨系統")
-        case .zhHant: "繁體中文" // l10n:fixed 語言以自己的名稱顯示
+        case .zhHant: "繁體中文" // l10n:fixed A language is shown in its own name
         case .en: "English"
         }
     }

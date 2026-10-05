@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// E2E 測試用的資料夾 backend：commit 語意與 FakeBackend（= `commit_file` RPC）相同
+/// The folder backend for E2E tests: commit semantics match FakeBackend (= the `commit_file` RPC)
 struct FolderSyncBackendTests {
     func makeBackend() throws -> FolderSyncBackend {
         try FolderSyncBackend(root: FileManager.default.temporaryDirectory.appending(path: "folder-backend-\(UUID().uuidString)"))
@@ -17,9 +17,9 @@ struct FolderSyncBackendTests {
         let backend = try makeBackend()
         let id = UUID()
         #expect(try await backend.commit(request(id, base: nil)) == 1)
-        #expect(try await backend.commit(request(id, base: nil)) == nil)  // 已存在
+        #expect(try await backend.commit(request(id, base: nil)) == nil)  // Already exists
         #expect(try await backend.commit(request(id, base: 1, hash: "h2")) == 2)
-        #expect(try await backend.commit(request(id, base: 1, hash: "h3")) == nil)  // 遠端已變
+        #expect(try await backend.commit(request(id, base: 1, hash: "h3")) == nil)  // The remote has changed
     }
 
     @Test func livePathIsUnique() async throws {
@@ -44,7 +44,7 @@ struct FolderSyncBackendTests {
     @Test func blobsAreContentAddressed() async throws {
         let backend = try makeBackend()
         try await backend.upload(Data("x".utf8), hash: "k")
-        try await backend.upload(Data("y".utf8), hash: "k")  // 只增不覆寫
+        try await backend.upload(Data("y".utf8), hash: "k")  // Append-only, never overwritten
         #expect(try await backend.download(hash: "k") == Data("x".utf8))
     }
 
@@ -54,7 +54,7 @@ struct FolderSyncBackendTests {
             let vault = FileManager.default.temporaryDirectory.appending(path: "folder-\(name)-\(UUID().uuidString)")
             try FileManager.default.createDirectory(at: vault, withIntermediateDirectories: true)
             let fs = VaultFS(root: vault, kinds: try KindRegistry([NoteKind.self]))
-            // 每台裝置各自建立 backend，只共用資料夾（等同 App 與測試程序）
+            // Each device creates its own backend and they share only the folder (equivalent to the app and the test process)
             return (fs, try SyncEngine(fs: fs, backend: try FolderSyncBackend(root: root), userID: "me", deviceName: name))
         }
         let (fsA, a) = try device("A")

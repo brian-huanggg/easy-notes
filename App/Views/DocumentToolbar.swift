@@ -2,9 +2,9 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 編輯器工具列的元件（所有檔案類型共用）：儲存 / 同步狀態、釘選、更多選單
+/// Editor toolbar components (shared by all file types): save / sync status, pin, more menu
 
-/// 麵包屑旁的「已儲存」膠囊：顯示這份文件的儲存與同步狀態
+/// The "Saved" capsule beside the breadcrumb: shows this document's save and sync status
 struct DocumentStatusPill: View {
     @Environment(SyncCoordinator.self) private var sync
     @Environment(VaultStore.self) private var store
@@ -18,7 +18,7 @@ struct DocumentStatusPill: View {
             .accessibilityIdentifier(A11yID.Toolbar.status)
     }
 
-    /// 編輯內容由編輯器自動存檔，所以本地一律是「已儲存」；登入後再區分同步中與衝突
+    /// Editing is auto-saved by the editor, so locally it is always "Saved"; after sign-in it distinguishes syncing from conflict
     private var status: (String, String) {
         guard case .signedIn = sync.account else { return (L("已儲存"), "checkmark") }
         let stem = store.displayName(path)
@@ -30,7 +30,7 @@ struct DocumentStatusPill: View {
     }
 }
 
-/// 釘選按鈕；只對支援釘選的類型顯示（`DocumentKind.supportsPinning`）
+/// Pin button; shown only for types that support pinning (`DocumentKind.supportsPinning`)
 struct PinButton: View {
     @Environment(VaultStore.self) private var store
     let path: String
@@ -48,7 +48,7 @@ struct PinButton: View {
     }
 }
 
-/// 更多選單：在 Finder 中顯示、複製路徑、用其他 App 開啟、重新命名、移到垃圾桶
+/// More menu: reveal in Finder, copy path, open with another app, rename, move to trash
 struct DocumentMoreMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell
@@ -86,7 +86,7 @@ struct DocumentMoreMenu: View {
 }
 
 #if os(macOS)
-/// 用其他 App 開啟：列出系統中能開這個檔案的 App，預設 App 在最上面
+/// Open with another app: lists the apps on the system that can open this file, with the default app on top
 private struct OpenWithMenu: View {
     let url: URL
 

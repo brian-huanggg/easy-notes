@@ -1,17 +1,17 @@
 import Foundation
 
-/// 本地同步狀態中的一個檔案。`base*` 是上次與伺服器一致時的狀態，也是三方合併的基準。
+/// A file in the local sync state. `base*` is the state at the last agreement with the server and is also the three-way merge base.
 struct SyncRecord: Equatable {
     var id: UUID
-    /// 目前的本地路徑
+    /// The current local path
     var path: String
-    /// 上次掃描到的本地內容 hash
+    /// The local content hash at the last scan
     var hash: String
     var mtime: Double
     var size: Int
-    /// 本地檔案已不存在，等待上傳刪除
+    /// The local file no longer exists, awaiting upload of the delete
     var localDeleted = false
-    /// nil = 尚未上傳過
+    /// nil = never uploaded
     var baseVersion: Int?
     var baseHash: String?
     var basePath: String?
@@ -21,7 +21,7 @@ struct SyncRecord: Equatable {
     }
 }
 
-/// `.easynotes/sync.sqlite`：不參與同步，刪掉後會在下次同步時以 hash 重新對上遠端的檔案。
+/// `.easynotes/sync.sqlite`: not synced; after deleting it the files match the remote by hash again on the next sync.
 final class SyncState {
     static let schemaVersion = 1
     private let db: SQLiteDB
@@ -70,7 +70,7 @@ final class SyncState {
         try db.exec("DELETE FROM files; DELETE FROM meta;")
     }
 
-    /// 本地存在（未刪除）且位於 `path` 的檔案
+    /// A file that exists locally (not deleted) at `path`
     func record(at path: String) -> SyncRecord? {
         records.values.first { $0.path == path && !$0.localDeleted }
     }

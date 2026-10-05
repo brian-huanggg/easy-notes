@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// VaultWatcher 只重掃事件帶來的路徑，不再對整個 Vault 做 stat
+/// VaultWatcher rescans only the paths an event carries and no longer stats the whole vault
 struct IndexIncrementalTests {
     func makeIndex() async throws -> (VaultFS, VaultIndex) {
         let root = FileManager.default.temporaryDirectory.appending(path: "index-\(UUID().uuidString)")
@@ -18,7 +18,7 @@ struct IndexIncrementalTests {
         let edited = (0..<50).map { "資料夾\($0 % 4)/\($0).txt" }
         for path in edited { try fs.write(Data("Claude 改過 \(path)\n".utf8), to: path) }
 
-        // 事件也包含沒變的檔案與 .easynotes 以外的雜訊：只回報真的變動的 50 個
+        // The event also contains unchanged files and noise outside .easynotes: only the 50 that really changed are reported
         let changed = try await index.sync(paths: Set(edited + ["資料夾0/100.txt", "不存在.txt"]))
         #expect(changed == Set(edited))
         #expect(try await index.search("Claude 改過").count == 50)
@@ -28,8 +28,8 @@ struct IndexIncrementalTests {
         let (fs, index) = try await makeIndex()
         try FileManager.default.moveItem(at: fs.url(for: "資料夾1"), to: fs.url(for: "新資料夾"))
         let changed = try await index.sync(paths: ["資料夾1", "新資料夾"])
-        #expect(changed.count == 100) // 50 個移除 + 50 個新增
-        #expect(try await index.sync().isEmpty) // 與完整掃描一致
+        #expect(changed.count == 100) // 50 removed + 50 added
+        #expect(try await index.sync().isEmpty) // Consistent with a full scan
     }
 
     @Test func unregisteredFilesAreIgnored() async throws {
@@ -39,7 +39,7 @@ struct IndexIncrementalTests {
     }
 }
 
-/// 外掛決定的 icon、pinned、summary：Core 只存不解讀
+/// icon, pinned and summary decided by the plugin: Core only stores them and never interprets them
 private enum FlagKind: DocumentKind {
     static let id = "flag"
     static let fileExtensions = ["flag"]
@@ -68,8 +68,8 @@ struct IndexAttributeTests {
         #expect(files["b.flag"]?.icon == nil)
         #expect(files["b.flag"]?.hash == SyncEngine.sha256(Data("plain".utf8)))
 
-        // 外部修改（例如 Claude Code 取消釘選）後增量更新
-        // 外部修改（例如 Claude Code 取消釘選）後增量更新
+        // Incremental update after an external edit (for example Claude Code unpinning)
+        // Incremental update after an external edit (for example Claude Code unpinning)
         try fs.write(Data("off".utf8), to: "a.flag")
         try await index.sync(paths: ["a.flag"])
         #expect(try await index.files().first { $0.path == "a.flag" }?.pinned == false)

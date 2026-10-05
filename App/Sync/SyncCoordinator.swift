@@ -12,9 +12,9 @@ import EasyNotesTestSupport
 import UIKit
 #endif
 
-/// App 層的同步：登入狀態、何時同步、Realtime 連線。同步本身由 Core 的 SyncEngine 負責。
-/// - 本地變更：閒置 3 秒後批次上傳；持續編輯時最多延後 30 秒
-/// - 回到前景：補拉並連上 Realtime；進背景：上傳待傳的變更並斷開 Realtime（不保持背景連線）
+/// App-level sync: sign-in state, when to sync, the Realtime connection. Sync itself is done by Core's SyncEngine.
+/// - Local changes: batch upload after 3 s idle; at most 30 s delay during continuous editing
+/// - Return to foreground: catch up and connect Realtime; go to background: upload pending changes and drop Realtime (no background connection)
 @MainActor @Observable
 final class SyncCoordinator {
     enum Account: Equatable {
@@ -25,7 +25,7 @@ final class SyncCoordinator {
 
     private(set) var account: Account = .unknown
     private(set) var status = SyncEngine.Status()
-    /// 尚未查看的衝突副本（同步每一輪會產生新的，直到使用者看過）
+    /// Conflict copies not yet seen (sync creates new ones each round until the user has looked)
     private(set) var conflicts: [String] = []
     private(set) var authError: String?
 
@@ -37,10 +37,10 @@ final class SyncCoordinator {
     @ObservationIgnored private var scheduled: Task<Void, Never>?
     @ObservationIgnored private var pendingSince: Date?
     @ObservationIgnored private var channel: RealtimeChannelV2?
-    /// E2E 的資料夾 backend：取代 Realtime 的資料夾監看
+    /// E2E folder backend: folder watching replaces Realtime
     @ObservationIgnored private var folderWatch: AnyObject?
     @ObservationIgnored private var isActive = true
-    /// 只記最後一個會和 Apple 實際送出的 token 對不上（首次登入 nonce mismatch），所以全部記下，完成時依 token 反查。
+    /// Remembering only the last one would not match the token Apple actually sends (nonce mismatch on first sign-in), so all are kept and looked up by token on completion.
     @ObservationIgnored private var nonces: [String: String] = [:]
 
     static let idleDelay: Duration = .seconds(3)
@@ -61,7 +61,7 @@ final class SyncCoordinator {
             account = .signedOut
         case .folder(let url):
             #if DEBUG
-            // E2E：固定帳號，不經 Sign in with Apple；遠端是測試程序也能讀寫的資料夾
+            // E2E: a fixed account without Sign in with Apple; the remote is a folder the test process can also read and write
             Task {
                 do {
                     let backend = try FolderSyncBackend(root: url)
@@ -76,7 +76,7 @@ final class SyncCoordinator {
         }
     }
 
-    // MARK: 登入
+    // MARK: Sign-in
 
     private func observeAuth() async {
         for await (event, session) in supabase.auth.authStateChanges {
@@ -124,7 +124,7 @@ final class SyncCoordinator {
         }
     }
 
-    /// identity token（JWT）payload 裡的 nonce claim，即 Apple 收到的 SHA256(nonce)
+    /// The nonce claim in the identity token (JWT) payload, i.e. the SHA256(nonce) Apple received
     private static func nonceClaim(_ jwt: String) -> String? {
         let parts = jwt.split(separator: ".")
         guard parts.count == 3 else { return nil }
@@ -138,7 +138,7 @@ final class SyncCoordinator {
 
     func signOut() async {
         await store.flushEditors()
-        if let engine { await engine.sync() } // 登出前把待傳的變更送出
+        if let engine { await engine.sync() } // Send pending changes before signing out
         guard mode == .supabase else { return }
         try? await supabase.auth.signOut()
     }
@@ -182,9 +182,9 @@ final class SyncCoordinator {
         if !keepAccount { account = .signedOut }
     }
 
-    // MARK: 排程
+    // MARK: Scheduling
 
-    /// 合併短時間內的連續變更；持續編輯時最多延後 `maxDelay` 秒
+    /// Coalesces consecutive changes in a short time; during continuous editing delays at most `maxDelay` seconds
     func schedule(after delay: Duration) {
         guard let engine else { return }
         let now = Date()
@@ -195,7 +195,7 @@ final class SyncCoordinator {
             if !overdue { try? await Task.sleep(for: delay) }
             guard !Task.isCancelled else { return }
             self?.pendingSince = nil
-            // 不跟著排程一起被取消：同步一旦開始就跑完
+            // Not cancelled along with the schedule: once sync starts it runs to completion
             await Task { await engine.sync() }.value
         }
     }
@@ -215,19 +215,19 @@ final class SyncCoordinator {
                 schedule(after: .zero)
             } else {
                 await disconnectRealtime()
-                schedule(after: .zero) // 進背景前送出待傳的變更
+                schedule(after: .zero) // Send pending changes before going to the background
             }
         }
     }
 
-    // MARK: 最近刪除
+    // MARK: Recently deleted
 
     func recentlyDeleted() async throws -> [RemoteFile] {
         guard let engine else { return [] }
         return try await engine.recentlyDeleted()
     }
 
-    /// 還原後開啟該檔案
+    /// Opens the file after restoring
     func restore(_ file: RemoteFile) async throws {
         guard let engine else { return }
         let path = try await engine.restore(file)
@@ -243,7 +243,7 @@ final class SyncCoordinator {
         for path in status.conflicts where !conflicts.contains(path) { conflicts.append(path) }
     }
 
-    // MARK: Realtime（只在前景）
+    // MARK: Realtime (foreground only)
 
     private func connectRealtime() async {
         guard engine != nil, isActive else { return }
@@ -284,11 +284,11 @@ final class SyncCoordinator {
         case .update(let a): a.record["device_id"]?.stringValue
         case .delete: nil
         }
-        guard device == nil || device != deviceID else { return } // 自己的提交
+        guard device == nil || device != deviceID else { return } // Our own commit
         schedule(after: .milliseconds(300))
     }
 
-    /// 衝突副本檔名用（同步與存檔時的外部修改）
+    /// Used in conflict-copy file names (sync and external edits found at save time)
     static var deviceName: String {
         #if os(iOS)
         UIDevice.current.model

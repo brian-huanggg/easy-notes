@@ -3,7 +3,7 @@ import Testing
 import WebKit
 @testable import EasyNotesUI
 
-/// 記錄 handler 的回應；`finished` 在 didFinish / didFailWithError 後完成
+/// Records the handler's responses; `finished` completes after didFinish / didFailWithError
 private final class FakeTask: NSObject, WKURLSchemeTask {
     let request: URLRequest
     var response: HTTPURLResponse?
@@ -44,7 +44,7 @@ struct EmbedSchemeHandlerTests {
         return task
     }
 
-    /// 與網頁端相同的寫法：`embed:///` + 每段 encodeURIComponent（不放在 host，避免中文被當成網域名稱轉成 punycode）
+    /// The same form as the web side: `embed:///` + encodeURIComponent per segment (not put in the host, so Chinese is not taken as a domain name and converted to punycode)
     static func url(_ path: String, hash: String) -> String {
         "embed:///" + path.split(separator: "/").map { $0.addingPercentEncoding(withAllowedCharacters: .alphanumerics)! }
             .joined(separator: "/") + "?h=" + hash

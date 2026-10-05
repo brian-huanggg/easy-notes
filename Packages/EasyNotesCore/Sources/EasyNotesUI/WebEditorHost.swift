@@ -1,26 +1,26 @@
 import SwiftUI
 import WebKit
 
-/// WebView 外掛共用的宿主：預先載入外掛 bundle 內的頁面，處理 Swift ⇄ JS Bridge。
-/// 打字不經過 Bridge；JS 端在停止輸入或失焦時才送訊息。Bridge 協定由各外掛自行定義。
+/// The host shared by WebView plugins: preloads the page inside the plugin bundle and handles the Swift ⇄ JS Bridge.
+/// Typing never goes through the Bridge; the JS side sends messages only when typing stops or on blur. The Bridge protocol is defined by each plugin.
 @MainActor @Observable
 public final class WebEditorHost {
     public private(set) var isReady = false
 
     @ObservationIgnored public let webView: WKWebView
-    /// JS 送出 `ready` 後呼叫（預熱完成）
+    /// Called after JS sends `ready` (pre-warming finished)
     @ObservationIgnored public var onReady: (() -> Void)?
-    /// 其他 JS → Swift 訊息：`type` 與整個訊息
+    /// Other JS → Swift messages: the `type` and the whole message
     @ObservationIgnored public var onMessage: ((_ type: String, _ message: [String: Any]) -> Void)?
     @ObservationIgnored private let messageProxy = MessageProxy()
     @ObservationIgnored private let navigationPolicy = NavigationPolicy()
 
-    /// `vault://` 圖片的來源；由外掛在 `EditorController.attach` 時設定
+    /// The source of `vault://` images; set by the plugin in `EditorController.attach`
     @ObservationIgnored public var readResource: (@Sendable (_ path: String) async -> Data?)? {
         get { schemeHandler.read }
         set { schemeHandler.read = newValue }
     }
-    /// `embed://` 嵌入預覽的來源（`DocumentSession.embedImageReader`）；由外掛在 `attach` 時設定
+    /// The source of `embed://` embedded previews (`DocumentSession.embedImageReader`); set by the plugin in `attach`
     @ObservationIgnored public var readEmbed: (@Sendable (_ path: String) async -> Data?)? {
         get { embedHandler.read }
         set { embedHandler.read = newValue }
@@ -29,15 +29,15 @@ public final class WebEditorHost {
     @ObservationIgnored private let embedHandler = EmbedSchemeHandler()
     @ObservationIgnored private let symbolHandler = SymbolSchemeHandler()
 
-    /// `page`：外掛 bundle 內的 HTML，同資料夾的資源都可讀取。
-    /// `stylesheet`：頁面載入前注入的 CSS（`ThemeCSS.stylesheet()`），深淺色由頁面自己依系統切換，不經 Bridge
+    /// `page`: the HTML inside the plugin bundle; resources in the same folder are readable.
+    /// `stylesheet`: CSS injected before the page loads (`ThemeCSS.stylesheet()`); light / dark switches by the page itself following the system, not through the Bridge
     public init(page: URL?, stylesheet: String? = nil) {
         let config = WKWebViewConfiguration()
         config.userContentController.add(messageProxy, name: "bridge")
         config.setURLSchemeHandler(schemeHandler, forURLScheme: VaultSchemeHandler.scheme)
         config.setURLSchemeHandler(symbolHandler, forURLScheme: SymbolSchemeHandler.scheme)
         config.setURLSchemeHandler(embedHandler, forURLScheme: EmbedSchemeHandler.scheme)
-        // 介面語言一次性注入，web/src/shared/i18n.ts 的 `locale` 讀它；不經 Bridge，也不在打字路徑上
+        // The UI language is injected once, read by `locale` in web/src/shared/i18n.ts; not through the Bridge and not on the typing path
         let language = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
         let languageLiteral = String(decoding: (try? JSONEncoder().encode(language)) ?? Data("\"zh-Hant\"".utf8), as: UTF8.self)
         config.userContentController.addUserScript(
@@ -51,7 +51,7 @@ public final class WebEditorHost {
         webView = EditorWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
         webView.backgroundColor = .clear
-        // 捲動交給頁面自己的 scroller，避免兩層捲動
+        // Scrolling is left to the page's own scroller to avoid two levels of scrolling
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
@@ -60,7 +60,7 @@ public final class WebEditorHost {
         webView.setValue(false, forKey: "drawsBackground")
         #endif
         #if DEBUG
-        webView.isInspectable = true // Safari → 開發 → 可檢查 WebView；Release 不開，避免外部程式附加到 WebView
+        webView.isInspectable = true // Safari → Develop → the WebView can be inspected; off in Release so external programs cannot attach to the WebView
         #endif
         messageProxy.host = self
         navigationPolicy.pageURL = page
@@ -74,7 +74,7 @@ public final class WebEditorHost {
     }
 
     #if os(iOS)
-    /// 鍵盤上方的原生工具列
+    /// The native toolbar above the keyboard
     public var inputAccessoryView: UIView? {
         get { (webView as? EditorWebView)?.accessory }
         set { (webView as? EditorWebView)?.accessory = newValue }
@@ -83,7 +83,7 @@ public final class WebEditorHost {
 
     // MARK: Swift → JS
 
-    /// 頁面尚未 ready 時不送出；需要補送的狀態由外掛在 `onReady` 處理
+    /// Not sent before the page is ready; state that needs resending is handled by the plugin in `onReady`
     public func call(_ js: String, _ args: [String: Any] = [:]) {
         guard isReady else { return }
         webView.callAsyncJavaScript(js, arguments: args, in: nil, in: .page) { result in
@@ -91,7 +91,7 @@ public final class WebEditorHost {
         }
     }
 
-    /// 等 JS 執行完成，例如 flush
+    /// Waits for JS to finish, for example flush
     public func callAndWait(_ js: String) async {
         guard isReady else { return }
         _ = try? await webView.callAsyncJavaScript(js, arguments: [:], contentWorld: .page)
@@ -113,15 +113,15 @@ public final class WebEditorHost {
     }
 }
 
-/// WebView 只能停在外掛 bundle 內的那一頁：任何導覽（連結、表單、`location`）都取消。
-/// 使用者點的 http(s) / mailto 連結改由系統開啟（security.md 不變條件 4）
+/// The WebView may stay only on that one page inside the plugin bundle: any navigation (link, form, `location`) is cancelled.
+/// An http(s) / mailto link the user clicked is opened by the system instead (security.md invariant 4)
 enum NavigationDecision: Equatable {
     case allow, cancel, openExternally
 
     static func decide(url: URL?, pageURL: URL?, isLinkActivation: Bool) -> NavigationDecision {
         guard let url else { return .cancel }
         if !isLinkActivation, let pageURL, url.isFileURL, url.standardizedFileURL.path == pageURL.standardizedFileURL.path {
-            return .allow // 載入編輯器頁面本身（含 reload）
+            return .allow // Loading the editor page itself (including reload)
         }
         if isLinkActivation, ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") { return .openExternally }
         return .cancel
@@ -141,7 +141,7 @@ private final class NavigationPolicy: NSObject, WKNavigationDelegate {
         case .openExternally:
             if let url = action.request.url {
                 #if os(iOS)
-                // iOS 的 open 是 async：不擋住導航判斷，`.cancel` 立刻回傳
+                // On iOS open is async: it does not block the navigation decision and `.cancel` returns immediately
                 Task { @MainActor in await UIApplication.shared.open(url) }
                 #else
                 NSWorkspace.shared.open(url)
@@ -152,7 +152,7 @@ private final class NavigationPolicy: NSObject, WKNavigationDelegate {
     }
 }
 
-/// WKUserContentController 會強引用 handler，用 proxy 斷開循環
+/// WKUserContentController holds a strong reference to the handler; a proxy breaks the cycle
 private final class MessageProxy: NSObject, WKScriptMessageHandler {
     weak var host: WebEditorHost?
 
@@ -161,7 +161,7 @@ private final class MessageProxy: NSObject, WKScriptMessageHandler {
     }
 }
 
-// MARK: - SwiftUI 容器
+// MARK: - SwiftUI container
 
 #if os(iOS)
 public struct WebEditorContainer: UIViewRepresentable {
@@ -179,14 +179,14 @@ public struct WebEditorContainer: NSViewRepresentable {
 }
 #endif
 
-// MARK: - iOS 鍵盤上方的原生工具列
+// MARK: - The native toolbar above the iOS keyboard
 
 #if os(iOS)
 nonisolated(unsafe) private var accessoryKey: UInt8 = 0
 
-/// 真正成為 first responder 的是 WKWebView 內部的 WKContentView，
-/// 所以在執行期替它產生子類別並覆寫 inputAccessoryView。工具列存在各 content view 上，
-/// 多個 WebView 外掛可以有不同的工具列。
+/// What actually becomes first responder is the WKContentView inside the WKWebView,
+/// so a subclass is created for it at run time with inputAccessoryView overridden. The toolbar is stored on each content view,
+/// so several WebView plugins can have different toolbars.
 final class EditorWebView: WKWebView {
     var accessory: UIView? {
         didSet { installAccessory() }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// 遠端 `files` 資料表的一列。檔案身分是 `id`，`path` 只是屬性。
+/// A row of the remote `files` table. A file's identity is `id`; `path` is just an attribute.
 public struct RemoteFile: Sendable, Equatable {
     public var id: UUID
     public var path: String
@@ -18,10 +18,10 @@ public struct RemoteFile: Sendable, Equatable {
     }
 }
 
-/// `commit_file` 的參數
+/// Parameters of `commit_file`
 public struct CommitRequest: Sendable, Equatable {
     public var id: UUID
-    /// nil = 新檔案（遠端還沒有這個 id）
+    /// nil = a new file (the remote does not have this id yet)
     public var baseVersion: Int?
     public var path: String
     public var hash: String
@@ -35,16 +35,16 @@ public struct CommitRequest: Sendable, Equatable {
     }
 }
 
-/// 同步引擎看到的遠端。Core 不認識 Supabase；App 以 supabase-swift 實作，測試用記憶體內的假 backend。
+/// The remote as the sync engine sees it. Core knows no Supabase; the app implements it with supabase-swift and tests use an in-memory fake backend.
 public protocol SyncBackend: Sendable {
-    /// 內容定址上傳（key = SHA-256）；同一 hash 已存在時直接成功
+    /// Content-addressed upload (key = SHA-256); succeeds immediately when the hash already exists
     func upload(_ data: Data, hash: String) async throws
     func download(hash: String) async throws -> Data
-    /// 伺服器端版本檢查：`baseVersion` 等於目前版本（新檔為 nil 且 id 不存在），且沒有別的未刪除檔案佔用 `path`，
-    /// 才寫入並回傳新 version；否則回傳 nil，由引擎拉取後合併。
+    /// Server-side version check: writes and returns the new version only if `baseVersion` equals the current version (nil for a new file whose id does not exist)
+    /// and no other undeleted file occupies `path`; otherwise returns nil and the engine pulls and merges.
     func commit(_ request: CommitRequest) async throws -> Int?
-    /// `updatedAt` 晚於 `cursor` 的列，依 `updatedAt` 排序。可以與上次重疊，引擎會略過已套用的版本。
+    /// Rows whose `updatedAt` is later than `cursor`, ordered by `updatedAt`. May overlap the last call; the engine skips versions already applied.
     func changes(since cursor: Date?) async throws -> [RemoteFile]
-    /// `since` 之後軟刪除、尚未被清除的檔案，最新的在前（「最近刪除」）
+    /// Files soft-deleted after `since` and not yet purged, newest first ("Recently Deleted")
     func deletedFiles(since: Date) async throws -> [RemoteFile]
 }

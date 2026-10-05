@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// 以行合併的測試類型（等同 Markdown 外掛的策略），Core 測試不依賴外掛
+/// A line-merging test type (equivalent to the Markdown plugin's strategy); Core tests depend on no plugin
 enum NoteKind: DocumentKind {
     static let id = "note"
     static let fileExtensions = ["note"]
@@ -14,14 +14,14 @@ enum NoteKind: DocumentKind {
     }
 }
 
-/// 記憶體內的 Supabase：commit 的語意與 `commit_file` RPC 相同
+/// An in-memory Supabase: commit semantics match the `commit_file` RPC
 actor FakeBackend: SyncBackend {
     var blobs: [String: Data] = [:]
     var rows: [UUID: RemoteFile] = [:]
     var clock = Date(timeIntervalSince1970: 1_000_000)
     var failNextCommit = false
     var commits = 0
-    /// 下載時呼叫：模擬下載（網路）期間使用者在編輯器打字、自動存檔
+    /// Called on download: simulates the user typing and autosaving in the editor during the download (network)
     var onDownload: (@Sendable (String) -> Void)?
 
     func upload(_ data: Data, hash: String) async throws { blobs[hash] = data }
@@ -60,7 +60,7 @@ actor FakeBackend: SyncBackend {
     func setOnDownload(_ f: (@Sendable (String) -> Void)?) { onDownload = f }
 }
 
-/// 一台裝置：自己的 Vault 資料夾 + 同步引擎
+/// One device: its own vault folder + sync engine
 struct Device {
     let fs: VaultFS
     let engine: SyncEngine
@@ -82,7 +82,7 @@ struct Device {
     }
     func delete(_ path: String) throws { try FileManager.default.removeItem(at: fs.url(for: path)) }
 
-    /// 檔案路徑 → 內容；不含 `.easynotes/`
+    /// File path → content; excludes `.easynotes/`
     func snapshot() throws -> [String: String] {
         var result: [String: String] = [:]
         let walker = FileManager.default.enumerator(at: fs.root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles])
@@ -100,7 +100,7 @@ struct Device {
 struct SyncEngineTests {
     let backend = FakeBackend()
 
-    /// 輪流同步直到兩邊一致（最多 3 輪）
+    /// Syncs in turns until both sides agree (at most 3 rounds)
     func converge(_ a: Device, _ b: Device) async throws {
         for _ in 0..<3 {
             await a.sync()
@@ -152,7 +152,7 @@ struct SyncEngineTests {
         #expect(try mac.snapshot() == files)
     }
 
-    /// 同步開始時本地沒有修改，下載遠端版本期間才存檔：這段修改要合併進去，不能被遠端內容蓋掉
+    /// No local change when sync starts, and a save during the download of the remote version: that change must be merged in and not overwritten by remote content
     @Test func editSavedDuringDownloadIsMerged() async throws {
         let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
         try mac.write("一\n\n二\n", "a.note")
@@ -171,7 +171,7 @@ struct SyncEngineTests {
         #expect(await ipad.engine.currentStatus.conflicts.isEmpty)
     }
 
-    /// 掃描之後、套用遠端新檔之前，本地在同一路徑建立了檔案（例如兩邊同時新增「未命名」）：不能被覆寫
+    /// After the scan and before applying a remote new file, local created a file at the same path (for example both sides add "Untitled" at once): it must not be overwritten
     @Test func localFileCreatedDuringPullIsNotOverwritten() async throws {
         let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
         try mac.write("Mac\n", "a.note")
@@ -189,7 +189,7 @@ struct SyncEngineTests {
         #expect(try mac.snapshot() == files)
     }
 
-    /// 三台裝置離線各改同一篇的不同段落 → 連線後內容一致、沒有衝突副本
+    /// Three devices each edit a different paragraph of the same note offline → after reconnecting the content agrees and there are no conflict copies
     @Test func threeDevicesOfflineEditsConverge() async throws {
         let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
         let iphone = try Device("iPhone", backend: backend)
@@ -228,7 +228,7 @@ struct SyncEngineTests {
         try await converge(mac, ipad)
         let id = try #require(await backend.rows.keys.first)
 
-        try mac.move("舊.note", "資料夾/新.note") // 像 Claude Code 的 mv
+        try mac.move("舊.note", "資料夾/新.note") // Like Claude Code's mv
         try await converge(mac, ipad)
 
         #expect(await backend.rows.count == 1)
@@ -243,7 +243,7 @@ struct SyncEngineTests {
         try await converge(mac, ipad)
 
         try ipad.move("a.note", "b.note")
-        try await ipad.engine.moved(from: "a.note", to: "b.note") // App 內改名
+        try await ipad.engine.moved(from: "a.note", to: "b.note") // In-app rename
         try mac.write("一\n\n二（Mac 改）\n", "a.note")
         await ipad.sync()
         await mac.sync()
@@ -285,7 +285,7 @@ struct SyncEngineTests {
         try await converge(mac, ipad)
         #expect(!ipad.exists("a.note"))
 
-        // iPad 從「最近刪除」還原：同一個 file id，Mac 也拿回來
+        // iPad restores from "Recently Deleted": the same file id, and Mac gets it back too
         let deleted = try await ipad.engine.recentlyDeleted()
         #expect(deleted.map(\.id) == [id])
         #expect(try await ipad.engine.restore(deleted[0]) == "a.note")
@@ -322,7 +322,7 @@ struct SyncEngineTests {
         #expect(await mac.engine.currentStatus.lastError != nil)
         #expect(await mac.engine.currentStatus.pending == 1)
 
-        // 重新啟動 App：同一個 Vault、新的引擎
+        // Relaunch the app: the same vault, a new engine
         let restarted = try Device("Mac", backend: backend, root: mac.fs.root)
         await restarted.sync()
         await ipad.sync()
@@ -373,7 +373,7 @@ struct SyncEngineTests {
     }
 }
 
-/// `.easynotes/` 只有註冊的子資料夾參與同步；device-id 是本機的
+/// Only registered subfolders of `.easynotes/` take part in sync; device-id is local
 struct SyncMetaFolderTests {
     let backend = FakeBackend()
 
@@ -392,7 +392,7 @@ struct SyncMetaFolderTests {
         #expect(ipad.read(".easynotes/srs/mac.jsonl") == "{\"id\":1}\n")
         #expect(!ipad.exists(".easynotes/seeded"))
 
-        // 追加的紀錄也會同步；iPad 寫自己的檔案，不會衝突
+        // Appended logs sync too; iPad writes its own file, so no conflict
         try mac.write("{\"id\":1}\n{\"id\":2}\n", ".easynotes/srs/mac.jsonl")
         try ipad.write("{\"id\":3}\n", ".easynotes/srs/ipad.jsonl")
         await mac.sync()
@@ -419,7 +419,7 @@ struct SyncMetaFolderTests {
         await mac.sync()
         #expect(await backend.rows.isEmpty)
 
-        // 重新建立引擎（App 重開）id 不變
+        // Recreating the engine (app relaunch) leaves the id unchanged
         let again = try SyncEngine(fs: mac.fs, backend: backend, userID: "me", deviceName: "Mac")
         #expect(await again.deviceID == id)
     }
@@ -429,7 +429,7 @@ struct SyncMetaFolderTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let fs = VaultFS(root: root, kinds: try KindRegistry([NoteKind.self, AnnotationKind.self]))
         #expect(try fs.deviceID(migrating: "OLD-ID") == "OLD-ID")
-        #expect(try fs.deviceID(migrating: "OTHER") == "OLD-ID") // 已存在就不覆寫
+        #expect(try fs.deviceID(migrating: "OTHER") == "OLD-ID") // Already exists, so not overwritten
         try FileManager.default.removeItem(at: fs.url(for: ".easynotes/device-id"))
         let fresh = try fs.deviceID()
         #expect(fresh != "OLD-ID" && !fresh.isEmpty)

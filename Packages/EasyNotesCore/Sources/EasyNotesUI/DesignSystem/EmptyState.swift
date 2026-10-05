@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 空狀態。`.page`：整頁置中（空 Vault `xGsaX`）；`.dropZone`：有邊框的拖放區（空資料夾 `m4Bb4`）。
-/// 按鈕由呼叫端提供（通常來自 Registry 的 New File 指令），元件本身不認識任何檔案類型。
+/// Empty state. `.page`: centered over the whole page (empty vault `xGsaX`); `.dropZone`: a bordered drop area (empty folder `m4Bb4`).
+/// Buttons are supplied by the caller (usually from the Registry's New File commands); the component itself knows no file types.
 public struct EmptyState<Actions: View>: View {
     public enum Style: Sendable { case page, dropZone }
 
@@ -57,7 +57,7 @@ private extension TextStyle {
     var regular: TextStyle { TextStyle(size, .regular, lineHeight: lineHeight, tracking: tracking, uppercase: uppercase) }
 }
 
-/// 空 Vault 的插圖：兩張略微旋轉的紙疊在一起，中間是圖示
+/// The empty-vault illustration: two slightly rotated sheets of paper stacked, with an icon in the middle
 private struct StackedPages: View {
     let symbol: String
 

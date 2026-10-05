@@ -4,7 +4,7 @@ public struct SearchHit: Identifiable, Hashable, Sendable {
     public var id: String { path }
     public let path: String
     public let title: String
-    /// 以 `\u{1}` … `\u{2}` 標記命中文字，UI 端轉成粗體
+    /// Marks matched text with `\u{1}` … `\u{2}`, which the UI turns into bold
     public let snippet: String
 
     public init(path: String, title: String, snippet: String) {
@@ -14,7 +14,7 @@ public struct SearchHit: Identifiable, Hashable, Sendable {
     }
 }
 
-/// 索引中的一個檔案（列表頁、側邊欄計數用）
+/// A file in the index (used by list pages and sidebar counts)
 public struct IndexedFile: Identifiable, Hashable, Sendable {
     public var id: String { path }
     public let path: String
@@ -23,7 +23,7 @@ public struct IndexedFile: Identifiable, Hashable, Sendable {
     public var icon: String? = nil
     public var pinned = false
     public var summary: String? = nil
-    /// 內容的 SHA-256；預覽快取的 key
+    /// SHA-256 of the content; the preview cache key
     public var hash = ""
 }
 
@@ -33,8 +33,8 @@ public struct TagCount: Identifiable, Hashable, Sendable {
     public let count: Int
 }
 
-/// 可重建的 SQLite 索引（FTS5 trigram，中文可做子字串搜尋）。
-/// 檔案才是真相：索引損毀或版本不符時直接刪掉重建。
+/// A rebuildable SQLite index (FTS5 trigram, so Chinese supports substring search).
+/// Files are the truth: a corrupted or version-mismatched index is simply deleted and rebuilt.
 public actor VaultIndex {
     public static let hitStart = "\u{1}"
     public static let hitEnd = "\u{2}"
@@ -44,8 +44,8 @@ public actor VaultIndex {
     private let db: SQLiteDB
     private let contributors: [any IndexContributor]
 
-    /// 索引位置：`<vault>/.easynotes/cache/index.sqlite`（cache 不參與同步）
-    /// `language`：產生顯示文字（`summary`）時的介面語言；Core 只比對不解讀，與上次不同就整份重建
+    /// Index location: `<vault>/.easynotes/cache/index.sqlite` (cache does not take part in sync)
+    /// `language`: the UI language when display text (`summary`) was produced; Core only compares it and never interprets it, and a difference from last time rebuilds the whole index
     public init(fs: VaultFS, location: URL? = nil, contributors: [any IndexContributor] = [], language: String = "") throws {
         self.fs = fs
         self.contributors = contributors
@@ -77,7 +77,7 @@ public actor VaultIndex {
         db.userVersion = schemaVersion
     }
 
-    /// 外掛的抽取規則改變（新增、移除 contributor 或 version 改變）或顯示文字的語言改變時清空索引，下一次 sync 全部重建
+    /// Clears the index when plugin extraction rules change (a contributor added, removed or its version changed) or the display-text language changes; the next sync rebuilds everything
     private static func resetIfContributorsChanged(_ db: SQLiteDB, _ contributors: [any IndexContributor], language: String) throws {
         let signature = contributors.map { "\($0.id):\($0.version)" }.sorted().joined(separator: ",") + "|\(language)"
         let stored = try db.query("SELECT value FROM meta WHERE key = 'contributors'") { $0.text(0) }.first
@@ -88,9 +88,9 @@ public actor VaultIndex {
         }
     }
 
-    // MARK: 更新
+    // MARK: Updating
 
-    /// 比對磁碟與索引的 mtime/size，只重建有變動的檔案。回傳新增、修改、刪除的路徑。
+    /// Compares disk mtime/size with the index and rebuilds only changed files. Returns the added, modified and deleted paths.
     @discardableResult
     public func sync() throws -> Set<String> {
         let onDisk = Dictionary(uniqueKeysWithValues: try fs.fileStats().map { ($0.path, $0) })
@@ -112,8 +112,8 @@ public actor VaultIndex {
         return changed
     }
 
-    /// 只重掃事件帶來的路徑（FSEvents、同步）。資料夾會展開成其下的檔案；不存在的路徑連同其下的索引一併移除。
-    /// 回傳新增、修改、刪除的檔案路徑。
+    /// Rescans only the paths an event carries (FSEvents, sync). A folder expands to the files under it; a nonexistent path is removed along with the index entries below it.
+    /// Returns the added, modified and deleted file paths.
     @discardableResult
     public func sync(paths: Set<String>) throws -> Set<String> {
         var targets = Set<String>()
@@ -156,7 +156,7 @@ public actor VaultIndex {
             .replacingOccurrences(of: "_", with: "\\_") + "/%"
     }
 
-    /// App 寫入檔案後立即更新該檔索引（不必等下一次 sync）
+    /// Updates a file's index right after the app writes it (no need to wait for the next sync)
     public func update(_ path: String, data: Data) throws {
         let stat = try fs.fileStat(path)
         try db.transaction {
@@ -202,9 +202,9 @@ public actor VaultIndex {
         try db.run("DELETE FROM records WHERE path = ?", [.text(path)])
     }
 
-    // MARK: 查詢
+    // MARK: Queries
 
-    /// `#標籤` 查標籤（含子標籤 `#a/b`）；其他為全文搜尋，空白分隔的詞以 AND 結合
+    /// `#tag` queries tags (including subtags `#a/b`); anything else is full-text search, with space-separated terms combined by AND
     public func search(_ query: String, limit: Int = 50) throws -> [SearchHit] {
         try searchAll(query, limit: limit).filter { !fs.kinds.isCompanion($0.path) }
     }
@@ -224,7 +224,7 @@ public actor VaultIndex {
         }
 
         let terms = q.split(whereSeparator: \.isWhitespace).map(String.init)
-        // trigram 至少要 3 個字元才能用索引；較短的詞改用 LIKE（trigram 也能加速 LIKE）
+        // trigram needs at least 3 characters to use the index; shorter terms use LIKE (trigram can also speed up LIKE)
         if terms.allSatisfy({ $0.count >= 3 }) {
             let match = terms.map { "\"\($0.replacingOccurrences(of: "\"", with: "\"\""))\"" }.joined(separator: " ")
             return try db.query("""
@@ -245,7 +245,7 @@ public actor VaultIndex {
         }
     }
 
-    /// 連到 `path` 的筆記，附上含有連結的那一行
+    /// Notes linking to `path`, with the line containing the link
     public func backlinks(to path: String) throws -> [SearchHit] {
         let name = fs.kinds.displayName(path)
         return try db.query("""
@@ -257,7 +257,7 @@ public actor VaultIndex {
         }
     }
 
-    /// 連結指向 `name`（不分大小寫）的所有來源檔案
+    /// All source files whose links point at `name` (case-insensitive)
     public func sources(linkingTo name: String) throws -> [String] {
         try db.query("SELECT DISTINCT src FROM links WHERE target = ?", [.text(name.lowercased())]) { $0.text(0) }
     }
@@ -268,7 +268,7 @@ public actor VaultIndex {
         }
     }
 
-    /// 路徑 → 該檔案的標籤（依標籤名稱排序；沒有標籤的檔案不列出）
+    /// Path → that file's tags (sorted by tag name; files without tags are not listed)
     public func fileTags() throws -> [String: [String]] {
         let rows = try db.query("SELECT path, tag FROM tags ORDER BY path, tag COLLATE NOCASE") { ($0.text(0), $0.text(1)) }
         return rows.reduce(into: [:]) { result, row in
@@ -276,13 +276,13 @@ public actor VaultIndex {
         }
     }
 
-    /// 所有已索引的檔案，最近修改的在前；伴隨檔不列出
+    /// All indexed files, most recently modified first; companions are not listed
     public func files() throws -> [IndexedFile] {
         try db.query("SELECT \(Self.fileColumns("")) FROM files ORDER BY mtime DESC", row: Self.indexedFile)
             .filter { !fs.kinds.isCompanion($0.path) }
     }
 
-    /// 帶有標籤 `tag`（含子標籤 `tag/…`）的檔案，最近修改的在前
+    /// Files with tag `tag` (including subtags `tag/…`), most recently modified first
     public func files(taggedWith tag: String) throws -> [IndexedFile] {
         try db.query("""
             SELECT DISTINCT \(Self.fileColumns("f.")) FROM tags t JOIN files f ON f.path = t.path
@@ -300,34 +300,34 @@ public actor VaultIndex {
                     icon: row.optionalText(3), pinned: row.int(4) != 0, summary: row.optionalText(5), hash: row.text(6))
     }
 
-    /// 某個 contributor 的所有 records，依路徑排序
+    /// All records of a contributor, sorted by path
     public func records(_ contributor: String) throws -> [(path: String, record: IndexRecord)] {
         try db.query("SELECT path, key, value FROM records WHERE contributor = ? ORDER BY path, rowid",
                      [.text(contributor)]) { ($0.text(0), IndexRecord(key: $0.text(1), value: $0.text(2))) }
     }
 
-    /// 某個 key 出現在哪些檔案（例如卡片 id 是否已被其他檔案使用）
+    /// Which files a key appears in (for example whether a card id is already used by another file)
     public func paths(withKey key: String, contributor: String) throws -> [String] {
         try db.query("SELECT DISTINCT path FROM records WHERE contributor = ? AND key = ? ORDER BY path",
                      [.text(contributor), .text(key)]) { $0.text(0) }
     }
 
-    /// `[[` 自動完成用的筆記名稱
+    /// Note names for `[[` autocomplete
     public func linkTargets() throws -> [String] {
         try db.query("SELECT DISTINCT name FROM files ORDER BY name COLLATE NOCASE") { $0.text(0) }
     }
 
-    // MARK: 工具
+    // MARK: Utilities
 
-    /// 片段只給人看：去掉 Markdown 語法，`[[目標|別名]]` 顯示別名。保留命中標記。
+    /// The snippet is for humans only: Markdown syntax removed, `[[target|alias]]` shows the alias. Match markers are kept.
     static func clean(_ snippet: String) -> String {
         var s = snippet
         let rules: [(String, String)] = [
-            (#"\[\[([^\[\]|\n]*)\|([^\[\]\n]*)\]\]"#, "$2"),     // [[目標|別名]] → 別名
+            (#"\[\[([^\[\]|\n]*)\|([^\[\]\n]*)\]\]"#, "$2"),     // [[target|alias]] → alias
             (#"!?\[\[|\]\]"#, ""),                            // [[ ]]
-            (#"(^|\n)\s*#{1,6}\s"#, "$1"),                      // 標題
-            (#"(^|\n)\s*[-*+]\s(\[[ xX]\]\s)?"#, "$1"),         // 清單、待辦
-            (#"\*\*|__|~~|`"#, ""),                             // 粗體、刪除線、code
+            (#"(^|\n)\s*#{1,6}\s"#, "$1"),                      // Headings
+            (#"(^|\n)\s*[-*+]\s(\[[ xX]\]\s)?"#, "$1"),         // Lists, tasks
+            (#"\*\*|__|~~|`"#, ""),                             // Bold, strikethrough, code
         ]
         for (pattern, template) in rules {
             s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
@@ -337,12 +337,12 @@ public actor VaultIndex {
             .trimmingCharacters(in: .whitespaces)
     }
 
-    /// 取出包含 `term` 的那一行（最多約 80 字），並標記命中位置
+    /// Takes the line containing `term` (at most about 80 characters) and marks the match position
     static func snippet(in body: String, around term: String, extendTo terminator: String? = nil) -> String {
         guard var range = body.range(of: term, options: [.caseInsensitive, .diacriticInsensitive]) else {
             return String(body.prefix(80))
         }
-        // 反向連結：命中範圍延伸到整個 [[…]]，別名才能被正確處理
+        // Backlinks: the match range extends to the whole [[…]], so aliases are handled correctly
         if let terminator, let end = body.range(of: terminator, range: range.upperBound..<body.endIndex) {
             range = range.lowerBound..<end.upperBound
         }

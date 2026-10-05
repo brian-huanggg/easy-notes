@@ -1,7 +1,7 @@
 import CoreGraphics
 import Foundation
 
-/// 綁定用的幾何。形狀可旋轉：先轉回未旋轉的座標計算，結果再轉回去。
+/// Geometry for binding. Shapes can be rotated: compute in unrotated coordinates and rotate the result back.
 public enum Geometry {
     public static func rotate(_ p: CGPoint, around c: CGPoint, by angle: Double) -> CGPoint {
         guard angle != 0 else { return p }
@@ -10,13 +10,13 @@ public enum Geometry {
         return CGPoint(x: c.x + dx * co - dy * s, y: c.y + dx * s + dy * co)
     }
 
-    /// 形狀上 `ratio`（0...1）位置的絕對座標
+    /// The absolute coordinates of the position at `ratio` (0...1) on the shape
     public static func point(in shape: Element, ratio: CGPoint) -> CGPoint {
         rotate(CGPoint(x: shape.x + ratio.x * shape.width, y: shape.y + ratio.y * shape.height),
                around: shape.center, by: shape.angle)
     }
 
-    /// 連接點：上、右、下、左邊的中點（形狀上的比例）與各自的外法線（未旋轉）
+    /// Connection points: the midpoints of the top, right, bottom and left edges (ratios on the shape) and their outward normals (unrotated)
     public static let sides: [(ratio: CGPoint, normal: CGPoint)] = [
         (CGPoint(x: 0.5, y: 0), CGPoint(x: 0, y: -1)),
         (CGPoint(x: 1, y: 0.5), CGPoint(x: 1, y: 0)),
@@ -24,12 +24,12 @@ public enum Geometry {
         (CGPoint(x: 0, y: 0.5), CGPoint(x: -1, y: 0)),
     ]
 
-    /// `ratio` 是哪一個連接點（不是就回傳 nil）
+    /// Which connection point `ratio` is (nil if none)
     static func side(_ ratio: CGPoint) -> Int? {
         sides.firstIndex { abs($0.ratio.x - ratio.x) < 1e-3 && abs($0.ratio.y - ratio.y) < 1e-3 }
     }
 
-    /// 綁在連接點上的端點：該邊中點沿外法線外移 `gap`
+    /// An endpoint bound to a connection point: that edge's midpoint moved outward by `gap` along the outward normal
     public static func sideEndpoint(_ shape: Element, side: Int, gap: Double) -> CGPoint {
         let (ratio, n) = sides[side]
         let local = CGPoint(x: shape.x + ratio.x * shape.width + n.x * gap,
@@ -37,7 +37,7 @@ public enum Geometry {
         return rotate(local, around: shape.center, by: shape.angle)
     }
 
-    /// 絕對座標 `p` 在形狀上的位置比例，夾在 0...1（形狀外的點投影到邊上）
+    /// The position ratio of absolute coordinates `p` on the shape, clamped to 0...1 (a point outside the shape is projected onto the edge)
     static func ratio(of p: CGPoint, in shape: Element) -> CGPoint {
         let local = rotate(p, around: shape.center, by: -shape.angle)
         let rx = shape.width > 0 ? (local.x - shape.x) / shape.width : 0.5
@@ -45,8 +45,8 @@ public enum Geometry {
         return CGPoint(x: min(max(rx, 0), 1), y: min(max(ry, 0), 1))
     }
 
-    /// 從 `origin`（形狀外）朝 `target` 的射線，進入「形狀輪廓向外擴 `gap`」的第一個交點，
-    /// 所以交點到形狀的距離就是 `gap`（Excalidraw 的 binding gap）。起點在其內或沒有交點回傳 nil。
+    /// The first intersection of the ray from `origin` (outside the shape) toward `target` entering "the shape's outline expanded outward by `gap`",
+    /// so the intersection's distance from the shape is `gap` (Excalidraw's binding gap). Returns nil if the origin is inside it or there is no intersection.
     static func entry(from origin: CGPoint, toward target: CGPoint, shape: Element, gap: Double = 0) -> CGPoint? {
         let c = shape.center
         let o = rotate(origin, around: c, by: -shape.angle)
@@ -75,7 +75,7 @@ public enum Geometry {
                 tMax = min(tMax, max(a, b))
             }
         }
-        guard tMin <= tMax, tMax >= 0, tMin >= 0 else { return nil } // tMin < 0：起點在形狀內
+        guard tMin <= tMax, tMax >= 0, tMin >= 0 else { return nil } // tMin < 0: the origin is inside the shape
         return tMin
     }
 
@@ -96,7 +96,7 @@ public enum Geometry {
         let c = shape.center
         var hw = shape.width / 2, hh = shape.height / 2
         guard hw > 0, hh > 0 else { return nil }
-        // 菱形的邊向外平移 gap = 以中心等比例放大，使中心到邊的距離增加 gap
+        // Offsetting a diamond's edges outward by gap = scaling about the center so the center-to-edge distance grows by gap
         let k = 1 + gap * (1 / (hw * hw) + 1 / (hh * hh)).squareRoot()
         hw *= k; hh *= k
         if abs(o.x - c.x) / hw + abs(o.y - c.y) / hh <= 1 { return nil }
@@ -116,10 +116,10 @@ public enum Geometry {
 }
 
 extension SceneEditor {
-    // MARK: 建立與移除綁定
+    // MARK: Creating and removing bindings
 
-    /// 把箭頭的一端綁到形狀上，並把端點移到形狀輪廓外 `gap` 處。
-    /// `fixedPoint`（形狀上的 0...1 位置）省略時取目前端點投影到形狀上的位置。
+    /// Binds one end of an arrow to a shape and moves the endpoint to `gap` outside the shape's outline.
+    /// When `fixedPoint` (a 0...1 position on the shape) is omitted, the current endpoint's projection onto the shape is used.
     @discardableResult
     mutating func bind(_ arrowID: String, _ end: ArrowEnd, to shapeID: String,
                        fixedPoint: CGPoint? = nil, gap: Double = 5) -> Bool {
@@ -142,15 +142,15 @@ extension SceneEditor {
     mutating func unbind(_ arrowID: String, _ end: ArrowEnd) {
         guard let arrow = self[arrowID], let target = arrow.binding(end)?.elementId else { return }
         update(arrowID) { $0.setBinding(end, nil) }
-        // 另一端也綁在同一個形狀上時，boundElements 要保留
+        // When the other end is also bound to the same shape, boundElements must be kept
         let other: ArrowEnd = end == .start ? .end : .start
         if self[arrowID]?.binding(other)?.elementId != target { removeBound(arrowID, from: target) }
     }
 
-    // MARK: 重算端點
+    // MARK: Recompute endpoints
 
-    /// 綁在 `movedIDs` 上的箭頭重算被綁端點；只改需要變的點，沒變的箭頭不遞增 version。
-    /// 彎曲箭頭只動端點，中間的點不變；elbow 箭頭的轉折路徑要重新走線，不在 4a 範圍，原樣保留。
+    /// Recomputes the bound endpoints of arrows bound to `movedIDs`; changes only points that need it, and arrows that did not change do not increment version.
+    /// A curved arrow moves only its endpoints and leaves the middle points; the routing of an elbow arrow must be redone and is out of scope, so it is kept as is.
     mutating func rebindArrows(movedIDs: Set<String>, only arrowID: String? = nil) {
         for arrow in elements where arrow.type == .arrow && !arrow.isDeleted && !arrow.isElbowArrow {
             if let arrowID, arrow.id != arrowID { continue }
@@ -180,8 +180,8 @@ extension SceneEditor {
         }
     }
 
-    /// 端點：綁在連接點上 → 該邊中點外移 `gap`（箭頭從背後過來也停在這一邊）；
-    /// 其他 → 從 `origin` 朝 `anchor` 的射線，進入輪廓外 `gap` 處，射線沒碰到輪廓時直接用錨點
+    /// Endpoint: bound to a connection point → that edge's midpoint moved out by `gap` (an arrow arriving from behind also stops on this edge);
+    /// otherwise → the ray from `origin` toward `anchor` entering `gap` outside the outline; when the ray does not hit the outline the anchor is used directly
     private func endpoint(shape: Element, binding b: Binding, anchor: CGPoint, origin: CGPoint) -> CGPoint {
         if let ratio = b.fixedPoint, let side = Geometry.side(ratio) {
             return Geometry.sideEndpoint(shape, side: side, gap: b.gap)
@@ -189,14 +189,14 @@ extension SceneEditor {
         return Geometry.entry(from: origin, toward: anchor, shape: shape, gap: b.gap) ?? anchor
     }
 
-    /// 這一端旁邊的點：多點箭頭取相鄰的點，兩點箭頭取另一端
+    /// The point next to this end: for a multi-point arrow the adjacent point, for a two-point arrow the other end
     private func adjacentPoint(of arrow: Element, _ end: ArrowEnd) -> CGPoint {
         let pts = arrow.absolutePoints
         guard pts.count >= 2 else { return pts.first ?? .zero }
         return end == .start ? pts[1] : pts[pts.count - 2]
     }
 
-    /// 舊版 Excalidraw 用的 `focus`（-1...1）：錨點相對中心、垂直於箭頭方向的偏移。新版以 `fixedPoint` 為準。
+    /// The `focus` (-1...1) used by older Excalidraw: the anchor's offset from the center, perpendicular to the arrow direction. Newer versions use `fixedPoint`.
     private func focus(_ anchor: CGPoint, from origin: CGPoint, _ shape: Element) -> Double {
         let dx = anchor.x - origin.x, dy = anchor.y - origin.y
         let len = (dx * dx + dy * dy).squareRoot()

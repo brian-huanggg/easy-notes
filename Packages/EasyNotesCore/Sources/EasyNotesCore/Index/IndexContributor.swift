@@ -1,8 +1,8 @@
 import Foundation
 
-/// 外掛從檔案內容抽出的一筆索引資料。`value` 由外掛自訂（通常是 JSON），Core 只存不解讀。
+/// One index record a plugin extracted from file content. `value` is plugin-defined (usually JSON); Core only stores it and never interprets it.
 public struct IndexRecord: Equatable, Sendable {
-    /// 在同一個檔案、同一個 contributor 內唯一
+    /// Unique within one file and one contributor
     public let key: String
     public let value: String
 
@@ -12,17 +12,17 @@ public struct IndexRecord: Equatable, Sendable {
     }
 }
 
-/// 外掛的索引擴充點（例如 Flashcards 從 md 抽出卡片）。索引時對每個檔案呼叫，結果存在通用的 records 表。
+/// A plugin's index extension point (for example Flashcards extracting cards from md). Called for every file while indexing; results go in the generic records table.
 public protocol IndexContributor: Sendable {
-    /// records 的命名空間，所有外掛間不可重複
+    /// The namespace of records; must not repeat across plugins
     var id: String { get }
-    /// 抽取規則改變時加一：索引會整個重建
+    /// Increment when the extraction rules change: the whole index is rebuilt
     var version: Int { get }
     func records(path: String, kindID: String, data: Data) -> [IndexRecord]
 }
 
-/// 外掛在背景改寫檔案內容（例如 Flashcards 替卡片補上 `^id`）。
-/// App 只對本機產生的變動、且不在編輯中的檔案呼叫；回傳 nil 代表不需要改。
+/// A plugin rewrites file content in the background (for example Flashcards adding `^id` to cards).
+/// The app calls it only for locally produced changes and files not being edited; nil means no change needed.
 public protocol ContentFixer: Sendable {
     func fix(path: String, kindID: String, data: Data, index: VaultIndex) async -> Data?
 }
