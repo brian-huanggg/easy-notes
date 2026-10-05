@@ -1,0 +1,14 @@
+{
+  "name": "easynotes-tooling",
+  "private": true,
+  "description": "EasyNotes 的開發工具：commit 訊息檢查（commitlint）與 Changelog 產生（git-cliff）。App 本身不依賴這裡的任何東西。",
+  "scripts": {
+    "prepare": "git config core.hooksPath .githooks",
+    "changelog:preview": "git-cliff --unreleased"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "git-cliff": "^2.14.2"
+  }
+}

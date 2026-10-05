@@ -28,12 +28,18 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: 2.55.0
+  # macOS 自動更新（Sparkle，DMG 版；iOS 走 TestFlight）。發版流程見 scripts/publish-release.sh
+  AppUpdater:
+    path: Packages/AppUpdater
 
 settings:
   base:
     SWIFT_VERSION: "6.0"
+    # 版本號的唯一來源：scripts/release.sh 改這一行（Info.plist、Sparkle、TestFlight 都讀它）
     MARKETING_VERSION: "1.1.0"
     CURRENT_PROJECT_VERSION: "1"
+    # Sparkle 更新簽章的公鑰（./scripts/sparkle-tools.sh generate-keys 產生）；空的時候 App 不啟動更新檢查
+    SPARKLE_PUBLIC_ED_KEY: ""
     SWIFT_EMIT_LOC_STRINGS: YES
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
 
@@ -60,6 +66,7 @@ targets:
       - package: SupabaseSync
       - package: Supabase
         product: Supabase
+      - package: AppUpdater
       # E2E 的資料夾同步 backend；App 只在 DEBUG 的測試模式 import（見 App/Support/TestHooks.swift）
       - package: EasyNotesCore
         product: EasyNotesTestSupport
@@ -89,11 +96,16 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         # 只用 HTTPS（系統加密），屬豁免；TestFlight 不再每版詢問出口合規
         ITSAppUsesNonExemptEncryption: false
+        # Sparkle（macOS）：appcast 是最新 Release 的附件（private repo 讀不到，所以 repo 要是 public）
+        SUFeedURL: https://github.com/brian-huanggg/easy-notes/releases/latest/download/appcast.xml
+        SUPublicEDKey: $(SPARKLE_PUBLIC_ED_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.easynotes.EasyNotes
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
+        # macOS 的 .app 把 framework 放在 Contents/Frameworks（XcodeGen 預設只有 iOS 的路徑；Sparkle 需要）
+        "LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]": ["$(inherited)", "@executable_path/../Frameworks"]
         DEVELOPMENT_TEAM: SF553X26YR # Brian Huang（個人團隊）
         # Prototype：macOS 不開沙盒，Vault 直接放在 ~/Documents/EasyNotes
         ENABLE_APP_SANDBOX: NO

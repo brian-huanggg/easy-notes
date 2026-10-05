@@ -23,6 +23,12 @@ struct ContentView: View {
             }
             .sheet(isPresented: $shell.showRecentlyDeleted) { RecentlyDeletedView() }
             .sheet(isPresented: $shell.showSettings) { NavigationStack { MeView() } }
+            .sheet(item: $shell.whatsNew) { WhatsNewView(notes: $0) }
+            .task {
+                // E2E 的畫面不能被視窗擋住
+                guard !TestHooks.isUITest else { return }
+                shell.whatsNew = WhatsNew.pendingOnLaunch(isFreshInstall: store.isFreshInstall)
+            }
             .fileImporter(isPresented: $shell.isImporting, allowedContentTypes: shell.importTypes,
                           allowsMultipleSelection: true) { result in
                 guard case .success(let urls) = result else { return }

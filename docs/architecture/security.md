@@ -97,7 +97,7 @@ EasyNotes 是個人使用、不上架的 App（見 [README](./README.md)），�
 ### 發佈與簽署
 
 - iOS / iPadOS：TestFlight（Apple 簽署與審查）。
-- macOS：DMG 手動安裝，沒有自動更新通道，所以沒有「更新被劫持」這條攻擊面；新增更新機制時必須驗簽章（例如 Sparkle 的 EdDSA）。
+- macOS：DMG 安裝，之後由 Sparkle 更新。更新通道是新增的攻擊面，所以 appcast 與 DMG 都用 EdDSA 簽章，App 內建公鑰（`SPARKLE_PUBLIC_ED_KEY`）驗證，只允許 HTTPS 的 `SUFeedURL`；私鑰只放在發版那台 Mac 的 keychain，不進 repo 或 CI。
 - macOS 目前未啟用 Hardened Runtime 與沙盒；個人使用、不公證。若要給他人安裝，必須先啟用 Hardened Runtime 並公證，且盤點所需的例外 entitlement。
 - Entitlements 維持最小：目前只有 Sign in with Apple。
 

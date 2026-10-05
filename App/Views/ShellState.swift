@@ -15,6 +15,8 @@ final class ShellState {
     var showQuickOpen = false
     var showRecentlyDeleted = false
     var showSettings = false
+    /// 「新功能」視窗（更新後第一次啟動自動出現，或從選單開啟）
+    var whatsNew: WhatsNew?
 
     /// 匯入：選檔視窗允許的類型（來自外掛的 `addImport`）
     var importTypes: [UTType] = []

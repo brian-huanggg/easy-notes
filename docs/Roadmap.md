@@ -18,6 +18,7 @@
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；5e 手寫工具列（GoodNotes 式，白板共用）與停住變直線實作完成（建置與單元測試通過，畫面與實機尚未驗證）；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾；6e 工具列、編輯列、狀態列第一批完成（Chromium e2e 通過，WebKit 實機尚未驗證），對齊 / 換行、剪貼簿按鈕未開始 | [sheets.md](./architecture/sheets.md) |
 | 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
+| 發版自動化 | 工具與腳本完成（commit 檢查、Changelog 產生、release / publish 腳本、Sparkle、「新功能」視窗）；實際發佈與更新流程尚未驗證 | [README](./architecture/README.md)「發版流程」 |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -765,6 +766,22 @@
 - [ ] 組字中（「ㄓㄨㄥ」尚未選字）收到同步或外部修改：注音符號不進檔案、選好的字不遺失
 - [ ] 組字中按 ⌘S / 切換筆記：存進檔案的是選好的字
 - [ ] 表格儲存格、白板文字、PDF 便利貼各輸入一次注音
+
+## 發版自動化
+
+設計見 [README](./architecture/README.md)「發版流程」。
+
+- [x] commit-msg hook（commitlint）：手動餵合法與不合法訊息，結果正確
+- [x] Changelog 由 git-cliff 產生：在暫時的 git repo 驗證分類、順序與略過規則；`scripts/test_changelog.py` 通過
+- [x] `scripts/release.sh --dry-run`：版本號推算與 Changelog 區塊正確（實際建立 commit 與 tag 尚未驗證）
+- [x] Sparkle（`Packages/AppUpdater`）：macOS Debug / Release 建置、簽章驗證與啟動通過，iOS Simulator 建置通過且不含 Sparkle；`make-dmg.sh` 產出 DMG
+- [x] 「新功能」判斷邏輯：升級、同版、降版、全新安裝、版本比較（1.10 > 1.9）、JSON 解碼共 15 項以暫時的 swiftc 程式驗證（App 沒有單元測試 target）
+- [ ] 「新功能」視窗的畫面（Mac、iPad、淺色 / 深色）尚未驗證
+- [ ] `./scripts/sparkle-tools.sh generate-keys`，公鑰填進 `project.yml` 的 `SPARKLE_PUBLIC_ED_KEY`，並備份私鑰
+- [ ] easy-notes 改成 public（Sparkle 讀不到 private repo 的 Release）
+- [ ] `./scripts/release.sh` 與 `./scripts/publish-release.sh` 實際跑一次（產生 tag、GitHub Release、簽章的 appcast）
+- [ ] Sparkle 端到端：舊版 App 收到更新、下載、安裝並重開
+- [ ] TestFlight 的「What to Test」自動帶入（需要 App Store Connect API key，目前不處理）
 
 ## Bug Reports
 

@@ -49,6 +49,8 @@ final class VaultStore: DocumentSession {
     private(set) var backlinks: [SearchHit] = []
     private(set) var tags: [TagCount] = []
     private(set) var lastError: String?
+    /// 這次啟動才建立 Vault 的範例內容（全新安裝）；「新功能」視窗據此略過第一次啟動
+    @ObservationIgnored private(set) var isFreshInstall = false
 
     @ObservationIgnored let index: VaultIndex?
     @ObservationIgnored private let previews: PreviewCache
@@ -809,6 +811,7 @@ final class VaultStore: DocumentSession {
     private func seedIfNeeded() {
         let marker = fs.url(for: "\(VaultFS.metaFolder)/seeded")
         guard !FileManager.default.fileExists(atPath: marker.path(percentEncoded: false)) else { return }
+        isFreshInstall = true
         for (path, content) in Seed.files {
             try? fs.write(Data(content.utf8), to: path)
         }

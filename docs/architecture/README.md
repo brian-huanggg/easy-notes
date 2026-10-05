@@ -37,7 +37,7 @@ EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化
 | 非功能 | App < 100 MB（預估 15–30 MB）、記憶體與耗電有預算、離線可用、同步可靠（見 [core.md](./core.md)「非功能預算」） |
 | 使用範圍 | 個人使用：不上架、不公開、不商業化（授權限制因此寬鬆，但仍優先選 MIT / BSD 套件） |
 | Vault 位置 | macOS：~/Documents/EasyNotes（可見、不開沙盒）；iOS：App 的 Documents（「檔案」App 可見） |
-| 發佈 | iOS / iPadOS：TestFlight（`upload-testflight.sh`）；macOS：DMG（`make-dmg.sh`）。macOS 不開沙盒，所以不能走 TestFlight / Mac App Store；App Store Connect 關閉「iPad App 可在 Mac 上使用」，避免 Mac 裝到 iPad 版（沙盒 Vault、iOS UI） |
+| 發佈 | iOS / iPadOS：TestFlight（`upload-testflight.sh`）；macOS：DMG（`make-dmg.sh`）加 Sparkle 自動更新（見「發版流程」）。macOS 不開沙盒，所以不能走 TestFlight / Mac App Store；App Store Connect 關閉「iPad App 可在 Mac 上使用」，避免 Mac 裝到 iPad 版（沙盒 Vault、iOS UI） |
 
 ## 設計原則
 
@@ -167,6 +167,17 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 - 每個 `DocumentKind` 的 `index()` 抽出純文字與連結，所以白板內的文字元素也能搜尋、也會出現在反向連結（手寫筆畫不索引）。
 - App 設定放 `.easynotes/`（類似 `.obsidian/`），跟著 Vault 同步。
 - 介面語言（zh-Hant、English (US)）：每個模組自帶字串檔，Vault 內的路徑、檔名慣例與同步協定的字串不隨語言改變，見 [translation.md](./translation.md)。
+
+## 發版流程
+
+版本號、Changelog、tag、更新通道都由 commit 驅動，不手改。
+
+- **Commit 訊息**：Conventional Commits，由 `.githooks/commit-msg`（commitlint，`commitlint.config.mjs`）強制；root 的 `npm install` 會設定 `core.hooksPath`。type 決定 Changelog 分類：`feat` → Added、`fix` → Fixed、`perf` → Changed、`security` → Security；`docs` / `refactor` / `test` / `chore` / `build` / `ci` / `style` / `revert` 與 merge commit 不進 Changelog。因此 `feat` / `fix` / `perf` / `security` 的 subject 就是使用者看到的那一行：繁體中文、寫使用者看得到的變化。
+- **Changelog**：`docs/Changelog.md` 由 git-cliff（`cliff.toml`）從上個 tag 以來的 commit 產生，格式是 Keep a Changelog。想手寫的版本，在發版前放一個 `## [Unreleased]` 區塊，會直接改名成該版本，不再產生。`scripts/changelog.py` 負責讀寫這個檔案。
+- **版本號的唯一來源**是 `project.yml` 的 `MARKETING_VERSION`（Info.plist、Sparkle、TestFlight 都讀它）；build 號碼（`CURRENT_PROJECT_VERSION`）是打包時的時間戳，Sparkle 靠它判斷新舊，所以必須遞增。`scripts/release.sh` 負責測試、Changelog、`MARKETING_VERSION`、「新功能」內容、commit 與 tag，不 push；版本號預設依 commit 類型決定。
+- **`scripts/publish-release.sh`** 對 HEAD 上的版本 tag 做：打包 DMG、用 Sparkle 的 `generate_appcast` 簽章、push、建立 GitHub Release（附 DMG 與 `appcast.xml`）；`--testflight` 另外上傳 iOS / iPadOS。push 與建立 Release 是對外的動作，預設會先確認。
+- **Sparkle**（`Packages/AppUpdater`）：只有 macOS 連結（target 的平台條件；XcodeGen 的 package 依賴不能依平台過濾）。`SUFeedURL` 指向最新 Release 的 `appcast.xml`（`releases/latest/download/…`），所以 repo 必須是 public，private repo 的 Release 對使用者的 App 讀不到。更新以 EdDSA 簽章驗證：公鑰是 `project.yml` 的 `SPARKLE_PUBLIC_ED_KEY`（空的時候 App 不啟動更新檢查），私鑰在發版那台 Mac 的 keychain（`scripts/sparkle-tools.sh generate-keys` / `export-key`；遺失就無法再發更新給已安裝的版本，要備份）。更新說明是 Changelog 該版的區塊，內嵌在 appcast。
+- **「新功能」視窗**：`scripts/release.sh` 把 Changelog 該版的區塊轉成 `App/Resources/WhatsNew.json` 打包進 App（Changelog 是唯一來源，只在發版時更新）。啟動時比對 `lastSeenVersion`（UserDefaults）與目前版本，較新才顯示；沒有紀錄時，全新安裝（本次啟動才建立範例內容）不顯示，其他情況（從這個功能出現之前的版本更新）顯示。JSON 的版本與目前版本不同就不顯示。UI 測試不顯示。內容是繁體中文（Changelog 的語言），視窗標題與章節名經過 `L("…")`。Mac 的「說明」選單可以再開。
 
 ## 測試
 

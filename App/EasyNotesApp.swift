@@ -1,3 +1,4 @@
+import AppUpdater
 import EasyNotesCore
 import EasyNotesUI
 import Flashcards
@@ -24,6 +25,7 @@ struct EasyNotesApp: App {
     @State private var store: VaultStore
     @State private var sync: SyncCoordinator
     @State private var shell = ShellState()
+    @State private var updater = AppUpdater(enabled: !TestHooks.isUITest)
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AppTheme.storageKey) private var theme = AppTheme.system
 
@@ -61,6 +63,16 @@ struct EasyNotesApp: App {
             }
         }
         .commands {
+            #if os(macOS)
+            CommandGroup(after: .appInfo) {
+                Button(L("檢查更新…")) { updater.checkForUpdates() }
+                    .disabled(!updater.canCheck)
+            }
+            #endif
+            CommandGroup(after: .help) {
+                Button(L("版本新功能…")) { shell.whatsNew = WhatsNew.bundled() }
+                    .disabled(WhatsNew.bundled() == nil)
+            }
             CommandGroup(replacing: .newItem) {
                 NewDocumentItems(store: store, shell: shell)
                 Divider()

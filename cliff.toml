@@ -1,0 +1,39 @@
+# Changelog 由 commit 訊息產生（git-cliff）。只有 feat / fix / perf / security 會進 Changelog，
+# 該 commit 的 subject 就是使用者看到的那一行（繁體中文、寫使用者看得到的變化）。
+# 其他 type（docs / refactor / test / chore / build / ci / style / revert）與 merge commit 一律略過。
+# 用法見 scripts/release.sh；預覽：npm run changelog:preview
+
+[changelog]
+trim = true
+# 只輸出單一版本的區塊；scripts/changelog.py 負責插進 docs/Changelog.md
+body = """
+{% if version %}\
+## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}\
+{% else %}\
+## [Unreleased]\
+{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+
+{% for commit in commits %}\
+- {{ commit.message | split(pat="\n") | first | trim }}
+{% endfor %}\
+{% endfor %}
+"""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+protect_breaking_commits = true
+filter_commits = true
+tag_pattern = "v[0-9]*"
+sort_commits = "oldest"
+# group 名稱前的註解決定章節順序（Keep a Changelog 的慣例順序），輸出時用 striptags 去掉
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->Added" },
+  { message = "^perf", group = "<!-- 1 -->Changed" },
+  { message = "^fix", group = "<!-- 2 -->Fixed" },
+  { message = "^security", group = "<!-- 3 -->Security" },
+  { message = ".*", skip = true },
+]

@@ -20,3 +20,4 @@ xcuserdata/
 
 # 安裝包（scripts/make-dmg.sh、upload-testflight.sh）
 /build/
+/node_modules/

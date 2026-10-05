@@ -1,7 +1,8 @@
 #!/bin/bash
 # 建置 macOS Release，打包成 build/EasyNotes-<版本>.dmg（拖到「應用程式」安裝）。
 # 簽章沿用 project.yml（Apple Development、個人團隊），沒有公證：只適合裝在自己註冊過的 Mac。
-# web/src 有改動時，先跑 (cd web && npm run build)。
+# Build 號碼用時間戳（Sparkle 靠它判斷哪個版本比較新，必須遞增；與 upload-testflight.sh 相同）。
+# web/src 有改動時，先跑 (cd web && npm run build)。發版用 ./scripts/publish-release.sh（會呼叫這支）。
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -17,6 +18,7 @@ xcodebuild \
   -configuration Release \
   -destination 'generic/platform=macOS' \
   -derivedDataPath "$DERIVED" \
+  CURRENT_PROJECT_VERSION="$(date +%Y%m%d%H%M)" \
   build -quiet
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")
