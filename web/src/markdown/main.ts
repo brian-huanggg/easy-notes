@@ -14,13 +14,14 @@ import { tags } from "@lezer/highlight";
 import { t } from "../shared/i18n";
 import { post } from "./bridge";
 import { cards } from "./cards";
-import { editorFocus } from "./editorFocus";
+import { editorFocus, setEditorFocus } from "./editorFocus";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
 import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
 import { lineBreakExtension, lineBreakOf, lines, normalized } from "./lineBreak";
 import { livePreview } from "./livePreview";
-import { blockMath, mathLoaded, mathSyntax, onMathReady } from "./math";
+import { blockMath, inlineMathPreview, mathKeymap, mathLoaded, mathSyntax, onMathReady } from "./math";
 import { rebase } from "./rebase";
+import { findInNote, openFind } from "./search";
 import { StateCache } from "./stateCache";
 import { focusCell, tableWidgets } from "./tableWidget";
 
@@ -85,7 +86,10 @@ const extensions = [
   editorFocus,
   livePreview,
   blockMath,
+  mathKeymap,
+  inlineMathPreview,
   tableWidgets,
+  findInNote,
   cards,
   docHeader,
   linkCards,
@@ -205,7 +209,8 @@ const api = {
     pendingRemote = null;
     view.setState(state);
     markSaved();
-    view.dispatch({ effects: [setModified.of(meta.modified ?? null), targetsChanged.of(null)] });
+    // 換 state 不會觸發 focus 事件：快取的 state 記著舊的焦點狀態，新 state 預設沒有焦點
+    view.dispatch({ effects: [setModified.of(meta.modified ?? null), targetsChanged.of(null), setEditorFocus.of(view.hasFocus)] });
     view.scrollDOM.scrollTop = 0;
     post({ type: "metric", name: "load", ms: performance.now() - t0 });
   },
@@ -231,7 +236,7 @@ const api = {
       const head = view.state.selection.main.head;
       const state = EditorState.create({ doc: text, extensions: [extensions, lineBreakExtension(text)] });
       view.setState(state.update({ selection: EditorSelection.cursor(Math.min(head, state.doc.length)) }).state);
-      view.dispatch({ effects: targetsChanged.of(null) });
+      view.dispatch({ effects: [targetsChanged.of(null), setEditorFocus.of(view.hasFocus)] });
       markSaved();
       dirty = false;
       return;
@@ -349,6 +354,8 @@ const api = {
       case "bullet": setPrefix((current) => (current === "- " ? "" : "- ")); break;
       case "link": wrap("[[", "]]"); break;
       case "insertText": if (arg) insertBlock(arg); break;
+      // 搜尋列自己取得焦點，不要再 focus 編輯器
+      case "find": openFind(view); return;
       case "table": {
         // 建立當下依介面語言產生；插入後焦點放在第一個欄名（全選，打字即可取代），游標留在表格下一行
         const columns = [1, 2, 3].map((n) => t("欄位 {n}", { n }));

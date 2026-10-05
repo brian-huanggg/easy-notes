@@ -143,6 +143,102 @@ const TABLE = "前文\n\n| 名稱 | 數量 |\n| --- | ---: |\n| 蘋果 | 3 |\n\n
   await tab.close();
 }
 
+{
+  // 打 `$$` 換行：不會變成空白公式，自動補上結尾；之後在中間打公式有預覽
+  const { tab, doc } = await open("前文\n\n");
+  await tab.locator(".cm-content").click();
+  await tab.keyboard.press("ControlOrMeta+End");
+  await tab.keyboard.type("$$");
+  await tab.keyboard.press("Enter");
+  check("打 $$ 換行後原始碼還在", (await tab.locator(".cm-lp-math-src").count()) === 2 && (await tab.locator(".cm-math-block").count()) === 0);
+  await tab.keyboard.type("x^2");
+  let text = await doc();
+  check("自動補上結尾 $$", text === "前文\n\n$$\nx^2\n$$", JSON.stringify(text));
+  await tab.waitForFunction(() => document.querySelector(".cm-math-block .katex"), null, { timeout: 5000 }).catch(() => {});
+  check("區塊公式編輯中預覽", (await tab.locator(".cm-math-block .katex").count()) === 1 && (await tab.locator(".cm-lp-math-src").count()) === 3);
+
+  // 沒有結尾的 `$$`：游標離開後也不渲染
+  await tab.evaluate(() => window.editor.load("b.md", "$$\na+b\n\n其他\n"));
+  await tab.evaluate(() => document.activeElement.blur());
+  await tab.waitForTimeout(100);
+  check("沒有結尾的區塊不渲染", (await tab.locator(".cm-math-block").count()) === 0 && (await tab.locator(".cm-lp-math-src").count()) === 2);
+
+  // 行內公式：游標在公式裡時浮出預覽
+  await tab.evaluate(() => window.editor.load("c.md", "算式 $a^2+b^2$ 結束\n"));
+  await tab.locator(".cm-content").click();
+  await tab.keyboard.press("ControlOrMeta+Home");
+  for (let i = 0; i < 6; i++) await tab.keyboard.press("ArrowRight");
+  await tab.waitForTimeout(100);
+  check("行內公式預覽", (await tab.locator(".cm-math-preview .katex").count()) === 1);
+  await tab.keyboard.press("End");
+  await tab.waitForTimeout(50);
+  check("游標離開公式後預覽消失", (await tab.locator(".cm-math-preview").count()) === 0);
+  await tab.close();
+}
+
+{
+  // 拖曳把手移動列欄
+  const md = "| a | b | c |\n| --- | :---: | --- |\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n| 7 | 8 | 9 |\n";
+  const { tab, doc } = await open(md);
+  const drag = async (handle, target, after) => {
+    const from = await tab.locator(handle).boundingBox();
+    const to = await tab.locator(target).boundingBox();
+    await tab.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await tab.mouse.down();
+    await tab.mouse.move(from.x + from.width / 2 + 2, from.y + from.height / 2 + 2);
+    await tab.mouse.move(after.x(to), after.y(to), { steps: 5 });
+    await tab.mouse.up();
+  };
+  // 第 1 列拖到最後一列下半部
+  await tab.hover('.cm-table-cell[data-row="1"][data-col="0"]');
+  await drag('.cm-table-row-handle[data-row="1"]', '.cm-table-cell[data-row="3"][data-col="1"]', { x: (b) => b.x + 5, y: (b) => b.y + b.height - 2 });
+  let text = await doc();
+  check("拖曳移動列", text === "| a | b | c |\n| --- | :---: | --- |\n| 4 | 5 | 6 |\n| 7 | 8 | 9 |\n| 1 | 2 | 3 |\n", JSON.stringify(text));
+  // 第 3 欄拖到最前面（對齊跟著欄走）
+  await tab.hover('.cm-table-cell[data-row="0"][data-col="2"]');
+  await drag('.cm-table-col-handle[data-col="2"]', '.cm-table-cell[data-row="0"][data-col="0"]', { x: (b) => b.x + 2, y: (b) => b.y + 5 });
+  text = await doc();
+  check("拖曳移動欄", text === "| c | a | b |\n| --- | --- | :---: |\n| 6 | 4 | 5 |\n| 9 | 7 | 8 |\n| 3 | 1 | 2 |\n", JSON.stringify(text));
+  // 點一下把手（沒拖動）開啟選單
+  await tab.hover('.cm-table-cell[data-row="2"][data-col="0"]');
+  await tab.locator('.cm-table-row-handle[data-row="2"]').click();
+  check("點把手開啟選單", (await tab.locator(".cm-table-menu").count()) === 1);
+  await tab.close();
+}
+
+{
+  // ⌘F / Ctrl+F：在筆記中尋找
+  const md = "第一段有蘋果\n\n| 水果 |\n| --- |\n| 蘋果 |\n\n最後的蘋果\n";
+  const { tab, cdp } = await open(md);
+  await tab.locator(".cm-content").click();
+  await tab.keyboard.press("ControlOrMeta+Home");
+  await tab.keyboard.press("ControlOrMeta+f");
+  const input = tab.locator(".cm-find-input");
+  check("開啟搜尋列", (await input.count()) === 1 && (await tab.evaluate(() => document.activeElement?.classList.contains("cm-find-input"))));
+  // 注音組字：組字中不跳到結果，選字後才比對
+  await cdp.send("Input.imeSetComposition", { text: "ㄆㄧㄥˊ", selectionStart: 4, selectionEnd: 4 });
+  await cdp.send("Input.insertText", { text: "蘋" });
+  await tab.keyboard.type("果");
+  await tab.waitForTimeout(50);
+  check("搜尋框注音組字", (await input.inputValue()) === "蘋果", await input.inputValue());
+  check("標示所有結果", (await tab.locator(".cm-find-count").textContent()) === "0/3" && (await tab.locator(".cm-searchMatch").count()) >= 2, await tab.locator(".cm-find-count").textContent());
+  await input.press("Enter");
+  check("Enter 跳到第一個", (await tab.locator(".cm-find-count").textContent()) === "1/3");
+  await input.press("Enter");
+  await tab.waitForTimeout(50);
+  check("結果在表格內時顯示原始 md", (await tab.locator(".cm-find-count").textContent()) === "2/3" && (await tab.locator(".cm-table").count()) === 0);
+  await input.press("Shift+Enter");
+  check("Shift+Enter 上一個", (await tab.locator(".cm-find-count").textContent()) === "1/3");
+  await input.fill("香蕉");
+  check("沒有結果", (await tab.locator(".cm-find-count").textContent()) === "沒有結果");
+  await input.press("Escape");
+  check("Esc 關閉搜尋列", (await tab.locator(".cm-find").count()) === 0);
+  // 從原生選單（exec）開啟
+  await tab.evaluate(() => window.editor.exec("find"));
+  check("exec find 開啟搜尋列", (await tab.locator(".cm-find-input").count()) === 1);
+  await tab.close();
+}
+
 const FRONT = "---\ntitle: 舊標題\ntags:\n  - 讀書\npinned: false\nicon: sf:map\n---\n# 筆記\n\n內文\n";
 
 {
