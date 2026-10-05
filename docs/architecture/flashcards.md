@@ -233,7 +233,7 @@ Preset（每個牌組，預設值與 Anki 相同）：
 
 ## 互通
 
-匯出 TSV 給 Anki 匯入；匯入 Anki `.apkg`（SQLite）與複習歷史為選做。
+匯出 TSV 給 Anki 匯入；從 Anki 的 `.apkg` 匯入卡片與複習歷史。
 
 **TSV 匯出（3d）**：
 
@@ -244,3 +244,18 @@ Preset（每個牌組，預設值與 Anki 相同）：
 - **標籤**：筆記的標籤，空白換成 `_`、`/` 換成 `::`（Anki 的階層）；虛擬標籤 `leech` 不匯出。
 - **內容**：行內 Markdown 轉成 HTML（粗體、斜體、刪除線、螢光、行內程式碼、連結；`[[連結]]` 只留顯示文字），`<`、`&` 跳脫；公式 `$…$` → `\(…\)`、`$$…$$` → `\[…\]`（Anki 內建的 MathJax），公式內只跳脫 `<`、`>`、`&`，克漏字內公式的 `}}` 改成 `} }`（否則 Anki 會提早結束克漏字）；`\$` → `$`。克漏字第 n 個 `{{}}` 轉成 `{{cn::…}}`。含 `"` 的欄位加上引號。多行內容：行與行之間 `<br>`、空行 `<br><br>`、清單 `<ul>` / `<ol>`、程式碼區塊 `<pre><code>`；圖片轉成 `<img src="檔名">`，檔案本身不匯出（要自行放進 Anki 的 `collection.media`）。複習歷史不會帶過去（需要 `.apkg`）。
 - 入口：牌組列表頁首的「匯出給 Anki」（所有牌組）、牌組列右鍵選單（該牌組與子牌組）。
+
+**Anki 匯入（3d）**：
+
+- **入口與流程**：牌組列表頁首的「從 Anki 匯入」→ 選 `.apkg` 或 `.colpkg` → 背景分析（不寫入）→ Sheet 顯示摘要（牌組、筆記檔、卡片、複習紀錄、圖片）與略過的 note 及原因 →「匯入」才寫入。
+- **讀檔**：`.apkg` 是 zip；自己讀 central directory，stored 直接取、deflate 用系統的 Compression（`COMPRESSION_ZLIB` 即 raw deflate），只在需要時讀出單一項目。Anki 2.1.50 起的預設格式用 zstd：`collection.anki21b`、`media`（protobuf `MediaEntries`）與每個媒體檔都是 zstd 壓縮，解壓用 [facebook/zstd](https://github.com/facebook/zstd)（BSD，官方 SwiftPM）。collection 依 `anki21b` → `anki21` → `anki2` 的順序取第一個存在的（新格式中的 `anki2` 只是提示升級的空殼）；舊格式的 `media` 是 JSON。collection 寫到暫存檔、以唯讀開啟系統的 SQLite3，並註冊 Anki 索引使用的 `unicase` collation（沒有它，查詢 `fields` 等資料表會失敗）。schema 18（`notetypes`、`fields`、`templates`、`decks` 資料表，牌組名稱以 `\x1f` 分層）與 schema 11（`col.models`、`col.decks` JSON）都支援。
+- **不可信任的輸入**：解壓後的大小有上限（collection 1 GB、單一媒體檔 200 MB），超過就放棄；zip 內的路徑不使用，只取固定的項目名稱；媒體檔名只取最後一段，且必須出現在 media 清單中。
+- **筆記類型**依結構判斷，不看名稱（名稱隨 Anki 的介面語言不同，中文版的 Basic 叫「基本型」）：克漏字類型（schema 18 的 `notetypes.config` 第 1 欄 `kind = 1`；schema 11 的 `type = 1`）→ `{{}}`，第一欄是 Text、第二欄是 Back Extra；Text 含 `image-occlusion:` 的是 Image Occlusion，略過。一般類型且剛好兩個欄位：一個 template → `::`，兩個 → `;;`。其他類型（三個以上欄位、Option 之類的自訂類型）略過並列出。
+- **牌組與檔案**：牌組 `A::B` → 資料夾 `A/B`。第一個欄位以「`X > Y > Z`」加換行開頭時（麵包屑），`X/Y` 是牌組資料夾下的子資料夾、`Z.md` 是檔名，麵包屑從卡片中去掉；沒有麵包屑的 note 放在牌組資料夾的「Anki 匯入.md」。同一個檔案的 note 依 Anki 的 note id（建立時間）排序，之間空一行。新檔案的 frontmatter `tags` 是檔案內所有 note 標籤的聯集（標籤屬於檔案，所以同一檔案的 note 共用）；Anki 的階層 `a::b` 轉成 `a/b`，不允許的字元換成 `_`。
+- **HTML → Markdown**：`<br>`、`<div>`、`<p>` 換行；`<ul>` / `<ol>` / `<li>` 轉成清單（巢狀依層級縮排）；`<b>`、`<strong>`、`<i>`、`<em>`、`<s>`、`<del>`、`<code>`、`<a href>` 轉成對應語法（樣式跨換行時每行各自成對）；`<pre>` 轉成程式碼區塊；`<img src>` → 獨占一行的 `![[檔名]]`；`[sound:x.mp3]` → `![[x.mp3]]`（音檔目前顯示原文）；MathJax `\(…\)` → `$…$`、`\[…\]` → `$$…$$`，`[$]…[/$]`、`[$$]…[/$$]` 同樣轉換；文字中的 `$` 寫成 `\$`（Anki 的 `$` 一定不是公式）。其他標籤（`<u>`、`<span>`、`<font>`、顏色）去掉、只留文字；HTML entity 解碼；`&nbsp;` 是空白；連續空行合併成一行。
+- **克漏字**：`{{c1::答案::提示}}` → `{{答案}}`（提示去掉）。答案結尾的換行移到克漏字外；行內程式碼中的克漏字改成程式碼在克漏字內（`` `a {{c1::b}}` `` → `` `a `{{`b`}} ``）；只有一行且含克漏字的程式碼區塊改成行內程式碼。答案跨行的 note 無法表示（克漏字必須在同一行），略過並列出。同一個編號出現多次時，EasyNotes 每個 `{{}}` 各一張，該編號的複習歷史複製給每一張。
+- **note 的寫法**：正反面各只有一行時寫成單行 `- 正面 :: 背面`；否則寫成多行 note（見「多行卡片」）：首行是正面的第一行，正面的其餘行接在子行、再接分界行 `::` 與背面。正面第一行是清單、圖片或空白時，首行改用麵包屑的最後一段（沒有時用牌組名稱）。克漏字的 Text 只有一行且沒有 Back Extra 時寫成單行。每筆 note 寫好後用 `CardSyntax` 解析，類型或卡片數與 Anki 不同時略過並列出（例如正面文字含 ` :: `）。
+- **身分與重複匯入**：`^id` 用與 `CardIDFixer` 相同的 hash（檔案路徑 + 首行內容）在匯入時就補上，所以複習紀錄可以直接寫上卡片 id。目標檔案已存在時把 note 加在檔尾；已經有相同內容（不含 `^id`）的 note 時不再寫入，卡片對應到既有的 id。所以重複匯入同一份 `.apkg` 不會產生重複的卡片，Anki 中新增的複習紀錄會補上（讀取時同一筆紀錄只算一次）；在 Anki 改過內容的 note 會變成新的一筆，舊的一筆留著。
+- **複習紀錄**：Anki `revlog` 的 Learning / Review / Relearning / Filtered（`type` 0–3）照原樣寫入這台裝置的 jsonl（`id`、`ease`、`ivl`、`lastIvl`、`time` 相同，`cid` 換成卡片 id）；手動調整與重新排程（`type` 4、5，`ease` 0）沒有對應的事件，略過。Anki 中是新卡但有紀錄的卡片（Forget 過）加一筆 `reset`，暫停中的卡片加一筆 `suspend`，時間都用 Anki 卡片的修改時間（重複匯入時是同一筆）。埋藏與旗標不匯入。重播只看 `ivl`，所以到期日與 Anki 相同；Anki 用 FSRS 且參數相同時記憶狀態也相同。
+- **媒體**：只複製匯入的 note 引用到的檔案，放進 `Attachments/`。同名且內容相同時沿用；同名但內容不同時以 `importAttachment` 取不重複的名稱，並改寫 note 中的引用。
+- **設定不匯入**（preset、每日上限、FSRS 參數）；Anki 的換日時間與 EasyNotes 不同時在摘要中提示。
