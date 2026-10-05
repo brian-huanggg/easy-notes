@@ -76,6 +76,14 @@ struct CardMarkupTests {
         ])
     }
 
+    @Test func audioEmbed() {
+        #expect(CardMarkup.blocks("Listening\n![[app recording 1.MP3]]\n![[a/b.m4a]]") == [
+            .paragraph([.text("Listening")]),
+            .audio(path: "Attachments/app recording 1.MP3"),
+            .audio(path: "a/b.m4a"),
+        ])
+    }
+
     @Test func clozeAcrossLines() {
         let segments = [StudyCard.Segment("- 嬰兒期："), StudyCard.Segment("[…]", emphasized: true),
                         StudyCard.Segment("\n- 成年早期：親密")]
@@ -85,7 +93,7 @@ struct CardMarkupTests {
         ])
     }
 
-    @Test func nonImageEmbedsStayAsText() {
-        #expect(CardMarkup.blocks("![[a.mp3]]") == [.paragraph([.text("![[a.mp3]]")])])
+    @Test func otherEmbedsStayAsText() {
+        #expect(CardMarkup.blocks("![[a.pdf]]") == [.paragraph([.text("![[a.pdf]]")])])
     }
 }

@@ -36,6 +36,8 @@ public enum CardMarkup {
         case code(String)
         /// `![[x.png]]`：Vault 相對路徑；`width` = `|300`
         case image(path: String, width: Double?)
+        /// `![[x.mp3]]`：Vault 相對路徑（規則同圖片）
+        case audio(path: String)
     }
 
     public static func blocks(_ text: String) -> [Block] {
@@ -60,11 +62,16 @@ public enum CardMarkup {
         /// 一行文字：圖片拆成獨立區塊，其餘交給 `emit`
         func split(_ text: String, emit: (String) -> Void) {
             var rest = text[...]
-            while let match = rest.firstMatch(of: image) {
+            while let match = rest.firstMatch(of: embed) {
                 let before = rest[..<match.range.lowerBound]
                 if !before.allSatisfy(\.isWhitespace) { emit(String(before)) }
                 endParagraph()
-                result.append(.image(path: Attachments.embedPath(String(match.1)), width: match.2.flatMap { Double($0) }))
+                let path = Attachments.embedPath(String(match.1))
+                if audioExtensions.contains((path as NSString).pathExtension.lowercased()) {
+                    result.append(.audio(path: path))
+                } else {
+                    result.append(.image(path: path, width: match.2.flatMap { Double($0) }))
+                }
                 rest = rest[match.range.upperBound...]
             }
             if !rest.allSatisfy(\.isWhitespace) { emit(String(rest)) }
@@ -178,9 +185,12 @@ public enum CardMarkup {
         /([ \t]*)([-*+]|\d+[.)])[ \t]+(.*)/
     }
 
-    /// `![[x.png]]`、`![[x.png|300]]`（副檔名同 `Attachments.imageExtensions`）
-    static var image: Regex<(Substring, Substring, Substring?)> {
-        /!\[\[([^\[\]|\n]+\.(?i:png|jpe?g|gif|webp|heic|avif))(?:\|(\d+)[^\[\]\n]*)?\]\]/
+    /// 卡片能播放的音檔副檔名
+    static let audioExtensions: Set<String> = ["mp3", "m4a", "wav", "aac", "ogg", "flac"] // l10n:fixed
+
+    /// `![[x.png]]`、`![[x.png|300]]`（副檔名同 `Attachments.imageExtensions`）或音檔 `![[x.mp3]]`
+    static var embed: Regex<(Substring, Substring, Substring?)> {
+        /!\[\[([^\[\]|\n]+\.(?i:png|jpe?g|gif|webp|heic|avif|mp3|m4a|wav|aac|ogg|flac))(?:\|(\d+)[^\[\]\n]*)?\]\]/
     }
 
     // MARK: 遮蔽程式碼與公式

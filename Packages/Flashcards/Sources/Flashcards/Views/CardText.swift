@@ -1,3 +1,4 @@
+import AVFoundation
 import EasyNotesUI
 @preconcurrency import SwiftMath
 import SwiftUI
@@ -32,6 +33,8 @@ struct CardText: View {
                         .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.bgHover))
                 case .image(let path, let width):
                     CardImage(path: path, width: width)
+                case .audio(let path):
+                    CardAudio(path: path)
                 }
             }
         }
@@ -46,6 +49,7 @@ struct CardText: View {
             case .math(let latex, let style): return lead + [.math(latex, style)]
             case .listItem(_, let marker, let inlines): return lead + [.text((marker ?? " ") + " ")] + inlines
             case .code(let code): return lead + [.text(code, .code)]
+            case .audio(let path): return lead + [.text("[" + (path as NSString).lastPathComponent + "]")] // l10n:fixed
             case .image(let path, _): return lead + [.text("[" + (path as NSString).lastPathComponent + "]")] // l10n:fixed
             }
         }
@@ -110,6 +114,70 @@ private struct CardImage: View {
             image = await ReviewStore.shared.cardImage(path)
             failed = image == nil
         }
+    }
+}
+
+/// `![[x.mp3]]`：播放鈕加檔名；讀不到時顯示原文
+private struct CardAudio: View {
+    let path: String
+    @State private var player = CardAudioPlayer()
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if failed {
+                Text("![[" + (path as NSString).lastPathComponent + "]]") // l10n:fixed 嵌入語法
+                    .textStyle(.meta)
+                    .foregroundStyle(Palette.textSecondary)
+            } else {
+                Button {
+                    Task {
+                        if player.isPlaying {
+                            player.stop()
+                        } else if let data = await ReviewStore.shared.cardResource(path) {
+                            failed = !player.play(data)
+                        } else {
+                            failed = true
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: player.isPlaying ? "stop.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 24))
+                        Text((path as NSString).lastPathComponent).textStyle(.meta)
+                    }
+                    .foregroundStyle(Palette.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onDisappear { player.stop() }
+    }
+}
+
+/// 一次播放一個音檔；播完或換卡時停止
+@MainActor @Observable
+final class CardAudioPlayer: NSObject, AVAudioPlayerDelegate {
+    private(set) var isPlaying = false
+    @ObservationIgnored private var player: AVAudioPlayer?
+
+    func play(_ data: Data) -> Bool {
+        guard let player = try? AVAudioPlayer(data: data) else { return false }
+        player.delegate = self
+        self.player = player
+        isPlaying = player.play()
+        return isPlaying
+    }
+
+    func stop() {
+        player?.stop()
+        player = nil
+        isPlaying = false
+    }
+
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in self.isPlaying = false }
     }
 }
 

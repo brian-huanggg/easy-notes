@@ -148,9 +148,14 @@ public enum AnkiExport {
             }
             number = start + CardSyntax.clozeAnswers(String(piece)).count
         }
-        while let match = rest.firstMatch(of: CardMarkup.image) {
+        while let match = rest.firstMatch(of: CardMarkup.embed) {
             part(rest[..<match.range.lowerBound])
-            result += "<img src=\"\(escape((String(match.1) as NSString).lastPathComponent))\">" // l10n:fixed HTML
+            let name = (String(match.1) as NSString).lastPathComponent
+            if CardMarkup.audioExtensions.contains((name as NSString).pathExtension.lowercased()) {
+                result += "[sound:\(name)]" // l10n:fixed Anki 語法
+            } else {
+                result += "<img src=\"\(escape(name))\">" // l10n:fixed HTML
+            }
             rest = rest[match.range.upperBound...]
         }
         part(rest)

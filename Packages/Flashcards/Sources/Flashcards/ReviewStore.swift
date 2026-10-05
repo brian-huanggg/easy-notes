@@ -140,6 +140,15 @@ public final class ReviewStore: EditorController {
         return image
     }
 
+    /// 卡片中的音檔：同 `cardImage` 的讀取規則，不快取（播放時才讀）
+    func cardResource(_ path: String) async -> Data? {
+        guard let session = vaultSession else { return nil }
+        let reader = session.resourceReader
+        if let data = await reader(path) { return data }
+        guard let legacy = Attachments.legacyPath(for: path) else { return nil }
+        return await reader(legacy)
+    }
+
     // MARK: 載入
 
     private func reloadCards() async {

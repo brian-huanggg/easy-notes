@@ -376,7 +376,9 @@
 - [ ] 手動：編輯器中多行卡片的標示（Mac WebKit、iPad 注音）
 - [ ] 手動：匯出多行卡片後在 Anki 匯入，清單與圖片正確（圖片檔需自行放進 `collection.media`）
 
-尚未驗證：實機畫面、WebKit 語法標示、匯入 Anki。音檔（`![[x.mp3]]`）不在範圍內。
+尚未驗證：實機畫面、WebKit 語法標示、匯入 Anki。
+
+- [x] 卡片音檔 `![[x.mp3]]`：複習與瀏覽顯示播放鈕（點一下播放 / 停止，不自動播放），匯出 Anki 寫成 `[sound:]`；`swift test`、macOS 與 iOS Simulator 建置通過。尚未驗證：實機播放（匯入的 Anki 音檔）、iOS 靜音開關下的行為
 
 ## Phase 4 — Whiteboard
 
