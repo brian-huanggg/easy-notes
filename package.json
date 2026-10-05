@@ -10,5 +10,6 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "git-cliff": "^2.14.2"
-  }
+  },
+  "packageManager": "pnpm@10.34.5"
 }

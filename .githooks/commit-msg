@@ -1,5 +1,5 @@
 #!/bin/bash
-# 檢查 commit 訊息格式（規則在 commitlint.config.mjs）。由 `npm install`（root）設定 core.hooksPath 啟用。
+# 檢查 commit 訊息格式（規則在 commitlint.config.mjs）。由 `pnpm install`（root）設定 core.hooksPath 啟用。
 # git worktree 沒有自己的 node_modules 時，用主工作目錄的。
 top=$(git rev-parse --show-toplevel)
 main=$(cd "$(git rev-parse --git-common-dir)/.." && pwd)
@@ -8,5 +8,5 @@ for dir in "$top" "$main"; do
     exec "$dir/node_modules/.bin/commitlint" --config "$top/commitlint.config.mjs" --edit "$1"
   fi
 done
-echo "找不到 commitlint：在專案根目錄跑 npm install" >&2
+echo "找不到 commitlint：在專案根目錄跑 pnpm install" >&2
 exit 1

@@ -103,7 +103,7 @@ EasyNotes 是個人使用、不上架的 App（見 [README](./README.md)），�
 
 ### 供應鏈
 
-- Swift：`Package.resolved` 鎖定版本；npm：`package-lock.json` 鎖定，打包後的 JS 內含在 App 內（不在執行時下載）。
+- Swift：`Package.resolved` 鎖定版本；npm 套件（pnpm）：`pnpm-lock.yaml` 鎖定，`pnpm install --frozen-lockfile` 安裝，只放行 `pnpm-workspace.yaml` 的 `onlyBuiltDependencies` 執行安裝腳本，打包後的 JS 內含在 App 內（不在執行時下載）。
 - 新增依賴前確認授權、維護狀態與是否有已知漏洞；優先選依賴少的套件。
 
 ## 審查方法

@@ -1,7 +1,7 @@
 // 注音組字中收到遠端內容（同步或外部工具）：組字不被打斷、注音符號不留在文件裡、選好的字不遺失。
 // 在 Chromium 以 DevTools 的 Input.imeSetComposition 模擬輸入法（WebKit 的實作不同，實機仍需驗證）。
-// 需要 Playwright（不列為相依套件）：npm i --no-save playwright && npx playwright install chromium
-// 用法：npm run build && node test/ime.e2e.mjs
+// 需要 Playwright（不列為相依套件）：pnpm add -D playwright && pnpm exec playwright install chromium（只在本機用，不要 commit package.json 與 pnpm-lock.yaml 的變更）
+// 用法：pnpm build && node test/ime.e2e.mjs
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 

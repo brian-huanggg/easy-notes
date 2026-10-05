@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 if [[ "${1:-}" == "--web" ]]; then
-  (cd web && npm run build)
+  (cd web && pnpm build)
 fi
 
 DERIVED=build/DerivedData

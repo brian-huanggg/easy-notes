@@ -1,5 +1,5 @@
 // 單元測試：esbuild 打包 test/*.test.ts 後交給 node --test（不需要瀏覽器）
-// 用法：npm test
+// 用法：pnpm test
 import * as esbuild from "esbuild";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync } from "node:fs";

@@ -1,7 +1,7 @@
 // CSV / TSV 的工具列、編輯列（fx）與狀態列：在 Chromium 實際點擊、打字、注音組字，檢查送給 Swift 的 edit / meta。
 // 注音以 DevTools 的 Input.imeSetComposition 模擬（WebKit 的實作不同，實機仍需驗證）。
-// 需要 Playwright（不列為相依套件）：npm i --no-save playwright && npx playwright install chromium
-// 用法：npm run build && node test/sheet.e2e.mjs
+// 需要 Playwright（不列為相依套件）：pnpm add -D playwright && pnpm exec playwright install chromium（只在本機用，不要 commit package.json 與 pnpm-lock.yaml 的變更）
+// 用法：pnpm build && node test/sheet.e2e.mjs
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 

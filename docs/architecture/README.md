@@ -172,7 +172,7 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 
 版本號、Changelog、tag、更新通道都由 commit 驅動，不手改。
 
-- **Commit 訊息**：Conventional Commits，由 `.githooks/commit-msg`（commitlint，`commitlint.config.mjs`）強制；root 的 `npm install` 會設定 `core.hooksPath`。type 決定 Changelog 分類：`feat` → Added、`fix` → Fixed、`perf` → Changed、`security` → Security；`docs` / `refactor` / `test` / `chore` / `build` / `ci` / `style` / `revert` 與 merge commit 不進 Changelog。因此 `feat` / `fix` / `perf` / `security` 的 subject 就是使用者看到的那一行：繁體中文、寫使用者看得到的變化。
+- **Commit 訊息**：Conventional Commits，由 `.githooks/commit-msg`（commitlint，`commitlint.config.mjs`）強制；root 的 `pnpm install` 會設定 `core.hooksPath`。type 決定 Changelog 分類：`feat` → Added、`fix` → Fixed、`perf` → Changed、`security` → Security；`docs` / `refactor` / `test` / `chore` / `build` / `ci` / `style` / `revert` 與 merge commit 不進 Changelog。因此 `feat` / `fix` / `perf` / `security` 的 subject 就是使用者看到的那一行：繁體中文、寫使用者看得到的變化。
 - **Changelog**：`docs/Changelog.md` 由 git-cliff（`cliff.toml`）從上個 tag 以來的 commit 產生，格式是 Keep a Changelog。想手寫的版本，在發版前放一個 `## [Unreleased]` 區塊，會直接改名成該版本，不再產生。`scripts/changelog.py` 負責讀寫這個檔案。
 - **版本號的唯一來源**是 `project.yml` 的 `MARKETING_VERSION`（Info.plist、Sparkle、TestFlight 都讀它）；build 號碼（`CURRENT_PROJECT_VERSION`）是打包時的時間戳，Sparkle 靠它判斷新舊，所以必須遞增。`scripts/release.sh` 負責測試、Changelog、`MARKETING_VERSION`、「新功能」內容、commit 與 tag，不 push；版本號預設依 commit 類型決定。
 - **`scripts/publish-release.sh`** 對 HEAD 上的版本 tag 做：打包 DMG、用 Sparkle 的 `generate_appcast` 簽章、push、建立 GitHub Release（附 DMG 與 `appcast.xml`）；`--testflight` 另外上傳 iOS / iPadOS。push 與建立 Release 是對外的動作，預設會先確認。
@@ -186,7 +186,7 @@ web/                 WebView 外掛的 TypeScript 原始碼；每個外掛一個
 | 層 | 內容 | 指令 |
 | --- | --- | --- |
 | 單元 | 各 Package 的 `swift test`（Core 的 Vault、索引、同步引擎用假 backend；外掛的格式、合併） | `swift test` |
-| Web | CM6 的 rebase、換行、注音組字（Chromium 模擬輸入法） | `npm test`、`node test/ime.e2e.mjs` |
+| Web | CM6 的 rebase、換行、注音組字（Chromium 模擬輸入法） | `pnpm test`、`node test/ime.e2e.mjs` |
 | 整合 | SupabaseSync 對本地 Supabase 的 RPC 併發與 RLS | `scripts/test-sync.sh` |
 | E2E | XCUITest 從外部操作 App（macOS、iPad 模擬器） | `scripts/test-e2e.sh` |
 | 實機 | 注音（WebKit）、Apple Pencil、耗電與記憶體 | Roadmap 的手動清單 |

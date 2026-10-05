@@ -1,0 +1,12 @@
+# 根目錄是開發工具（commitlint、git-cliff），web 是編輯器的 JS 打包；共用一份 pnpm-lock.yaml
+packages:
+  - web
+
+# pnpm 預設不執行相依套件的安裝腳本；只放行需要的：git-cliff 要下載它的執行檔
+onlyBuiltDependencies:
+  - git-cliff
+  - esbuild
+
+# 維持 npm 時代 lockfile 驗證過的版本（打包出來的 JS 與已提交的一致）
+overrides:
+  "@lezer/javascript": 1.5.5

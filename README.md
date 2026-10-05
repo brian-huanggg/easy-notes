@@ -17,7 +17,7 @@
 
 ```sh
 brew install xcodegen
-(cd web && npm install && npm run build)   # 修改 web/src 後需重新 build
+pnpm install && (cd web && pnpm build)   # 修改 web/src 後需重新 build
 xcodegen generate && open EasyNotes.xcodeproj
 (cd Packages/EasyNotesCore && swift test)  # 核心單元測試（含 Spike S2）
 ```

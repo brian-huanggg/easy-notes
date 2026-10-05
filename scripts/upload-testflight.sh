@@ -2,7 +2,7 @@
 # 建置 iOS / iPadOS Release，上傳到 App Store Connect（TestFlight）。
 # 帳號用 Xcode 已登入的 Apple ID（Xcode → Settings → Accounts）；簽章自動管理。
 # Build 號碼每次自動遞增（時間戳），不需要改 project.yml。
-# web/src 有改動時，先跑 (cd web && npm run build)。
+# web/src 有改動時，先跑 (cd web && pnpm build)。
 #
 #   ./scripts/upload-testflight.sh            # Archive + 上傳
 #   ./scripts/upload-testflight.sh --export   # 只匯出 build/TestFlight/EasyNotes.ipa，不上傳

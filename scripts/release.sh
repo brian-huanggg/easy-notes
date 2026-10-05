@@ -17,7 +17,7 @@ cd "$(dirname "$0")/.."
 
 CHANGELOG=docs/Changelog.md
 WHATS_NEW=App/Resources/WhatsNew.json
-cliff() { npx --no-install git-cliff --config cliff.toml "$@" 2>/dev/null; }
+cliff() { pnpm exec git-cliff --config cliff.toml "$@" 2>/dev/null; }
 
 DRY_RUN=0
 SKIP_TESTS=0
@@ -33,9 +33,9 @@ done
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-# MARK: 依賴（git-cliff 與 web 測試用；npm ci 只照 lockfile 安裝，不會改動它）
+# MARK: 依賴（git-cliff 與 web 測試用；--frozen-lockfile 只照 lockfile 安裝，不會改動它。根目錄與 web 是同一個 pnpm workspace）
 
-npm ci --no-audit --no-fund --silent
+pnpm install --frozen-lockfile --silent
 
 # MARK: 版本號
 
@@ -92,7 +92,7 @@ fi
 if [[ $SKIP_TESTS == 0 ]]; then
   ./scripts/check-l10n.py
   python3 scripts/test_changelog.py
-  (cd web && npm ci --no-audit --no-fund --silent && npm test)
+  (cd web && pnpm test)
   (cd Packages/EasyNotesCore && swift test)
 fi
 

@@ -32,10 +32,10 @@
 ## 指令
 
 ```sh
-npm install                                 # 根目錄：安裝 commitlint、git-cliff，並啟用 commit-msg hook（clone 後先跑一次）
-(cd web && npm install && npm run build)    # 修改 web/src 後
-(cd web && npm test)                        # Web 端單元測試（Node，不需要瀏覽器）
-(cd web && node test/ime.e2e.mjs)           # 注音組字 e2e（Chromium 模擬輸入法，需要 playwright；先 npm run build）
+pnpm install                                # 根目錄（root 與 web 同一個 workspace）：安裝依賴並啟用 commit-msg hook（clone 後先跑一次）
+(cd web && pnpm build)                      # 修改 web/src 後
+(cd web && pnpm test)                       # Web 端單元測試（Node，不需要瀏覽器）
+(cd web && node test/ime.e2e.mjs)           # 注音組字 e2e（Chromium 模擬輸入法，需要 playwright；先 pnpm build）
 (cd web && node test/blocks.e2e.mjs)        # 表格、公式、屬性面板 e2e（同上）
 (cd web && node test/sheet.e2e.mjs)         # CSV / TSV 工具列、編輯列、狀態列 e2e（同上）
 xcodegen generate                           # 修改 project.yml 後
