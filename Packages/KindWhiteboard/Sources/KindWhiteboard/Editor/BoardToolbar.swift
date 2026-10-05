@@ -5,8 +5,9 @@ import PhotosUI
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// 白板工具列（Freeform 式，見 architecture/whiteboard.md「工具列改版」）：畫筆（手寫模式）| 便條紙、形狀、文字框、圖片 |
-/// 有選取時的操作（樣式、再製、刪除）| Undo / Redo。導覽列下方獨立一排
+/// 白板工具列（GoodNotes 式，見 architecture/whiteboard.md「工具列改版」與 ui.md「手寫工具列」）：
+/// 選取 | 畫筆、螢光筆、橡皮擦、套索 | 便條紙、形狀、筆記卡片、文字框、圖片；右側是有選取時的樣式、再製、刪除。
+/// Undo / Redo 與手寫選項在下方的浮動列（`BoardFloatingRow`）。導覽列下方獨立一排
 struct BoardToolbar: View {
     let editor: BoardEditor
     @SwiftUI.Binding var selectionShape: SelectionShape
@@ -20,22 +21,18 @@ struct BoardToolbar: View {
     @State private var photo: PhotosPickerItem?
     @State private var showsFiles = false
     @State private var showsNotes = false
-    @State private var canUndo = false
-    @State private var canRedo = false
 
     var body: some View {
-        HStack(spacing: 6) {
-            if showsInk {
-                button(editor.inking ? L("結束手寫") : L("畫筆"),
-                       editor.inking ? "pencil.tip.crop.circle.fill" : "pencil.tip.crop.circle",
-                       active: editor.inking) { editor.inking.toggle() }
-            }
-            // 圖示顯示目前的方式，點一下切換（只影響非手寫模式在空白處拖曳的範圍選取）
-            // 手寫模式中按：先回到選取（不切換方式），之後再按才切換
+        EditorToolbar {
+            // 圖示顯示目前的選取方式；手寫模式中按：先回到選取（不切換方式），之後再按才切換
+            // （只影響非手寫模式在空白處拖曳的範圍選取）
             button(L("\(selectionShape.title)（點一下切換）"), selectionShape.systemImage, active: !editor.inking) {
                 if editor.inking { editor.inking = false } else { selectionShape = selectionShape.toggled }
             }
-            separator
+            if showsInk {
+                InkToolButtons(inking: inkingBinding)
+            }
+            ToolbarSeparator()
             button(L("便條紙"), "note.text") { editor.insertStickyNote() }
             button(L("形狀"), "square.on.circle", active: showsShapes || editor.tool.creates && editor.tool != .text) { showsShapes = true }
                 .popover(isPresented: $showsShapes) {
@@ -55,8 +52,8 @@ struct BoardToolbar: View {
                 }
             button(L("文字框"), "character.textbox", active: editor.tool == .text) { editor.insertText() }
             imageMenu
+        } actions: {
             if !editor.selection.isEmpty {
-                separator
                 if !editor.styleSummary.isEmpty {
                     button(L("樣式"), "paintpalette", active: showsStyle) { showsStyle = true }
                         .popover(isPresented: $showsStyle) {
@@ -67,22 +64,7 @@ struct BoardToolbar: View {
                 button(L("再製"), "plus.square.on.square") { editor.duplicateSelection() }
                 button(L("刪除"), "trash") { editor.deleteSelection() }
             }
-            separator
-            button(L("復原"), "arrow.uturn.backward") { editor.undoManager?.undo(); refreshUndo() }
-                .disabled(!canUndo)
-            button(L("重做"), "arrow.uturn.forward") { editor.undoManager?.redo(); refreshUndo() }
-                .disabled(!canRedo)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
-        .onAppear(perform: refreshUndo)
-        // 不能聽 NSUndoManagerCheckpoint：canUndo / canRedo 本身會發出它，形成無限迴圈
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidCloseUndoGroup)) { _ in refreshUndo() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidUndoChange)) { _ in refreshUndo() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidRedoChange)) { _ in refreshUndo() }
         .photosPicker(isPresented: $showsPhotos, selection: $photo, matching: .images)
         .onChange(of: photo) { _, item in
             guard let item else { return }
@@ -98,13 +80,8 @@ struct BoardToolbar: View {
         }
     }
 
-    private func refreshUndo() {
-        canUndo = editor.undoManager?.canUndo ?? false
-        canRedo = editor.undoManager?.canRedo ?? false
-    }
-
-    private var separator: some View {
-        Divider().frame(height: 22).padding(.horizontal, 4)
+    private var inkingBinding: SwiftUI.Binding<Bool> {
+        SwiftUI.Binding { editor.inking } set: { editor.inking = $0 }
     }
 
     /// 圖片不是常駐工具：選了來源就插入
@@ -125,15 +102,18 @@ struct BoardToolbar: View {
 
     private func button(_ title: String, _ image: String, active: Bool = false,
                         _ perform: @escaping () -> Void) -> some View {
-        Button(action: perform) {
-            Image(systemName: image)
-                .frame(width: 34, height: 34)
-                .background(active ? Color.accentColor.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(Color.accentColor)
-        .help(title)
-        .accessibilityLabel(title)
+        ToolbarIconButton(title, systemImage: image, active: active, action: perform)
+    }
+}
+
+/// 工具列下方的浮動列：左邊 Undo / Redo，中間是手寫選項膠囊
+struct BoardFloatingRow: View {
+    let editor: BoardEditor
+
+    var body: some View {
+        EditorFloatingRow(inking: editor.inking, undo: UndoRedoPill(manager: { editor.undoManager },
+                                                                    undo: { editor.undoManager?.undo() },
+                                                                    redo: { editor.undoManager?.redo() }))
     }
 }
 

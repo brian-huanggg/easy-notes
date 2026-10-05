@@ -1,4 +1,5 @@
 #if os(iOS)
+import EasyNotesUI
 import ExcalidrawKit
 import PDFKit
 import PencilKit
@@ -9,25 +10,30 @@ import UIKit
 /// Undo 記在模型（頁碼 + 前後 elements），不靠會被回收的畫布。
 extension PDFReaderCanvas {
     func setUpInking() {
-        // 「用手指繪圖」由 drawingPolicy 固定，不讓使用者在工具盤切換
-        toolPicker.showsDrawingPolicyControls = false
-        // 畫布固定淺色（見 PageOverlayView），工具盤的顏色也用淺色版本，選的顏色才與畫出來的一致
-        toolPicker.colorUserInterfaceStyle = .light
+        let tap = InkPencilInteraction { [weak self] in self?.inking == true }
+        addInteraction(tap.interaction)
+        pencilTap = tap
         NotificationCenter.default.addObserver(self, selector: #selector(scaleChanged), name: .PDFViewScaleChanged,
                                                object: pdfView)
     }
 
-    /// 放進視窗的同一輪 SwiftUI 還在調整階層，延到下一輪才成為 first responder（⌘Z 與工具盤才找得到）
+    /// 放進視窗的同一輪 SwiftUI 還在調整階層，延到下一輪才成為 first responder（⌘Z 才找得到）
     func inkingDidMoveToWindow() {
         guard window != nil else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, window != nil else { return }
             becomeFirstResponder()
-            updateToolPicker()
         }
     }
 
-    /// 手寫模式：Pencil 書寫（iPhone 手指也能寫）、手指捲動縮放，顯示工具盤
+    /// 工具列選了別的手寫工具：所有畫布一起換
+    func setTool(_ spec: InkToolSpec) {
+        guard spec != inkTool else { return }
+        inkTool = spec
+        for overlay in overlays.values { overlay.canvas.tool = spec.pkTool }
+    }
+
+    /// 手寫模式：Pencil 書寫（iPhone 手指也能寫）、手指捲動縮放
     func setInking(_ on: Bool) {
         guard on != inking else { return }
         inking = on
@@ -37,15 +43,14 @@ extension PDFReaderCanvas {
             configure(overlay)
             overlay.setNeedsLayout()
         }
-        updateToolPicker()
+        reclaimFirstResponder()
         applyStickyInking()
     }
 
-    /// 工具盤綁在 first responder 上：便利貼文字框拿走之後要搶回來，⌘Z 與工具盤才找得到這裡
-    func updateToolPicker() {
-        guard window != nil else { return }
-        toolPicker.setVisible(inking, forFirstResponder: self)
-        if inking || !isFirstResponder { becomeFirstResponder() }
+    /// 便利貼文字框拿走 first responder 之後搶回來，⌘Z 才找得到這裡的模型 Undo
+    func reclaimFirstResponder() {
+        guard window != nil, !isFirstResponder else { return }
+        becomeFirstResponder()
     }
 
     private static var drawingPolicy: PKCanvasViewDrawingPolicy {
@@ -64,11 +69,10 @@ extension PDFReaderCanvas {
         overlay.canvas.drawingGestureRecognizer.isEnabled = inking
     }
 
-    /// 新的 overlay：畫布跟著共用工具盤
+    /// 新的 overlay：畫布用目前的手寫工具
     func attachCanvas(of overlay: PageOverlayView) {
         configure(overlay)
-        overlay.canvas.tool = toolPicker.selectedTool
-        toolPicker.addObserver(overlay.canvas)
+        overlay.canvas.tool = inkTool.pkTool
     }
 
     // MARK: 寫回模型

@@ -15,7 +15,7 @@
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
-| 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
+| 5 PDF 手寫與標註 | S4、5a–5d 實作完成；5e 手寫工具列（GoodNotes 式，白板共用）與停住變直線實作完成（建置與單元測試通過，畫面與實機尚未驗證）；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
 | 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
@@ -431,7 +431,7 @@
 - [x] 依 S3 結論實作畫布：layer 結構層 + `PKCanvasView`、視窗裁切、點陣倍率跟著縮放（縮小時立即降低）
 - [x] LOD：縮放倍率低且畫面內 layer 超過門檻時改畫點陣快照，停止縮放後換回個別 layer
 - [x] 手勢：手寫模式手指點一下選取、長按才拖曳；非手寫模式 Pencil 與手指碰到元素就拖曳
-- [x] 工具列（Freeform 式，見 [whiteboard.md](./architecture/whiteboard.md)「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
+- [x] 工具列（Freeform 式，見 [whiteboard.md](./architecture/whiteboard.md)「工具列改版」）：畫筆（手寫模式，顯示 `PKToolPicker`；已改為共用手寫工具列，見 5e）、便條紙、形狀（矩形、圓角矩形、橢圓、菱形、箭頭、frame）、文字框、圖片；插在畫面中央
 - [x] 畫布背景：無 / 網格 / 點狀（App 偏好設定，不寫進檔案）
 - [x] 選取方式：矩形 / 套索，工具列按鈕切換（只選結構元素；筆畫用 PencilKit 套索）
 - [x] 選取：點選、框選、Shift 多選；移動、控制點縮放；刪除；複製 / 貼上 / 再製
@@ -509,7 +509,7 @@
 
 - [x] 可見頁面才建立 `PKCanvasView`，回收時筆畫換回 elements
   - iPad 實機已驗證：書寫、縮放流暢且筆畫清晰、Undo / Redo、關閉重開後筆畫保存。
-- [x] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo
+- [x] 工具列：畫筆開關（`PKToolPicker`：鋼筆、螢光筆、橡皮擦、套索）、便利貼、匯出、Undo / Redo（已改為共用手寫工具列，見 5e）
   - 畫筆開關與 Undo / Redo iPad 實機已驗證；便利貼按鈕隨 5c 便利貼一起加；匯出按鈕（5d）實測可用。
 - [ ] 便利貼：插入、移動、縮放、`UITextView` 編輯
   - 實作完成（含工具列的「便利貼」按鈕、選取選單的編輯 / 刪除、模型 Undo）。
@@ -517,7 +517,24 @@
   - iPad 實機已驗證：手寫模式中 Pencil 可以寫在便利貼上；筆畫不會跟著便利貼移動（見「待決事項」）。iPad 便利貼內注音輸入尚未驗證。已知：鍵盤可能蓋住頁面下方的便利貼（PDFView 不會自動捲動）；旋轉頁上的編輯框不跟著旋轉。
 - [ ] 停止操作 500 ms 後存檔；`EditorController` 的 `externalChange` 合併、`flush`
   - 實作完成：500 ms 存檔、`externalChange` 合併與 `flush` 由單元測試驗證（`PDFInkDocumentTests`）；iPad 實機已驗證關閉重開後筆畫保存；合併後可見頁的畫布重新載入筆畫尚未在 App 內驗證。
-- [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）
+- [ ] 選做：畫完一筆後停住（長按）變成直線（GoodNotes 式）→ 5e 實作完成，實機尚未驗證
+
+### 5e 手寫工具列（GoodNotes 式，白板與 PDF 共用）
+
+設計見 [ui.md](./architecture/ui.md)「手寫工具列」。
+
+- [x] 共用元件（EasyNotesUI）：`InkSettings`（工具、畫筆種類、粗細、顏色，存 `UserDefaults`）、`EditorToolbar`（工具置中、動作靠右）、浮動的 Undo / Redo 與選項膠囊；取代 `PKToolPicker`
+  - `InkState`（選工具、自訂顏色上限與取代、粗細夾範圍、Pencil 點兩下）與 `InkSettings` 存檔由單元測試驗證；iOS / macOS App 建置通過。畫面尚未在 Simulator 或實機看過。
+- [ ] 白板工具列改版：選取 | 畫筆、螢光筆、橡皮擦、套索 | 便條紙、形狀、筆記卡片、文字框、圖片；右側樣式 / 再製 / 刪除
+  - 實作完成，尚未驗證（iPad、iPhone 窄螢幕的捲動、Mac 沒有手寫工具）。
+- [ ] PDF 工具列改版：選取 | 畫筆、螢光筆、橡皮擦、套索 | 便利貼；右側匯出
+  - 實作完成，尚未驗證（切換工具後所有可見頁的畫布一致、捲到新頁面時套用目前工具）。
+- [ ] 畫筆種類（鋼筆、原子筆、鉛筆）、三段粗細、5 個預設色 + 自訂顏色（最多 5 個、長按刪除）；螢光筆、部分 / 整筆橡皮擦
+  - 實作完成，尚未驗證（實際筆寬是否合適、顏色選擇器拖曳中不會一次加很多色）。
+- [ ] Pencil 點兩下：依系統設定切換橡皮擦 / 上一個工具，或收起 / 叫回選項膠囊
+  - 實作完成，需要 Apple Pencil 實機驗證。
+- [ ] 停住變直線（`StraightLineAssist`）：停住 0.5 秒變成直線、繼續移動調整終點、水平 / 垂直 / 45° 吸附；白板與筆畫共用 Undo、PDF 模型 Undo 一筆
+  - 幾何與停住判定由單元測試驗證（`StraightLineTests`）。需要實機驗證：取消 PencilKit 筆畫後不殘留原本的曲線、直線粗細與手寫一致、Undo / Redo、PDF 旋轉頁與縮放後的位置。
 
 ### 5d 匯出
 

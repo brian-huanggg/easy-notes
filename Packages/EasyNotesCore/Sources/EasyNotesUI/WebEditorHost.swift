@@ -141,7 +141,7 @@ private final class NavigationPolicy: NSObject, WKNavigationDelegate {
         case .openExternally:
             if let url = action.request.url {
                 #if os(iOS)
-                UIApplication.shared.open(url)
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 #else
                 NSWorkspace.shared.open(url)
                 #endif

@@ -188,7 +188,7 @@ extension PDFReaderCanvas: UIGestureRecognizerDelegate, UITextViewDelegate {
         textView.onEscape = nil
         textView.isUserInteractionEnabled = false
         textView.resignFirstResponder()
-        updateToolPicker() // 工具盤與 ⌘Z 回到畫布
+        reclaimFirstResponder() // ⌘Z 回到畫布
         if let overlay = current.overlay {
             let old = overlay.scene.liveElements.first { $0.containerId == current.id && $0.type == .text }?.originalText ?? ""
             if text != old, overlay.scene.element(current.id) != nil {

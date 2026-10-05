@@ -19,6 +19,9 @@ struct PDFReaderView: View {
                     #if os(iOS)
                     .ignoresSafeArea(edges: .bottom)
                     .onChange(of: inking) { _, on in handle.canvas?.setInking(on) }
+                    .onChange(of: InkSettings.shared.spec) { _, spec in handle.canvas?.setTool(spec) }
+                    // 浮動列蓋在頁面上，不改 PDFView 的 inset（切換工具時頁面不跳動）
+                    .overlay(alignment: .top) { PDFFloatingRow(inking: inking, handle: handle) }
                     #else
                     .overlay(alignment: .bottomTrailing) {
                         HStack(spacing: 8) {
