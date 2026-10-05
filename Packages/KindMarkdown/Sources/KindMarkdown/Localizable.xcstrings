@@ -31,6 +31,16 @@
         }
       }
     },
+    "在筆記中尋找…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find in Note…"
+          }
+        }
+      }
+    },
     "封面" : {
       "localizations" : {
         "en" : {

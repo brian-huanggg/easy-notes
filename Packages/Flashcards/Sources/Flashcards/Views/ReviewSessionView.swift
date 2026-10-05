@@ -188,7 +188,8 @@ struct CardView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(L("問題")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
-                CardText(segments: card.front, style: TextStyle(card.type == .cloze ? 26 : 34, .semibold),
+                CardText(segments: card.front,
+                         style: TextStyle(card.multiline ? 22 : card.type == .cloze ? 26 : 34, .semibold),
                          highlight: Palette.cardNew)
                     .foregroundStyle(Palette.textPrimary)
             }
@@ -196,7 +197,8 @@ struct CardView: View {
                 Rectangle().fill(Palette.border).frame(height: 1).padding(.vertical, 30)
                 VStack(alignment: .leading, spacing: 16) {
                     Text(L("答案")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
-                    CardText(segments: card.back, style: TextStyle(23, .semibold), highlight: Palette.cardDue)
+                    CardText(segments: card.back, style: card.multiline ? TextStyle(18) : TextStyle(23, .semibold),
+                             highlight: Palette.cardDue)
                         .foregroundStyle(Palette.textPrimary)
                 }
             }

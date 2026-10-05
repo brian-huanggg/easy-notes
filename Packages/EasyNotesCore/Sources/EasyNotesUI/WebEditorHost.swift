@@ -141,7 +141,8 @@ private final class NavigationPolicy: NSObject, WKNavigationDelegate {
         case .openExternally:
             if let url = action.request.url {
                 #if os(iOS)
-                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                // iOS 的 open 是 async：不擋住導航判斷，`.cancel` 立刻回傳
+                Task { @MainActor in await UIApplication.shared.open(url) }
                 #else
                 NSWorkspace.shared.open(url)
                 #endif

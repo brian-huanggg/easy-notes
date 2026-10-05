@@ -61,6 +61,8 @@ public final class ReviewStore: EditorController {
     @ObservationIgnored private var cardsTask: Task<Void, Never>?
     @ObservationIgnored private var historyTask: Task<Void, Never>?
     @ObservationIgnored private var clockTask: Task<Void, Never>?
+    /// 卡片圖片：路徑 → （修改時間, 圖片）
+    @ObservationIgnored private var images: [String: (modified: Date?, image: PlatformImage)] = [:]
 
     private init() {
         collapsed = Set(UserDefaults.standard.stringArray(forKey: "review.collapsed") ?? [])
@@ -120,6 +122,22 @@ public final class ReviewStore: EditorController {
         let moved = config.movingFolder(from: from, to: to)
         guard moved != config else { return }
         save(moved)
+    }
+
+    /// 卡片中的 `![[x.png]]`：經 `resourceReader` 在背景讀取（`Attachments/` 找不到時改找舊版的 `附件/`），
+    /// 依路徑 + 修改時間快取
+    func cardImage(_ path: String) async -> PlatformImage? {
+        guard let session = vaultSession else { return nil }
+        let legacy = Attachments.legacyPath(for: path)
+        let modified = session.modified(path) ?? legacy.flatMap { session.modified($0) }
+        if let hit = images[path], hit.modified == modified { return hit.image }
+        let reader = session.resourceReader
+        var data = await reader(path)
+        if data == nil, let legacy { data = await reader(legacy) }
+        guard let data, let image = PlatformImage(data: data) else { return nil }
+        if images.count > 100 { images.removeAll() }
+        images[path] = (modified, image)
+        return image
     }
 
     // MARK: 載入
@@ -402,6 +420,53 @@ public final class ReviewStore: EditorController {
             return deck.isEmpty ? folder.isEmpty : folder == deck || folder.hasPrefix(deck + "/")
         }
         return AnkiExport.files(selected, tags: tags)
+    }
+
+    // MARK: 從 Anki 匯入
+
+    /// 分析 `.apkg`（不寫入）：讀檔與轉換在背景進行
+    public func analyzeAnki(_ url: URL) async throws -> (package: AnkiPackage, plan: AnkiImportPlan) {
+        guard let session = vaultSession else { throw AnkiPackage.Failure(description: "no vault") }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        // 檔案可能在安全範圍外讀不到（iOS）：先複製到暫存
+        let copy = FileManager.default.temporaryDirectory.appending(path: "anki-\(UUID().uuidString).apkg")
+        try FileManager.default.copyItem(at: url, to: copy)
+        defer { try? FileManager.default.removeItem(at: copy) }
+
+        var ids: [String: Set<String>] = [:]
+        for item in notes { if let id = item.note.id { ids[id, default: []].insert(item.path) } }
+        let suspended = Set(schedules.filter { $0.value.suspended }.keys)
+        let fs = session.vault
+        let fallback = L("Anki 匯入")
+        return try await Task.detached(priority: .userInitiated) {
+            let package = try AnkiPackage(url: copy)
+            let plan = try AnkiImport.plan(
+                package.collection, hasMedia: { package.resolve($0) != nil }, mediaData: package.mediaData,
+                environment: .init(read: { try? fs.read($0) }, noteIDs: ids, suspended: suspended, fallbackFileName: fallback))
+            return (package, plan)
+        }.value
+    }
+
+    /// 寫入分析的結果：媒體與筆記經 `session.write`（更新索引、進同步佇列），複習紀錄追加到這台裝置的 jsonl。
+    /// 已經在紀錄中的（同一筆 `id` + `cid` + `ease` + `op`）不重複寫
+    public func commitAnki(_ plan: AnkiImportPlan, package: AnkiPackage) async throws {
+        guard let session = vaultSession, let fs, let deviceID else { return }
+        let media = plan.media
+        let data = try await Task.detached(priority: .userInitiated) {
+            try media.map { ($0.path, try package.mediaData($0.name) ?? Data()) }
+        }.value
+        for (path, bytes) in data where !bytes.isEmpty { session.write(bytes, to: path) }
+        for file in plan.files { session.write(Data(file.text.utf8), to: file.path) }
+
+        struct Key: Hashable { let id: Int64, cid: String, ease: Int, op: ReviewEntry.Op? }
+        var known = Set(history.values.flatMap { $0 }.map { Key(id: $0.id, cid: $0.cid, ease: $0.ease, op: $0.op) })
+        let fresh = plan.entries.filter { known.insert(Key(id: $0.id, cid: $0.cid, ease: $0.ease, op: $0.op)).inserted }
+        try ReviewLog(fs: fs, deviceID: deviceID).append(fresh)
+        session.metaChanged()
+        // 卡片由每筆寫入完成後的 `vaultChanged` 重新載入
+        await reloadHistory(replayAll: true)
+        rebuild()
     }
 
     // MARK: 設定

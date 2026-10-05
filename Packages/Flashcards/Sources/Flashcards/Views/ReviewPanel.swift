@@ -37,6 +37,7 @@ struct DeckListView: View {
     @State private var export: (folder: AnkiExportFolder, name: String)?
     /// 卡片瀏覽 sheet 的對象（nil 牌組 = 所有牌組）
     @State private var browsing: DeckScopeRef?
+    @State private var importingAnki = false
     #if os(iOS)
     @Environment(\.horizontalSizeClass) private var sizeClass
     #endif
@@ -84,6 +85,7 @@ struct DeckListView: View {
         .sheet(item: $browsing) { ref in
             CardBrowserSheet(deck: ref.deck)
         }
+        .sheet(isPresented: $importingAnki) { AnkiImportSheet() }
         .fileExporter(isPresented: Binding(get: { export != nil }, set: { if !$0 { export = nil } }),
                       document: export?.folder, contentType: .folder, defaultFilename: export?.name) { result in
             if case .failure(let error) = result { store.notice = L("無法匯出：\(error.localizedDescription)") }
@@ -116,12 +118,16 @@ struct DeckListView: View {
         HStack(spacing: 6) {
             FilterChip(L("瀏覽卡片"), symbol: "list.bullet.rectangle", isSelected: false) { browsing = DeckScopeRef(deck: nil) }
                 .help(L("檢視、搜尋所有卡片，暫停或重設"))
+                .disabled(store.cards.isEmpty)
             FilterChip(L("自訂複習"), symbol: "slider.horizontal.below.rectangle", isSelected: false) { customStudy = DeckScopeRef(deck: nil) }
                 .help(L("複習忘記的卡片或提前複習"))
+                .disabled(store.cards.isEmpty)
             FilterChip(L("匯出給 Anki"), symbol: "square.and.arrow.up", isSelected: false) { exportToAnki(nil) }
                 .help(L("所有卡片匯出成 Anki 可以匯入的文字檔"))
+                .disabled(store.cards.isEmpty)
+            FilterChip(L("從 Anki 匯入"), symbol: "square.and.arrow.down", isSelected: false) { importingAnki = true }
+                .help(L("匯入 Anki 的 .apkg：牌組、卡片與複習紀錄"))
         }
-        .disabled(store.cards.isEmpty)
     }
 
     private var titleBlock: some View {

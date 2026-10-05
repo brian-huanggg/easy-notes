@@ -1,7 +1,7 @@
 // 卡片語法中的公式保護與克漏字（與 Swift 端 CardSyntaxTests 的案例相同）
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clozeMatches, mathSpans } from "../src/markdown/cardSyntax";
+import { blockEnd, blockHead, clozeMatches, mathSpans } from "../src/markdown/cardSyntax";
 
 const spans = (text: string, inCode?: (o: number) => boolean) =>
   mathSpans(text, inCode).map((m) => (m.display ? "D:" : "I:") + text.slice(m.from, m.to));
@@ -48,7 +48,29 @@ test("克漏字其餘規則與原本的正規表示式相同", () => {
   assert.deepEqual(answers("{{a}}}"), ["a"]);
   assert.deepEqual(answers("{{a}b}}"), []);
   assert.deepEqual(answers("{{a\nb}}"), []);
-  // 克漏字不能跨進程式碼
+  // 程式碼中的 {{ }} 不算；克漏字可以完整包住程式碼，不能只包一半
   assert.deepEqual(answers("`{{b}}` 與 {{c}}", (o) => o < 7), ["c"]);
-  assert.deepEqual(answers("{{a `b`}}", (o) => o >= 4 && o < 7), []);
+  assert.deepEqual(answers("{{a `b`}}", (o) => o >= 4 && o < 7), ["a `b`"]);
+  assert.deepEqual(answers("{{a `b}} c`", (o) => o >= 4), []);
+});
+
+test("多行 note 的首行（與 Swift 端 MultilineCardTests 相同）", () => {
+  assert.deepEqual(blockHead("- 問 :: ^c-a1b2c3"), { column: 2, sepFrom: 4, bidirectional: false });
+  assert.deepEqual(blockHead("1. 中文 ;;"), { column: 3, sepFrom: 6, bidirectional: true });
+  assert.equal(blockHead("\t- tab ::")?.column, 6);
+  assert.equal(blockHead("段落 ::"), null);
+  assert.equal(blockHead("> - 引言 ::"), null);
+  assert.equal(blockHead("- ::"), null);
+  assert.equal(blockHead("- 問 :: 答"), null);
+  assert.equal(blockHead("- `a ::`", (o) => o >= 2), null);
+  assert.equal(blockHead("- $a ::$"), null);
+});
+
+test("多行 note 的子行範圍", () => {
+  const lines = ["- 問 ::", "  答一", "", "  - 答二", "", "- 下一個"];
+  const at = (n: number) => lines[n] ?? null;
+  assert.equal(blockEnd(at, 0, 2), 3);
+  assert.equal(blockEnd(at, 5, 2), 5);
+  const ordered = ["1. 編號 ::", "   答案", "  不足三欄"];
+  assert.equal(blockEnd((n) => ordered[n] ?? null, 0, 3), 1);
 });

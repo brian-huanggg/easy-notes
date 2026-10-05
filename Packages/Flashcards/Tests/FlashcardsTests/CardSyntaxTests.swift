@@ -99,7 +99,9 @@ struct CardSyntaxTests {
         #expect(answers("{{a}}}") == ["a"])
         #expect(answers("{{a}b}}").isEmpty)
         #expect(answers("`{{b}}` 與 {{c}}") == ["c"])
-        #expect(answers("{{a `b`}}").isEmpty)
+        #expect(answers("{{a `b`}}") == ["a `b`"])
+        #expect(answers("{{`x }} y`}}") == ["`x }} y`"])
+        #expect(answers("{{a `b}} c`").isEmpty)
         #expect(answers("$x$ 與 {{y}}") == ["y"])
     }
 
@@ -118,6 +120,146 @@ struct CardSyntaxTests {
         let notes = CardSyntax.parse("問 :: 答 ^c-aaaaaa\r\n第二 :: 張\r\n")
         #expect(notes.map(\.id) == ["c-aaaaaa", nil])
         #expect(notes.map(\.back) == ["答", "張"])
+    }
+}
+
+struct MultilineCardTests {
+    @Test func childrenAreTheBack() {
+        let notes = CardSyntax.parse("""
+            - 請說明 **SDT** 的三大要素 :: ^c-a1b2c3
+              ![[sdt.png]]
+
+              - Competence：能力
+              - Autonomy：自主
+            不是子行
+            """)
+        #expect(notes == [CardNote(id: "c-a1b2c3", type: .forward, line: 0, endLine: 4, front: "請說明 **SDT** 的三大要素",
+                                   back: "![[sdt.png]]\n\n- Competence：能力\n- Autonomy：自主")])
+    }
+
+    @Test func dividerSplitsMultilineFront() {
+        let note = CardSyntax.parse("""
+            - To find all **running processes** ;;
+              - The process containing "python"
+              ::
+              `ps aux | grep python`
+            """).first
+        #expect(note?.type == .bidirectional)
+        #expect(note?.front == "To find all **running processes**\n- The process containing \"python\"")
+        #expect(note?.back == "`ps aux | grep python`")
+        #expect(note?.cardIDs.count == 0)
+    }
+
+    @Test func clozeInChildrenWithBackExtra() {
+        let note = CardSyntax.parse("""
+            - Erikson 的發展理論 :: ^c-g7h8i9
+              - 嬰兒期：{{信任對不信任}}
+              - 成年早期：{{ 親密對孤立 }} ^c-zzzzzz
+
+              ::
+              補充 {{不算}}
+            """).first
+        #expect(note?.type == .cloze)
+        #expect(note?.front == "Erikson 的發展理論\n- 嬰兒期：{{信任對不信任}}\n- 成年早期：{{ 親密對孤立 }}")
+        #expect(note?.back == "補充 {{不算}}")
+        #expect(note?.clozes == ["信任對不信任", "親密對孤立"])
+        #expect(note?.cardIDs == ["c-g7h8i9:1", "c-g7h8i9:2"])
+        #expect(note?.endLine == 5)
+    }
+
+    @Test func clozeWithoutDividerUsesAllChildren() {
+        let note = CardSyntax.parse("- 指令 {{I}} :: \n  - 行尾：{{A}}").first
+        #expect(note?.type == .cloze)
+        #expect(note?.clozes == ["I", "A"])
+        #expect(note?.back == "")
+    }
+
+    @Test func singleLineNotesKeepTheirChildren() {
+        let notes = CardSyntax.parse("""
+            - 動物 :: animal
+              - 犬 :: いぬ
+            - {{粒線體}}是發電廠
+              - 補充說明
+            """)
+        #expect(notes.map(\.front) == ["動物", "犬", "{{粒線體}}是發電廠"])
+        #expect(notes.map(\.endLine) == [0, 1, 2])
+    }
+
+    @Test func childrenAreContentNotCards() {
+        let notes = CardSyntax.parse("""
+            - 父 ::
+              - 子 :: 卡片 ^c-aaaaaa
+            - 下一張 :: 卡
+            """)
+        #expect(notes.map(\.front) == ["父", "下一張"])
+        #expect(notes[0].back == "- 子 :: 卡片")
+        #expect(notes[0].id == nil)
+    }
+
+    @Test func extentFollowsListIndentation() {
+        let notes = CardSyntax.parse("""
+            1. 編號 ::
+               答案一
+              不足三欄
+            \t- tab 首行 ::
+            \t\t子行
+
+            後面
+            """)
+        #expect(notes.map(\.back) == ["答案一", "子行"])
+        #expect(notes.map(\.endLine) == [1, 4])
+    }
+
+    @Test func notMultiline() {
+        // 首行不是清單、引言中的清單、沒有子行、分隔符號在程式碼或公式中
+        #expect(CardSyntax.parse("段落 ::\n  縮排").isEmpty)
+        #expect(CardSyntax.parse("> - 引言 ::\n>   子行").isEmpty)
+        #expect(CardSyntax.parse("- 沒有子行 ::\n- 下一個").isEmpty)
+        #expect(CardSyntax.parse("- `a ::`\n  子行").isEmpty)
+        #expect(CardSyntax.parse("- $a ::$\n  子行").isEmpty)
+        #expect(CardSyntax.parse("- ::\n  子行").isEmpty)
+        // 有分界行但背面是空的
+        #expect(CardSyntax.parse("- 問 ::\n  前\n  ::").isEmpty)
+        #expect(CardSyntax.parse("- 空的 ::\n  {{ }}").isEmpty)
+    }
+
+    @Test func fencedCodeInsideChildren() {
+        let note = CardSyntax.parse("""
+            - 查版本 ::
+              ```
+              ::
+              {{not}} ^c-keep11
+              ```
+              結尾
+            """).first
+        #expect(note?.type == .forward)
+        #expect(note?.back == "```\n::\n{{not}} ^c-keep11\n```\n結尾")
+        // 沒有關閉的程式碼區塊不會延伸到 note 之外
+        let notes = CardSyntax.parse("- 問 ::\n  ```\n  code\n- 下一張 :: 卡")
+        #expect(notes.map(\.front) == ["問", "下一張"])
+    }
+
+    @Test func clozeSegmentsAcrossLines() {
+        let segments = CardSyntax.clozeSegments("a {{b}}\n`c\n{{d}}` $e\n$ {{f}}\n```\n{{g}}\n```")
+        #expect(segments.filter { $0.cloze != nil }.map(\.text) == ["b", "d", "f"])
+        #expect(segments.map(\.text).joined() == "a b\n`c\nd` $e\n$ f\n```\n{{g}}\n```")
+    }
+
+    @Test func idGoesOnTheHeadLine() throws {
+        let text = "- 問 ::\n  答一\n  答二\n"
+        let filled = try #require(CardIDs.fill(text, path: "a.md"))
+        let lines = filled.components(separatedBy: "\n")
+        let id = try #require(CardSyntax.parse(filled).first?.id)
+        #expect(lines[0] == "- 問 :: ^\(id)")
+        #expect(lines[1...] == ["  答一", "  答二", ""])
+        // id 只看首行：改子行不影響
+        #expect(CardIDs.fill("- 問 ::\n  別的答案\n", path: "a.md")?.hasPrefix(lines[0]) == true)
+    }
+
+    @Test func codableDefaultsEndLine() throws {
+        let old = #"{"back":"b","clozes":[],"front":"a","line":3,"type":"forward"}"#
+        let note = try JSONDecoder().decode(CardNote.self, from: Data(old.utf8))
+        #expect(note.endLine == 3)
     }
 }
 

@@ -97,7 +97,8 @@
 
   /* 表格（GFM）：可直接編輯的格子 */
   .cm-table { position: relative; margin: 6px 0 10px; padding: 0 22px 22px 0; font-family: var(--font-ui); }
-  .cm-table-scroll { overflow-x: auto; }
+  /* 上方、左側留出拖曳把手的位置（負 margin 抵銷，表格仍與內文切齊；左側用 scroller 的 gutter） */
+  .cm-table-scroll { overflow-x: auto; margin: -10px 0 0 -20px; padding: 10px 0 0 20px; }
   .cm-table table { border-collapse: collapse; min-width: 100%; font-size: 14px; line-height: 1.6; }
   .cm-table th, .cm-table td { position: relative; min-width: 90px; padding: 0; border: 1px solid var(--border); vertical-align: top; text-align: left; }
   .cm-table th { background: var(--bg-panel); font-weight: 600; color: var(--text-primary); }
@@ -111,7 +112,32 @@
   .cm-table-add-col { top: 0; right: 2px; bottom: 22px; width: 18px; }
   .cm-table:hover .cm-table-add-row, .cm-table:hover .cm-table-add-col, .cm-table:focus-within .cm-table-add-row, .cm-table:focus-within .cm-table-add-col { opacity: 1; }
   .cm-table-add-row:hover, .cm-table-add-col:hover { background: var(--bg-hover); color: var(--text-primary); }
-  @media (hover: none) { .cm-table-add-row, .cm-table-add-col { opacity: 0.6; } .cm-table-more { display: block; opacity: 0.7; } }
+  .cm-table-handle { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--text-tertiary); cursor: grab; opacity: 0; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity 0.12s; }
+  .cm-table-handle:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .cm-table-row-handle { left: -19px; top: 6px; width: 16px; height: 22px; }
+  .cm-table-col-handle { top: -10px; left: 50%; width: 22px; height: 14px; margin-left: -11px; }
+  .cm-table-col-handle svg { transform: rotate(90deg); }
+  .cm-table tr:hover .cm-table-row-handle, .cm-table th:hover .cm-table-col-handle { opacity: 1; }
+  .cm-table.is-dragging, .cm-table.is-dragging .cm-table-handle { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+  .cm-table.is-dragging .cm-table-more { display: none !important; }
+  .cm-table .cm-table-dragged { opacity: 0.4; }
+  .cm-table-drop { position: absolute; z-index: 5; border-radius: 1px; background: var(--accent); pointer-events: none; }
+  .cm-table-drop.is-row { height: 2px; }
+  .cm-table-drop.is-col { width: 2px; }
+  @media (hover: none) { .cm-table-add-row, .cm-table-add-col { opacity: 0.6; } .cm-table-more { display: block; opacity: 0.7; } .cm-table-handle { opacity: 0.55; } }
+
+  /* 在筆記中尋找（⌘F） */
+  .cm-panels.cm-panels-top { border: none; background: transparent; }
+  .cm-find { display: flex; align-items: center; gap: 4px; margin: 8px var(--gutter) 4px; padding: 4px 4px 4px 10px; border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: 0 2px 10px rgba(0,0,0,0.10), 0 0 0 0.5px var(--border-strong); font-family: var(--font-ui); font-size: 13px; color: var(--text-primary); }
+  .cm-find-input { flex: 1; min-width: 0; padding: 4px 0; border: none; outline: none; background: transparent; color: inherit; font: inherit; font-size: 14px; }
+  .cm-find-input::-webkit-search-cancel-button { display: none; }
+  .cm-find-count { flex: none; padding: 0 4px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cm-find.is-empty .cm-find-count { color: var(--warn-deep, #c00); }
+  .cm-find-btn { flex: none; display: flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 4px; border: none; border-radius: 5px; background: none; color: var(--text-secondary, var(--text-tertiary)); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .cm-find-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .cm-find-case.is-on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+  .cm-searchMatch { border-radius: 2px; background: color-mix(in srgb, #ffd400 40%, transparent); }
+  .cm-searchMatch-selected { background: color-mix(in srgb, #ff9500 60%, transparent); }
 
   /* 數學公式（KaTeX） */
   .cm-math { cursor: pointer; }
@@ -120,6 +146,10 @@
   span.cm-math-block { display: inline-block; max-width: 100%; vertical-align: middle; }
   .cm-math .katex-display { margin: 0.4em 0; }
   .cm-math .katex-error { color: var(--warn-deep, #c00) !important; font-family: var(--font-mono); font-size: 0.86em; }
+  /* 游標在行內公式裡時的預覽 */
+  .cm-tooltip.cm-math-preview { padding: 6px 10px; border: none; border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: 0 4px 16px rgba(0,0,0,0.16), 0 0 0 0.5px var(--border-strong); color: var(--text-body); font-size: var(--doc-body-size, 15.5px); max-width: min(560px, 90vw); overflow-x: auto; }
+  .cm-math-preview .cm-math { cursor: default; }
+  .cm-math-preview .katex-display { margin: 0; }
   .cm-lp-math-inline { font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-deep); }
   .cm-lp-math-src { font-family: var(--font-mono); font-size: 0.86em; line-height: 1.6; background: var(--bg-panel); color: var(--accent-deep); }
   .cm-lp-yaml { font-family: var(--font-mono); font-size: 0.82em; color: var(--text-tertiary); }

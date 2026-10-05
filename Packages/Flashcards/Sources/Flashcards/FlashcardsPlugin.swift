@@ -16,7 +16,7 @@ public enum FlashcardsPlugin: EasyNotesPlugin {
     static let guide = """
         ## Cards (Flashcards)
 
-        Cards are written directly in markdown, one per line (an Anki "note"):
+        Cards are written directly in markdown, one per line (an Anki "note"; see below for multi-line cards):
 
         | Syntax | Produces |
         | --- | --- |
@@ -28,8 +28,30 @@ public enum FlashcardsPlugin: EasyNotesPlugin {
         - A line may start with a list, task, heading or quote marker (`- Question :: Answer`).
         - Code blocks, inline code and frontmatter are not parsed for cards.
         - Card text supports inline markdown (`**bold**`, `*italic*`, `~~strike~~`, `==highlight==`, `` `code` ``, links) and LaTeX math: `$E=mc^2$` inline, `$$\\int_0^1 x\\,dx$$` as a centered block (still on the same line). Do not use HTML.
-        - `$` opens math only when followed by a non-space, and closes only when preceded by a non-space and not followed by a digit (so `$5 and $10` is plain text); write `\\$` for a literal dollar sign. `::`, `;;` and `{{}}` inside math are not card syntax; a cloze may wrap a whole formula: `{{$\\frac{a}{b}$}}`.
-        - Write the syntax only and **do not add `^id` yourself**: the app appends `^c-xxxxxx` to the end of the line. It is the card's identity, and review history is matched through it.
+        - `$` opens math only when followed by a non-space, and closes only when preceded by a non-space and not followed by a digit (so `$5 and $10` is plain text); write `\\$` for a literal dollar sign. `::`, `;;` and `{{}}` inside math are not card syntax; a cloze may wrap a whole formula or inline code: `{{$\\frac{a}{b}$}}`, ``{{`ps aux`}}``.
+        - Images: `![[x.png]]` (in `Attachments/`) or `![[folder/x.png|300]]` (vault path, optional width).
+
+        Multi-line cards: a list item ending with ` ::` or ` ;;` takes all its indented child lines (blank lines allowed). Without a divider the children are the back; a line containing only `::` divides front and back. A `{{}}` anywhere before the divider makes it a cloze card, and the text after the divider is shown on the back only (Back Extra). Child lines are content, never separate cards.
+
+        ```markdown
+        - Explain **SDT** ::
+          ![[sdt.png]]
+          - Competence
+          - Autonomy
+
+        - Find running **python** processes ::
+          - ignoring case
+          ::
+          `ps aux | grep -i python`
+
+        - Erikson's stages ::
+          - Infancy: {{trust vs. mistrust}}
+          - Early adulthood: {{intimacy vs. isolation}}
+          ::
+          Each resolved crisis yields a virtue.
+        ```
+
+        - Write the syntax only and **do not add `^id` yourself**: the app appends `^c-xxxxxx` to the end of the line (the first line of a multi-line card). It is the card's identity, and review history is matched through it.
         - When editing a card's text or moving the whole line to another note, keep the trailing `^id` so the review history follows the card.
         - A deck is a folder (including subfolders); tags are only used for filtering.
         - Do not modify files under `.easynotes/srs/` (review logs and settings).

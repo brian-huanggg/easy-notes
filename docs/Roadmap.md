@@ -13,10 +13,10 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證）；3d 從 Anki 匯入 `.apkg`（卡片、圖片、複習紀錄）實作完成（單元測試與真實資料比對通過、macOS 與 iOS Simulator 建置通過；實機尚未驗證）；3h 多行卡片與圖片實作完成（`swift test`、web 測試與 Chromium e2e 通過、App 建置成功；實機尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；5e 手寫工具列（GoodNotes 式，白板共用）與停住變直線實作完成（建置與單元測試通過，畫面與實機尚未驗證）；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
-| 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
+| 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾；6e 工具列、編輯列、狀態列第一批完成（Chromium e2e 通過，WebKit 實機尚未驗證），對齊 / 換行、剪貼簿按鈕未開始 | [sheets.md](./architecture/sheets.md) |
 | 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
@@ -201,6 +201,9 @@
 - [ ] iPad 觸控：格子的「⋯」選單、「+」按鈕、屬性的刪除鈕（無 hover 時常駐顯示）尚未實機驗證
 - [ ] KaTeX 在 WKWebView 從 `file://` 載入字型、深色模式顯示尚未實機驗證
 - [ ] 1,000 行、含多個表格與公式的筆記捲動與打字流暢度尚未量測
+- [x] 公式：沒有結尾 `$$` 的區塊顯示原始碼不渲染；`$$` 行尾 Enter 補上結尾；游標在行內公式裡時浮出預覽（`web/test/blocks.e2e.mjs`；WebKit 實機尚未驗證）
+- [x] 表格：拖曳把手移動列與欄、點把手開啟選單（`web/test/blocks.e2e.mjs`，Chromium 滑鼠；iPad 觸控拖曳尚未實機驗證）
+- [x] 在筆記中尋找：⌘F 搜尋列、標示所有結果、第幾個 / 共幾個、結果在表格內時顯示原始碼、搜尋框注音組字（`web/test/blocks.e2e.mjs`；Mac 選單 ⌘F 與系統「尋找」是否衝突、iPad 硬體鍵盤尚未實機驗證）
 
 ## Phase 3 — Flashcards
 
@@ -284,11 +287,14 @@
 - [x] TSV 匯出給 Anki：依筆記類型拆成三個檔、guid = `^id`、資料夾 → 牌組、Markdown → HTML（`AnkiExportTests`；實際匯入 Anki 尚未驗證）
 - [ ] fsrs-rs 參數優化（UniFFI、XCFramework）；紀錄不足時不允許；結果寫回 preset 的 `w`
 - [ ] 量測加入 fsrs-rs 後的 App 大小（非功能預算）
-- [ ] 選做：匯入 Anki `.apkg` 與複習歷史
+- [x] 從 Anki 匯入 `.apkg` / `.colpkg`：新格式（zstd、protobuf 媒體清單）與舊格式（deflate、JSON）、牌組 → 資料夾、麵包屑分檔、HTML → Markdown、克漏字、圖片、複習紀錄（Learning / Review / Relearning / Filtered 照原樣，Forget → `reset`、暫停 → `suspend`）、重複匯入不產生重複卡片 —— `AnkiHTMLTests`、`AnkiImportTests` 通過；真實資料（100 筆 note）匯入後重播，到期日、lapses、暫停狀態與 Anki 相同；macOS App 建置通過
+- [ ] 從 Anki 匯入：介面（牌組列表頁首「從 Anki 匯入」、Sheet 的摘要與略過清單）—— 建置通過；實機操作尚未驗證
 
 驗收測試：
 
 - [ ] 手動：TSV 匯入 Anki 後卡片正確
+- [ ] 手動：在 App 內選 `.apkg` → 摘要 → 匯入，卡片、圖片與到期數正確；再匯入一次不重複
+- [x] iOS 建置：修好 `WebEditorHost.swift` 的 `UIApplication.shared.open`（iOS SDK 改成 async）；iOS Simulator 建置通過，Flashcards（含 zstd C 套件）可編譯；實機尚未驗證
 - [ ] 同一組紀錄，App 內的優化結果與 Anki 的優化結果相近
 - [ ] 基準線符合非功能預算
 
@@ -347,6 +353,30 @@
 - [ ] 效能：一張卡 10 個公式，翻面與切換卡片沒有明顯延遲（圖片有快取）
 
 尚未驗證：iPad / iPhone、深色模式、公式過寬縮小、無法解析的公式、匯入 Anki、效能（10 個公式的卡片）。
+
+### 3h 多行卡片與圖片
+
+設計見 [flashcards.md](./architecture/flashcards.md)「多行卡片」、「圖片」、「卡片內容」。動機：Anki 資料 110 張中有 94 張是多行、26 張含圖片。
+
+- [x] 解析：清單項目以 ` ::` / ` ;;` 結尾時延伸成多行 note（CommonMark 清單範圍、去掉共同縮排）、分界行、克漏字跨行編號與 Back Extra、子行不另成卡片、`^id` 在首行；`CardNote.endLine`；索引版本 2 —— `swift test` 通過
+- [x] 克漏字可以完整包住行內程式碼（Swift 與 web 同規則）—— `swift test`、`npm test` 通過
+- [x] `CardMarkup` 區塊：段落、清單（分層、待辦）、程式碼區塊、圖片、獨立公式；非圖片的 `![[x]]` 顯示原文 —— `swift test` 通過
+- [x] 圖片：`Attachments.embedPath`（Core）；`ReviewStore.cardImage` 經 `resourceReader` 讀取、舊版 `附件/` 退路、依修改時間快取 —— 建置通過
+- [ ] 複習畫面：多行卡片較小字級、克漏字 Back Extra 接在答案下方、`CardImage`（寬度上限、高度 400pt、讀不到顯示原文）—— App 建置成功；實機尚未驗證
+- [x] 卡片瀏覽：多行內容只顯示前兩行、圖片顯示為檔名（沿用 `lineLimit(2)`）
+- [x] 匯出給 Anki：多行轉 `<br>`、`<ul>` / `<ol>`、`<pre><code>`、`<img src>`，克漏字跨行編號、Back Extra 欄 —— `AnkiExportTests` 通過
+- [x] 編輯器語法標示：首行行尾與分界行的分隔符號、子行的克漏字（到分界行為止），子行中的卡片語法不另外標示（`blockHead`、`blockEnd`）—— `npm test`、`blocks.e2e.mjs` 通過（含子行注音組字）
+- [x] Vault `CLAUDE.md` 的卡片語法補上多行與圖片（只寫入新的 Vault）
+
+驗收測試：
+
+- [x] 單元測試：`MultilineCardTests`、`CardMarkupTests.multilineBlocks`、`AnkiExportTests.multilineContent`、`StudyTests.multilineClozeShowsBackExtra`、web `cardSyntax.test.ts`
+- [x] 轉換試跑：Anki 匯出的 100 筆 note 轉成新語法，正式解析器解析出 97 筆，其中 96 筆的類型與正反面符合預期，全部可補 id；剩下的是原始資料問題（`Vim.md` 一筆反引號範圍錯誤、`Development.md` 克漏字編號對不上），需手動修正
+- [ ] 手動：Mac、iPad、iPhone 複習多行卡片（清單層級、程式碼區塊、長內容捲動）、圖片顯示與深色模式
+- [ ] 手動：編輯器中多行卡片的標示（Mac WebKit、iPad 注音）
+- [ ] 手動：匯出多行卡片後在 Anki 匯入，清單與圖片正確（圖片檔需自行放進 `collection.media`）
+
+尚未驗證：實機畫面、WebKit 語法標示、匯入 Anki。音檔（`![[x.mp3]]`）不在範圍內。
 
 ## Phase 4 — Whiteboard
 
@@ -615,6 +645,19 @@
 - [ ] 驗證：macOS 與 iOS 建置、`swift test`（`SheetPreviewTests`）、列表縮圖與 `![[x.csv]]` 嵌入在淺色 / 深色模式的樣子、「新表格」與「匯入 CSV…」、新 Vault 的 `CLAUDE.md` 含表格一節
   - 這個環境沒有 Swift 工具鏈也沒有 CoreGraphics，`SheetPreview` 未編譯、PNG 未實際畫過；`embed://` 與 Markdown 的嵌入沿用白板的機制，沒有改動。
 
+### 6e 工具列、編輯列、狀態列
+
+目標：像 Excel 的上方工具列與編輯列，但只做 CSV 存得下的功能（不做字型、顏色、框線、合併儲存格、公式）。設計見 [sheets.md](./architecture/sheets.md)「工具列、編輯列與狀態列」。
+
+- [x] 工具列：復原 / 重做、插入 / 刪除列欄、依此欄排序並寫入、凍結首欄、第一列是標題（切換鈕）；按下不失去選取、唯讀時停用（`web/test/sheet.e2e.mjs`）
+- [x] 編輯列（名稱方塊 + fx）：顯示完整內容（含換行）；Enter 寫入、⇧Enter 換行、Esc 放棄、失焦寫回原本的儲存格；可以復原；有焦點時外部變動不蓋掉；組字中的 Enter 不寫入；貼上不會貼到表格（同上）
+- [x] 狀態列：列數 · 欄數；選取兩格以上時顯示平均、計數、加總（`web/test/sheetStats.test.ts`、同上）
+- [ ] 驗證：Mac 與 iPad 實機（WKWebView）：SF Symbol icon 顯示、fx 輸入注音、iPad 點工具列不失去選取、深色模式
+  - 只在 macOS 的 Chromium（Playwright）驗證，`(cd Packages/KindSheet && swift build)` 通過；App 未重新建置，實機尚未驗證。
+- [ ] 對齊（靠左 / 置中 / 靠右）與自動換行：以整欄為單位存進 `.csv.meta.json`，合併規則同欄寬
+- [ ] 剪下 / 複製 / 貼上按鈕（先確認 WKWebView 的剪貼簿 API 在 Mac / iPad 可用）
+- [ ] 篩選按鈕（開關欄位標頭的篩選）
+
 驗收測試：
 
 - [x] 未修改的 CSV / TSV 寫回後逐位元組相同（含 CRLF、BOM、全部加引號的檔案）（`SheetFormatTests.unmodifiedFilesAreByteIdentical`，6a 的 macOS `swift test`）
@@ -740,6 +783,8 @@
 - [ ] 注音組字中收到同步或外部修改：變更範圍涵蓋游標時，注音符號（如「ㄓㄨㄥ」）被存進檔案（`applyRemote` 改為組字結束後才套用；Chromium 模擬輸入法的 `web/test/ime.e2e.mjs` 通過，修改前可重現；iPad / Mac 的 WebKit 實機尚未驗證）
 - [ ] 開著筆記時 Claude Code 修改同一篇：停止輸入 300ms 內打的字被外部內容覆蓋；檔案監看通知前存檔會蓋掉外部修改（`applyRemote` 改為 rebase，`web/test/rebase.test.ts` 通過；存檔先比對磁碟，`VaultWriteTests` 尚未在 Mac 執行；實機尚未驗證）
 - [x] CRLF 換行的筆記在 App 內編輯後，整份檔案的換行被改成 LF（CM6 預設統一成 `\n`；改為全部是 CRLF 時保留，`web/test/lineBreak.test.ts`。實機尚未驗證）
+- [x] 打 `$$` 換行後，`$$` 那一行馬上被換成空白的公式區塊，看不到原始碼（沒有結尾的區塊不再渲染，並自動補上結尾；Chromium e2e 通過，實機尚未驗證）
+- [x] 切換筆記時編輯器已有焦點：新筆記的表格、公式不知道有焦點，游標移進去也不顯示原始碼（`setState` 後重設焦點狀態；Chromium e2e 通過）
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）
 
 ### Desktop

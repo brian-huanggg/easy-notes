@@ -26,6 +26,10 @@ public enum MarkdownPlugin: EasyNotesPlugin {
                 // ⌘K 是外殼的快速開啟
                 .init(L("[[連結]]"), shortcut: KeyboardShortcut("k", modifiers: [.command, .shift])) { editor.exec("link") },
             ],
+            [
+                // 焦點在編輯器時 CodeMirror 的 keymap 也會處理 ⌘F；選單項目讓焦點在別處時也能開啟
+                .init(L("在筆記中尋找…"), shortcut: KeyboardShortcut("f")) { editor.exec("find") },
+            ],
         ])
     }
 

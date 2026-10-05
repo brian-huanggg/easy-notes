@@ -5,9 +5,10 @@
 // KaTeX（約 270 KB + 字型）只在文件第一次出現公式時才載入（katex/，build.mjs 從 node_modules 複製），
 // 載入前顯示原始碼。行內公式由 livePreview 換成 widget；區塊公式是 block decoration，在這裡用 StateField。
 import { syntaxTree } from "@codemirror/language";
-import { EditorState, Extension, Range, StateEffect, StateField } from "@codemirror/state";
-import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { editingRange, setEditorFocus } from "./editorFocus";
+import type { SyntaxNode } from "@lezer/common";
+import { EditorSelection, EditorState, Extension, Prec, Range, StateEffect, StateField, Text } from "@codemirror/state";
+import { Decoration, DecorationSet, EditorView, keymap, showTooltip, Tooltip, WidgetType } from "@codemirror/view";
+import { editingRange, revealChanged, revealing } from "./editorFocus";
 import { tags } from "@lezer/highlight";
 import type { BlockContext, Line, MarkdownConfig } from "@lezer/markdown";
 
@@ -194,14 +195,15 @@ function build(state: EditorState): DecorationSet {
     const to = state.doc.lineAt(node.to).to;
     const { tex } = mathSource(state.sliceDoc(node.from, node.to));
     const editing = editingRange(state, from, to);
-    if (editing) {
+    // 還沒打結尾 `$$` 的區塊不渲染（剛打完 `$$` 換行時，那一行不能變成空白公式）
+    if (editing || !isClosed(node)) {
       // 游標在公式內：顯示原始碼，下方即時預覽
       for (let pos = from; pos <= to; ) {
         const line = state.doc.lineAt(pos);
         decos.push(sourceLine.range(line.from));
         pos = line.to + 1;
       }
-      if (tex) decos.push(Decoration.widget({ widget: new MathWidget(tex, true), block: true, side: 1 }).range(to));
+      if (editing && tex) decos.push(Decoration.widget({ widget: new MathWidget(tex, true), block: true, side: 1 }).range(to));
     } else {
       decos.push(Decoration.replace({ widget: new MathWidget(tex, true), block: true }).range(from, to));
     }
@@ -209,13 +211,96 @@ function build(state: EditorState): DecorationSet {
   return Decoration.set(decos, true);
 }
 
+// 開頭、結尾的 `$$` 都有（同一行的 `$$ x $$` 也是兩個）
+function isClosed(node: SyntaxNode): boolean {
+  return node.getChildren("MathMark").length >= 2;
+}
+
 const blockMathField = StateField.define<DecorationSet>({
   create: build,
   update(value, tr) {
-    if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState) || tr.effects.some((e) => e.is(mathLoaded) || e.is(setEditorFocus))) return build(tr.state);
+    if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState) || revealChanged(tr) || tr.effects.some((e) => e.is(mathLoaded))) return build(tr.state);
     return value;
   },
   provide: (f) => EditorView.decorations.from(f),
 });
 
 export const blockMath: Extension = blockMathField;
+
+// MARK: 自動補上結尾 `$$`
+
+// 在只有 `$$` 的開頭行尾按 Enter：補上結尾的 `$$`，游標放在中間那一行（仿 Typora）
+function closeBlockMath(view: EditorView): boolean {
+  const { state } = view;
+  const sel = state.selection.main;
+  if (!sel.empty || state.selection.ranges.length > 1) return false;
+  const line = state.doc.lineAt(sel.head);
+  if (sel.head !== line.to || line.text.trim() !== "$$") return false;
+  const node = syntaxTree(state).resolveInner(line.from + line.text.indexOf("$$"), 1);
+  const block = node.name === "BlockMath" ? node : node.parent?.name === "BlockMath" ? node.parent : null;
+  if (!block || block.from !== line.from + line.text.indexOf("$$") || isClosed(block)) return false;
+  const indent = line.text.slice(0, line.text.indexOf("$$"));
+  view.dispatch({
+    changes: { from: line.to, insert: Text.of(["", indent, indent + "$$"]) },
+    selection: EditorSelection.cursor(line.to + 1 + indent.length),
+    scrollIntoView: true,
+    userEvent: "input",
+  });
+  return true;
+}
+
+// markdown() 的 Enter（接續清單）是 Prec.high，這裡要比它先
+export const mathKeymap: Extension = Prec.highest(keymap.of([{ key: "Enter", run: closeBlockMath }]));
+
+// MARK: 行內公式預覽
+
+// 游標在行內公式裡（原始碼）時，下方浮出渲染結果
+function inlineTooltip(state: EditorState): Tooltip | null {
+  const sel = state.selection.main;
+  if (!sel.empty || !revealing(state)) return null;
+  for (let node: SyntaxNode | null = syntaxTree(state).resolveInner(sel.head, -1); node; node = node.parent) {
+    if (node.name !== "InlineMath") continue;
+    if (sel.head < node.from || sel.head > node.to) return null;
+    const { tex, display } = mathSource(state.sliceDoc(node.from, node.to));
+    if (!tex) return null;
+    return {
+      pos: node.from,
+      above: false,
+      strictSide: false,
+      arrow: false,
+      create: () => {
+        const dom = document.createElement("div");
+        dom.className = "cm-math-preview";
+        const body = document.createElement(display ? "div" : "span");
+        body.className = display ? "cm-math cm-math-block" : "cm-math";
+        renderMath(body, tex, display);
+        dom.append(body);
+        return { dom };
+      },
+    };
+  }
+  return null;
+}
+
+// 內容與位置相同時沿用同一個 Tooltip（不重建 DOM）
+const inlinePreviewField = StateField.define<{ tip: Tooltip | null; key: string }>({
+  create: (state) => {
+    const tip = inlineTooltip(state);
+    return { tip, key: tip ? keyOf(state, tip) : "" };
+  },
+  update(value, tr) {
+    if (!tr.docChanged && !tr.selection && !revealChanged(tr) && !tr.effects.some((e) => e.is(mathLoaded))) return value;
+    const tip = inlineTooltip(tr.state);
+    const key = tip ? keyOf(tr.state, tip) : "";
+    return key === value.key ? value : { tip, key };
+  },
+  provide: (f) => showTooltip.compute([f], (state) => state.field(f).tip),
+});
+
+function keyOf(state: EditorState, tip: Tooltip): string {
+  const node = syntaxTree(state).resolveInner(tip.pos, 1);
+  const math = node.name === "InlineMath" ? node : node.parent;
+  return `${tip.pos}|${katex !== null}|${math ? state.sliceDoc(math.from, math.to) : ""}`;
+}
+
+export const inlineMathPreview: Extension = inlinePreviewField;

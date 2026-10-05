@@ -1,3 +1,4 @@
+import EasyNotesCore
 import Foundation
 
 /// 卡片文字的行內 Markdown 與公式，給複習畫面與卡片瀏覽顯示（見 architecture/flashcards.md「卡片內容」）。
@@ -25,22 +26,161 @@ public enum CardMarkup {
     }
 
     public enum Block: Equatable, Sendable {
+        /// 段落；多行時文字中含 `\n`
         case paragraph([Inline])
         /// 獨立公式 `$$…$$`：自成一段、置中
         case math(String, Style = [])
+        /// 清單項目：`level` 從 0 起算；`marker` 為 `•`、`1.` 等，nil = 項目內的續行
+        case listItem(level: Int, marker: String?, [Inline])
+        /// 程式碼區塊（不含 ``` 行），不解析 Markdown 與公式
+        case code(String)
+        /// `![[x.png]]`：Vault 相對路徑；`width` = `|300`
+        case image(path: String, width: Double?)
     }
 
     public static func blocks(_ text: String) -> [Block] {
         blocks([StudyCard.Segment(text)])
     }
 
+    /// 多行內容切成區塊（見 architecture/flashcards.md「卡片內容」）；行內 Markdown 逐行解析
     public static func blocks(_ segments: [StudyCard.Segment]) -> [Block] {
-        // 片段接成一行再解析，克漏字前後的 Markdown（`**{{答案}}**`）才不會被切斷；強調的片段以私用字元標示
+        // 片段先接起來，克漏字前後的 Markdown（`**{{答案}}**`）才不會被切斷；強調的片段以私用字元標示。
+        // 克漏字不跨行，所以標示在同一行內成對
         let joined = segments.map { $0.emphasized ? "\(Mark.cloze)\($0.text)\(Mark.cloze)" : $0.text }.joined()
-        let (masked, tokens) = mask(joined)
+        let lines = joined.components(separatedBy: "\n")
+        let fences = CardSyntax.fenceFlags(lines)
+        var result: [Block] = []
+        var paragraph: [Inline] = []
+        var indents: [Int] = []
+
+        func endParagraph() {
+            if !paragraph.isEmpty { result.append(.paragraph(paragraph)) }
+            paragraph = []
+        }
+        /// 一行文字：圖片拆成獨立區塊，其餘交給 `emit`
+        func split(_ text: String, emit: (String) -> Void) {
+            var rest = text[...]
+            while let match = rest.firstMatch(of: image) {
+                let before = rest[..<match.range.lowerBound]
+                if !before.allSatisfy(\.isWhitespace) { emit(String(before)) }
+                endParagraph()
+                result.append(.image(path: Attachments.embedPath(String(match.1)), width: match.2.flatMap { Double($0) }))
+                rest = rest[match.range.upperBound...]
+            }
+            if !rest.allSatisfy(\.isWhitespace) { emit(String(rest)) }
+        }
+
+        var n = 0
+        while n < lines.count {
+            let line = lines[n]
+            if fences[n] {
+                endParagraph()
+                var code: [String] = []
+                var m = n + 1
+                while m < lines.count, fences[m], CardSyntax.fenceMarker(lines[m]) == nil {
+                    code.append(lines[m])
+                    m += 1
+                }
+                // 結尾的 ``` 行不算內容
+                if m < lines.count, fences[m] { m += 1 }
+                result.append(.code(code.joined(separator: "\n").filter { $0 != Mark.cloze }))
+                n = m
+                continue
+            }
+            n += 1
+            if line.allSatisfy(\.isWhitespace) {
+                endParagraph()
+                continue
+            }
+            let indent = CardSyntax.indentColumns(line.prefix { $0 == " " || $0 == "\t" })
+            if let item = line.wholeMatch(of: listItem) {
+                endParagraph()
+                while let top = indents.last, indent < top { indents.removeLast() }
+                if indents.last.map({ indent > $0 }) ?? true { indents.append(indent) }
+                let level = indents.count - 1
+                var marker = String(item.2)
+                if marker.first.map({ "-*+".contains($0) }) == true { marker = "•" }
+                var content = String(item.3)
+                if let task = content.prefixMatch(of: /\[([ xX])\]\s+/) {
+                    marker = task.1 == " " ? "☐" : "☑" // l10n:fixed 待辦符號
+                    content = String(content[task.range.upperBound...])
+                }
+                var first = true
+                split(content) { text in
+                    for block in inline(text) {
+                        if case .paragraph(let inlines) = block {
+                            result.append(.listItem(level: level, marker: first ? marker : nil, inlines))
+                            first = false
+                        } else {
+                            result.append(block)
+                        }
+                    }
+                }
+                continue
+            }
+            if indent > 0, !indents.isEmpty {
+                // 清單項目的續行
+                endParagraph()
+                let level = max(0, indents.filter { $0 < indent }.count - 1)
+                split(line.trimmingCharacters(in: .whitespaces)) { text in
+                    for block in inline(text) {
+                        if case .paragraph(let inlines) = block {
+                            result.append(.listItem(level: level, marker: nil, inlines))
+                        } else {
+                            result.append(block)
+                        }
+                    }
+                }
+                continue
+            }
+            if indent == 0 { indents = [] }
+            split(line.trimmingCharacters(in: .whitespaces)) { text in
+                for block in inline(text) {
+                    if case .paragraph(let inlines) = block {
+                        // 同一段落的行之間保留換行
+                        if !paragraph.isEmpty { paragraph.append(.text("\n")) }
+                        paragraph += inlines
+                    } else {
+                        endParagraph()
+                        result.append(block)
+                    }
+                }
+            }
+        }
+        endParagraph()
+        return result.map(mergeTexts)
+    }
+
+    /// 一行的行內 Markdown 與公式（獨立公式拆成自己的區塊）
+    static func inline(_ text: String) -> [Block] {
+        let (masked, tokens) = mask(text)
         var builder = Builder(tokens: tokens)
         for node in markup(masked) { builder.add(node, style: [], link: nil) }
         return builder.finish()
+    }
+
+    /// 段落中相鄰而且樣式、連結相同的文字合併（行與行之間的 `\n` 接起來後）
+    private static func mergeTexts(_ block: Block) -> Block {
+        guard case .paragraph(let inlines) = block else { return block }
+        var merged: [Inline] = []
+        for inline in inlines {
+            if case .text(let text, let style, let link) = inline,
+               case .text(let previous, let lastStyle, let lastLink)? = merged.last, lastStyle == style, lastLink == link {
+                merged[merged.count - 1] = .text(previous + text, style, link: link)
+            } else {
+                merged.append(inline)
+            }
+        }
+        return .paragraph(merged)
+    }
+
+    private static var listItem: Regex<(Substring, Substring, Substring, Substring)> {
+        /([ \t]*)([-*+]|\d+[.)])[ \t]+(.*)/
+    }
+
+    /// `![[x.png]]`、`![[x.png|300]]`（副檔名同 `Attachments.imageExtensions`）
+    static var image: Regex<(Substring, Substring, Substring?)> {
+        /!\[\[([^\[\]|\n]+\.(?i:png|jpe?g|gif|webp|heic|avif))(?:\|(\d+)[^\[\]\n]*)?\]\]/
     }
 
     // MARK: 遮蔽程式碼與公式
@@ -97,6 +237,8 @@ public enum CardMarkup {
 
     indirect enum Node: Equatable {
         case text(String)
+        /// 原樣顯示、不再套用後面的規則（圖片以外的 `![[x]]`）
+        case literal(String)
         case styled(Style, [Node])
         case link(String, [Node])
     }
@@ -104,6 +246,7 @@ public enum CardMarkup {
     /// 與 `AnkiExport.inline` 相同的順序依序套用；每條規則只作用在還沒被比對過的文字上
     static func markup(_ text: String) -> [Node] {
         var nodes: [Node] = [.text(text)]
+        nodes = apply(nodes, /!\[\[[^\]]+\]\]/) { [.literal(String($0))] }
         nodes = apply(nodes, /\[\[([^\]|]+)\|([^\]]+)\]\]/) { [.text(String($0.2))] }
         nodes = apply(nodes, /\[\[([^\]]+)\]\]/) { [.text(String($0.1))] }
         nodes = apply(nodes, /\[([^\]]+)\]\(([^)\s]+)\)/) { [.link(String($0.2), [.text(String($0.1))])] }
@@ -120,6 +263,7 @@ public enum CardMarkup {
             switch node {
             case .styled(let style, let children): return [.styled(style, apply(children, regex, replace))]
             case .link(let url, let children): return [.link(url, apply(children, regex, replace))]
+            case .literal: return [node]
             case .text(let text):
                 var result: [Node] = []
                 var last = text.startIndex
@@ -153,6 +297,9 @@ public enum CardMarkup {
                 for child in children { add(child, style: style.union(added), link: link) }
             case .link(let url, let children):
                 for child in children { add(child, style: style, link: url) }
+            case .literal(let text):
+                var run = text
+                flush(&run, style, link)
             case .text(let text):
                 var run = ""
                 for char in text {

@@ -15,6 +15,8 @@ let package = Package(
                  revision: "4fbaf20184d62f82a9f44f343337c61a2c5483e9"),
         // 卡片中的 LaTeX 公式以原生方式排版（複習畫面不開 WebView）
         .package(url: "https://github.com/mgriebling/SwiftMath.git", from: "1.7.3"),
+        // Anki 2.1.50 起的 .apkg 以 zstd 壓縮（只用解壓）
+        .package(url: "https://github.com/facebook/zstd.git", from: "1.5.7"),
     ],
     targets: [
         // 卡片解析、FSRS 排程、複習介面；不是檔案類型（卡片寫在 .md 裡）
@@ -25,6 +27,7 @@ let package = Package(
                 .product(name: "EasyNotesUI", package: "EasyNotesCore"),
                 .product(name: "FSRS", package: "swift-fsrs"),
                 .product(name: "SwiftMath", package: "SwiftMath"),
+                .product(name: "libzstd", package: "zstd"),
             ],
             resources: [.process("Localizable.xcstrings")]
         ),
