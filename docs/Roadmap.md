@@ -12,7 +12,7 @@
 | 1 本地筆記 MVP | 完成 | [markdown.md](./architecture/markdown.md) |
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
-| 2.5 UI 重構 | 完成；驗收測試尚有未勾 | [ui.md](./architecture/ui.md) |
+| 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
@@ -188,6 +188,18 @@
 - [ ] iPad 模擬器 E2E 尚未執行
 - [ ] 手動：重啟後還原分頁、白板 / PDF / 表格分頁來回切換（內容與未存檔的修改）、分頁很多時的記憶體（Instruments）尚未驗證
 - [ ] 分頁列拖曳排序、分頁列的 Pen 設計稿尚未做
+
+### 2.5f Markdown 表格、數學公式、屬性面板
+
+目標：表格像 Notion 一樣直接編輯、支援 LaTeX 公式、frontmatter 像 Obsidian 一樣在標題下方以屬性面板編輯。設計見 [markdown.md](./architecture/markdown.md)「表格」「數學公式」「屬性面板」。
+
+- [x] 表格：GFM 表格顯示成可編輯的格子；Tab / Enter / ↑↓ / Esc、「+」新增列欄、「⋯」選單（插入、移動、刪除、對齊、編輯原始碼）；格內 md 渲染；工具列插入表格後直接編輯第一個欄名（`web/test/table.test.ts`、`web/test/blocks.e2e.mjs`）
+- [x] 數學公式：`$…$`、`$$…$$` 以 KaTeX 渲染，延遲載入；游標在區塊公式內顯示原始碼 + 即時預覽（`web/test/blocks.e2e.mjs`）
+- [x] 屬性面板：標題下方顯示 frontmatter 欄位，改值、改名、換型別、新增、刪除，寫回只動該欄位（`web/test/frontmatter.test.ts`、`web/test/blocks.e2e.mjs`）
+- [ ] 注音輸入：表格格子、屬性值、標籤輸入框內組字（Chromium 模擬輸入法的 e2e 通過；iPad / Mac 的 WebKit 實機尚未驗證）
+- [ ] iPad 觸控：格子的「⋯」選單、「+」按鈕、屬性的刪除鈕（無 hover 時常駐顯示）尚未實機驗證
+- [ ] KaTeX 在 WKWebView 從 `file://` 載入字型、深色模式顯示尚未實機驗證
+- [ ] 1,000 行、含多個表格與公式的筆記捲動與打字流暢度尚未量測
 
 ## Phase 3 — Flashcards
 
