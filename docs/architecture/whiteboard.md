@@ -53,11 +53,11 @@
 
 **工具列改版（Freeform 式）**：
 
-- **上方工具列**：畫筆、便條紙、形狀、文字框、圖片；有選取時加上再製、刪除；最後是 Undo / Redo。獨立一排，放在導覽列（檔名、設定）下方、畫布上方（`safeAreaInset(edge: .top)`），iPad 與 iPhone 相同；不放進導覽列（與檔名擠在同一列）。Mac 之後共用（沒有畫筆）。
-- **畫筆 = 手寫模式開關**，不是工具：開啟時顯示 `PKToolPicker`（鋼筆、鉛筆、麥克筆、單線筆、橡皮擦、套索、尺；墨水只放這四種，其他墨水存成 freedraw 會失真），Pencil 交給 PencilKit，手指點一下選取、長按才拖曳、雙擊編輯文字。關閉時隱藏工具盤、停用 PencilKit 手勢，Pencil 與手指都是選取。開啟時一定讓 `PKCanvasView` 成為 first responder（文字編輯結束後也是），工具盤才叫得回來。手寫模式記在 `BoardEditor.inking`（平台無關）。
+- **上方工具列**：版面與手寫工具照 [ui.md](./ui.md)「手寫工具列」（GoodNotes 式，與 PDF 共用）：選取 | 畫筆、螢光筆、橡皮擦、套索 | 便條紙、形狀、筆記卡片、文字框、圖片；有選取時右側加上樣式、再製、刪除；Undo / Redo 在下方左側的浮動膠囊。獨立一排，放在導覽列（檔名、設定）下方、畫布上方（`safeAreaInset(edge: .top)`），iPad 與 iPhone 相同；不放進導覽列（與檔名擠在同一列）。Mac 共用同一個 view（沒有手寫工具）。
+- **手寫工具 = 進入手寫模式**：選畫筆、螢光筆、橡皮擦或套索就開啟手寫模式並設定 `PKCanvasView.tool`（`InkSettings`，不用 `PKToolPicker`），Pencil 交給 PencilKit，手指點一下選取、長按才拖曳、雙擊編輯文字。按「選取」離開手寫模式，停用 PencilKit 手勢，Pencil 與手指都是選取。手寫模式記在 `BoardEditor.inking`（平台無關），目前的手寫工具記在 `InkSettings`（App 偏好）。畫筆停住會變直線（`StraightLineAssist`）。
 - **插入而不是拖曳建立**：形狀（彈出面板只顯示圖示：矩形、圓角矩形、橢圓、菱形、箭頭、Frame；名稱只給 VoiceOver）、便條紙、文字框都插在畫面中央、選取新元素、一筆 Undo。中央已有同位置的元素時往右下錯開 20，連按不會疊在一起。預設尺寸：形狀 160×160（螢幕點，除以縮放倍率，下同）、箭頭長 200、Frame 400×300（不收進既有元素）。`BoardTool` 的拖曳建立留在編輯核心，給 Mac 與鍵盤快捷鍵用。
-- **選取方式：矩形 / 套索**：工具列一個按鈕切換（圖示顯示目前的方式），存在 App 偏好設定（`@AppStorage("whiteboardSelectionShape")`）。只影響非手寫模式下 Pencil 在空白處拖曳的範圍選取；手寫模式的筆畫選取仍是 PencilKit 工具盤的套索。套索在編輯核心是 `.lasso` 手勢，記錄經過的點（相距至少 3 螢幕點），選取「取樣點全部落在套索多邊形內」的元素：形狀取輪廓路徑的節點、線與箭頭取各點、文字與圖片取四角，都套用旋轉；放開時多邊形自動閉合。`SelectionOverlay` 以虛線畫出套索。限制：手寫在 `PKCanvasView`、結構元素在自己的 layer，同一次選取無法同時選到兩者一起移動（要做就得自己實作筆畫的選取與移動，另議）。
-- **選其他工具就離開手寫模式**：按便條紙、形狀（選了形狀時）、文字框、圖片（選了來源時）或選取方式按鈕，都會先關閉手寫模式（工具盤隱藏、回到選取），由編輯核心的插入 API 自己設定 `inking = false`。Undo / Redo、再製、刪除不改模式。
+- **選取方式：矩形 / 套索**：「選取」按鈕（已在選取時）再按一次切換（圖示顯示目前的方式），存在 App 偏好設定（`@AppStorage("whiteboardSelectionShape")`）。只影響非手寫模式下 Pencil 在空白處拖曳的範圍選取；手寫模式的筆畫選取是手寫工具的「套索」（PencilKit 的 `PKLassoTool`）。套索在編輯核心是 `.lasso` 手勢，記錄經過的點（相距至少 3 螢幕點），選取「取樣點全部落在套索多邊形內」的元素：形狀取輪廓路徑的節點、線與箭頭取各點、文字與圖片取四角，都套用旋轉；放開時多邊形自動閉合。`SelectionOverlay` 以虛線畫出套索。限制：手寫在 `PKCanvasView`、結構元素在自己的 layer，同一次選取無法同時選到兩者一起移動（要做就得自己實作筆畫的選取與移動，另議）。
+- **選其他工具就離開手寫模式**：按便條紙、形狀（選了形狀時）、文字框、圖片（選了來源時）或選取按鈕，都會先關閉手寫模式（回到選取），由編輯核心的插入 API 自己設定 `inking = false`。Undo / Redo、再製、刪除不改模式。
 - **便條紙**：標準元素組合，excalidraw.com 打得開：無外框的方角 rectangle（`backgroundColor: #ffec99`、`strokeColor: transparent`）200×200，插入後直接編輯其中的文字（`containerId`）。插入與文字各一筆 Undo；沒打字也保留便條紙（與 Freeform 相同）。
 - **文字框**：在畫面中央開始一段新文字（不看中央有沒有元素）。
 - **畫布背景**：右下角選單：無、網格、點狀。是 App 的偏好設定（`@AppStorage("whiteboardBackground")`，預設點狀），所有白板共用、不寫進檔案：Excalidraw 沒有點狀背景的欄位，自訂 `appState` 欄位會在 excalidraw.com 存檔時被丟掉，也是相容性風險。（曾考慮 Excalidraw 的 `appState.gridModeEnabled`，但它只有網格、還會開啟吸附，語意不同。）只在編輯器顯示，縮圖與嵌入不畫。畫法：兩層 `CAReplicatorLayer`（點或線）放在結構層底下、跟著同一個 transform；間距 20 的 2ⁿ 倍，讓螢幕上的間距至少約 14 點；點的大小與線寬每幀除以縮放倍率，螢幕上維持固定。
@@ -66,7 +66,7 @@
 
 - **macOS 宿主**（`BoardMacCanvasView`，`NSView`）：Mac 沒有 `PKCanvasView`，所以不用 `NSScrollView`，自己管平移與縮放：`origin`（畫面左上角的場景座標）與 `zoom`（0.25…4），螢幕座標 = (場景座標 − origin) × zoom，結構層、背景、`SelectionOverlay` 與 iOS 共用同一套 layer 與 transform 規則。座標本來就以場景為準，所以不需要 `CanvasRegion`（無限畫布免費）。`BoardLayerTree(drawsFreedraw: true)`：手寫由結構層畫（不可選取、不可編輯，但搬動 frame 時會跟著走，存檔時原樣保留）。畫布固定淺色（`appearance = .aqua`），與 iOS 相同。
 - **輸入**：雙指捲動 = 平移；⌘ / ⌥ + 捲動、觸控板捏合 = 以游標為中心縮放；滑鼠按下 / 拖曳 / 放開直接交給 `BoardEditor`（`begin` / `drag` / `end`）。沒有移動（< 3 點）的按下視為點選：取消這次操作、還原選取、改呼叫 `tap`（Shift 加減選才正確）；雙擊 = 編輯文字。文字框是 `NSTextView`（注音組字是系統的），用 `bounds` ≠ `frame` 縮放內容，編輯中縮放不改字型、不打斷組字；`cancelOperation` 結束編輯（組字中的 Esc 由輸入法處理）。Undo 用視圖自己的 `UndoManager`（結構操作的堆疊，Mac 沒有筆畫），經 Edit 選單與 ⌘Z 使用。
-- **工具列**：沿用 iPad 那一排（`BoardToolbar`，兩個平台同一個 view），Mac 隱藏畫筆；用快捷鍵選了建立工具時，對應的按鈕反白。不放進視窗工具列，避免與 2.5b 的麵包屑、New Document 擠在一起。
+- **工具列**：沿用 iPad 那一排（`BoardToolbar`，兩個平台同一個 view），Mac 隱藏手寫工具；用快捷鍵選了建立工具時，對應的按鈕反白。不放進視窗工具列，避免與 2.5b 的麵包屑、New Document 擠在一起。
 - **鍵盤快捷鍵**（平台無關，`BoardShortcut`，Mac 與 iPad 外接鍵盤共用）：V 選取、R 矩形、O 橢圓、A 箭頭、T 文字、F frame（不帶修飾鍵）、Delete / ⌫ 刪除、⌘D 再製、⌘A 全選、⌘C / ⌘X / ⌘V 剪貼簿、Esc（結束文字編輯 → 回到選取工具 → 取消選取）。文字框、手寫模式中不攔截（letters 要打進文字框）。
 - **拖曳到邊緣自動捲動**（Mac）：拖曳中（移動、縮放、框選 / 套索、拖曳建立、箭頭端點）游標進入畫面邊緣 32 點內或跑出畫面時，畫面往那個方向捲動，越靠近邊緣越快、最快 900 點 / 秒（`EdgeAutoscroll`，平台無關）。每一幀平移畫面後，把同一個游標位置換成新的畫布座標交給 `BoardEditor.drag`，所以框選範圍、移動中的元素都跟著延伸；放開、Esc 取消或游標回到中間就停。只在有捲動時開 display link。iPad 不做（手指拖曳時另一隻手可以捲動）。
 - **游標**（Mac）：建立工具（矩形、橢圓、箭頭、frame）是十字、文字工具是 I 形、選取是箭頭；以 `resetCursorRects` 管理，工具改變時（快捷鍵、工具列、建立完回到選取）以 Observation 追蹤 `editor.tool` 立即更新。

@@ -59,3 +59,22 @@
 - **icon** 支援 Emoji 與 SF Symbols（不打包 Lucide）：`icon: 🗺` 或 `icon: sf:map`，Core 只存字串。選單為「圖示 | 表情符號」；Apple 沒有列出所有 SF Symbols 的 API，所以內建常用清單，搜尋框也接受完整名稱；名稱不存在時顯示類型預設圖示。列表卡片：emoji 接在標題前、SF Symbol 取代類型圖示；編輯器經 `symbol:///<名稱>` 顯示。在 App 外（例如 Obsidian）只會看到 `sf:` 文字。
 - **連結卡片**：`[[連結]]` 獨占一行時顯示為卡片（含目標的類型圖示），相鄰的多行並排；設計稿的「關聯頁面」就是這個內文樣式，不是自動產生的區塊。目標的類型、摘要、時間由 `EditorController.linkTargetsChanged` 傳 `LinkTarget`；WebView 沒有 SF Symbols，圖示由 Swift 依 Registry 的 symbol 畫成 PNG。
 - **工具列**：浮動格式工具列（Desktop）與 iOS Format Bar 共用 `FormatBar`，原生 SwiftUI，按下時送 `exec`，不在打字路徑上；編輯器工具列（儲存狀態、釘選、更多）放在 App，所有檔案類型共用。
+
+## 手寫工具列（白板、PDF 共用，GoodNotes 式）
+
+- **兩層**：上方一排（導覽列下方，`safeAreaInset(edge: .top)`）是工具；選了畫筆類工具時，下面浮著一條膠囊（畫筆種類、粗細、顏色），以及左邊的 Undo / Redo 膠囊。浮動列蓋在內容上、不改畫布的 inset，所以切換工具時畫面不跳動；空白處不攔觸控。再按一次已選的工具可以收起 / 叫回膠囊。
+- **上方一排的版面**：工具置中，右側放與目前選取或文件有關的動作（白板的樣式 / 再製 / 刪除、PDF 的匯出）。工具依序是「選取（離開手寫）| 畫筆、螢光筆、橡皮擦、套索 | 外掛自己的插入工具」。
+- **不用 `PKToolPicker`**：系統工具盤是浮動面板，位置與樣式無法放進工具列。改由 EasyNotesUI 的共用元件自己設定 `PKCanvasView.tool`：
+  - `InkSettings`（`@Observable`、`@MainActor`，單例）：目前的手寫工具（畫筆 / 螢光筆 / 橡皮擦 / 套索）、畫筆種類、各工具的顏色與粗細、使用者加的顏色。存在 `UserDefaults`（App 偏好，不進 Vault、不同步），白板與 PDF 共用：在 PDF 選的筆換到白板還是同一支。手寫模式的開關仍由各編輯器自己記（白板 `BoardEditor.inking`、PDF 檢視器的狀態）。
+  - **畫筆種類**：鋼筆（`pen`）、原子筆（`monoline`）、鉛筆（`pencil`）；螢光筆是 `marker`。只用這四種墨水（其他墨水存成 freedraw 會失真）。
+  - **粗細**：三段，墨水的 `defaultWidth` × 0.5 / 1 / 2（夾在 `validWidthRange` 內），各工具各記一段。
+  - **顏色**：每個工具 5 個預設色 + 使用者加的顏色（「+」開系統顏色選擇器，最多 5 個，長按刪除）。畫筆預設 `#1e1e1e`、`#1971c2`、`#e03131`、`#2f9e44`、`#f08c00`；螢光筆 `#ffd43b`、`#69db7c`、`#74c0fc`、`#f783ac`、`#ffa94d`（透明度由 `marker` 墨水本身決定）。畫布固定淺色，顏色不隨深色模式反轉。
+  - **橡皮擦**：整筆（`vector`）/ 部分（`bitmap`，三段粗細）。部分擦除切開的筆畫仍是一般 `PKStroke`，照常存成 freedraw。
+  - 尺（`PKToolPicker` 的尺）不再提供：直線改用「停住變直線」。
+- **Pencil 點兩下**（`UIPencilInteraction`，取代工具盤原本的行為）：依系統設定，「切換橡皮擦」= 橡皮擦 ⇄ 上一個工具、「切換上一個工具」= 與上一個工具互換、「顯示色盤」= 收起 / 叫回膠囊；不在手寫模式時不處理。
+- **停住變直線（Apple 備忘錄 / GoodNotes 式）**：畫一筆後筆尖停住約 0.5 秒（移動 < 3 螢幕點），這一筆變成「起點 → 目前位置」的直線；不放開筆可以繼續移動終點，角度接近水平、垂直或 45° 時（±3°）吸附。實作在 EasyNotesUI 的 `StraightLineAssist`（iOS），白板與 PDF 的 `PKCanvasView` 各掛一個：
+  - 觸控以一個只觀察、不攔截的手勢辨識器取得（`cancelsTouchesInView = false`，與所有手勢同時辨識），只看 `drawingPolicy` 允許書寫的觸控、只在畫筆 / 螢光筆時作用。筆畫長度不到 12 螢幕點時不觸發（點一下停住不會變直線）。
+  - 觸發時把 `drawingGestureRecognizer` 停用再開啟，取消 PencilKit 進行中的筆畫；若取消後 PencilKit 仍留下這一筆，就還原成開始時的 `drawing`。調整期間在畫布上方用一條 `CAShapeLayer` 預覽（顏色、粗細與墨水相同），放開時才把直線 `PKStroke`（同一種墨水、顏色與粗細，沿線每 2 點一個控制點）加進 `drawing`。
+  - 調整中的 `drawing` 變動不寫回（宿主檢查 `isAdjusting`），放開後的那一次變動才寫回，所以模型只看到「多了一條直線」，PDF 的模型 Undo 是一筆。直線本身在畫布的 `undoManager` 註冊一筆 Undo（還原成加線前的 `drawing`）：白板與筆畫共用那個堆疊；PDF 的畫布 `undoManager` 是私有的、照舊丟掉，由模型 Undo 負責。
+  - 座標：畫布座標 = 觸控在 `PKCanvasView` 的位置 ÷ `zoomScale`（白板的畫布會縮放；PDF 的畫布不捲動、倍率 1）。
+- **Mac**：沒有 PencilKit 書寫，白板工具列不顯示手寫工具（只有選取與插入工具）；PDF 維持右下角的按鈕。

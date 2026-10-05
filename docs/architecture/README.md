@@ -125,7 +125,8 @@ Packages/
   EasyNotesCore/     核心（不認識任何檔案類型）
     EasyNotesCore    Vault、Index、Sync、DocumentKind 與 KindRegistry（無 UI 依賴，可單元測試）
     EasyNotesUI      PluginRegistry、EasyNotesPlugin、DocumentSession、EditorController、
-                     WebEditorHost（預熱、Bridge、本地資源）、DesignSystem（tokens、共用元件）
+                     WebEditorHost（預熱、Bridge、本地資源）、DesignSystem（tokens、共用元件）、
+                     手寫工具列（InkSettings、StraightLineAssist，白板與 PDF 共用）
   KindMarkdown/      .md：CodeMirror 6 編輯器（WebView）、Live Preview、Writing 模式
   ExcalidrawKit/     共用函式庫（不是外掛、不註冊任何東西）：Excalidraw 元素模型、合併、
                      PencilKit ⇄ freedraw 轉換、幾何與 CoreGraphics 渲染器（Phase 5 從 KindWhiteboard 抽出）

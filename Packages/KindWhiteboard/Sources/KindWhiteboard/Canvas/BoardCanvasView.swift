@@ -1,3 +1,4 @@
+import EasyNotesUI
 import ExcalidrawKit
 
 #if os(iOS)
@@ -17,12 +18,10 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
     let overlay = SelectionOverlay()
     let pattern = BackgroundPattern()
     private(set) var lod: BoardLOD!
-    /// 手寫模式的工具盤。墨水只放這四種（其他墨水存成 freedraw 會失真），加上橡皮擦、套索與尺
-    let toolPicker = PKToolPicker(toolItems: [
-        PKToolPickerInkingItem(type: .pen), PKToolPickerInkingItem(type: .pencil),
-        PKToolPickerInkingItem(type: .marker), PKToolPickerInkingItem(type: .monoline),
-        PKToolPickerEraserItem(type: .vector), PKToolPickerLassoItem(), PKToolPickerRulerItem(),
-    ])
+    /// 畫筆停住變直線（見 architecture/ui.md「手寫工具列」）
+    private(set) var lineAssist: StraightLineAssist?
+    /// Pencil 點兩下切換工具（取代 `PKToolPicker` 原本的行為）
+    private var pencilTap: InkPencilInteraction!
 
     private let document: BoardDocument
     private let editor: BoardEditor
@@ -32,6 +31,8 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
     private let lodHost = PlainLayer()
     /// 目前套用的手寫模式（nil = 還沒套用）
     private var inking: Bool?
+    /// 目前套用的手寫工具（工具列的 `InkSettings`）
+    private var inkTool: InkToolSpec?
     /// 非手寫模式的拖曳（Pencil 與手指）；`canvas.panGestureRecognizer` 要等它失敗才捲動
     private let editPan = UIPanGestureRecognizer()
     /// 手寫模式下手指長按才拖曳元素
@@ -94,9 +95,9 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
         overlayHost.layer.addSublayer(overlay.root)
         addSubview(overlayHost)
 
-        toolPicker.addObserver(canvas)
-        // 「用手指繪圖」由 drawingPolicy 固定，不讓使用者在工具盤切換
-        toolPicker.showsDrawingPolicyControls = false
+        lineAssist = StraightLineAssist(canvas: canvas)
+        pencilTap = InkPencilInteraction { [weak self] in self?.inking == true }
+        addInteraction(pencilTap.interaction)
         tree.cardPreview = { [weak document] in document?.cardPreviews[$0] }
         tree.setScene(document.scene)
         setUpGestures()
@@ -141,8 +142,7 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
             tree.setContentsScale(screenScale * rasterScale)
             scheduleWork()
             editor.undoManager = canvas.undoManager
-            toolPicker.setVisible(inking == true, forFirstResponder: canvas)
-            // 放進視窗的同一輪 SwiftUI 還在調整階層，延到下一輪才成為 first responder（工具盤才會出現）
+            // 放進視窗的同一輪 SwiftUI 還在調整階層，延到下一輪才成為 first responder（⌘Z 與快捷鍵才找得到畫布）
             DispatchQueue.main.async { [weak self] in self?.canvas.becomeFirstResponder() }
         } else {
             displayLink?.invalidate()
@@ -168,6 +168,8 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        // 調整直線中的變動（取消 PencilKit 的筆畫）不存；放開加進直線時才存
+        guard lineAssist?.isAdjusting != true else { return }
         scheduleSave()
     }
 
@@ -319,18 +321,18 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
 
     // MARK: 工具
 
-    /// 手寫模式：PencilKit 的手勢與工具盤開啟，Pencil 書寫、手指點選與長按拖曳。
+    /// 手寫模式：PencilKit 的手勢開啟、套用工具列選的工具，Pencil 書寫、手指點選與長按拖曳。
     /// 關閉時停用 PencilKit 的手勢，Pencil 與手指都交給編輯器（碰到元素就拖曳、Pencil 在空白處框選）
-    func apply(inking next: Bool) {
+    func apply(inking next: Bool, tool: InkToolSpec) {
+        if tool != inkTool {
+            inkTool = tool
+            canvas.tool = tool.pkTool
+        }
         guard next != inking else { return }
         inking = next
         canvas.drawingGestureRecognizer.isEnabled = next
-        if next { canvas.tool = toolPicker.selectedTool }
-        if window != nil {
-            toolPicker.setVisible(next, forFirstResponder: canvas)
-            // 工具盤綁在 first responder 上：文字框或工具列拿走之後要搶回來，工具盤才叫得出來
-            if next, textView == nil { canvas.becomeFirstResponder() }
-        }
+        // ⌘Z 與快捷鍵要找到畫布：文字框或工具列拿走 first responder 之後搶回來
+        if window != nil, next, textView == nil { canvas.becomeFirstResponder() }
         editPan.isEnabled = !next
         longPress.isEnabled = next
         // 手寫模式下 Pencil 點一下是畫點，只有手指點選
@@ -451,8 +453,7 @@ final class BoardCanvasView: UIView, PKCanvasViewDelegate, UIGestureRecognizerDe
         let text = tv.text ?? ""
         removeTextView()
         editor.endTextEditing(text)
-        canvas.becomeFirstResponder() // 工具盤與白板的 Undo 回到畫布
-        if inking == true { toolPicker.setVisible(true, forFirstResponder: canvas) }
+        canvas.becomeFirstResponder() // 白板的 Undo 與快捷鍵回到畫布
     }
 
     private func removeTextView() {

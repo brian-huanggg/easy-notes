@@ -1,3 +1,4 @@
+import EasyNotesUI
 import ExcalidrawKit
 import PDFKit
 import QuartzCore
@@ -20,11 +21,10 @@ final class PDFReaderCanvas: PlatformView {
     private var loadedRevision = -1
     var editing: StickyEditing?
     #if os(iOS)
-    /// 所有頁面共用的工具盤，綁在這個常駐 first responder 的 view（畫布會隨捲動回收）
-    let toolPicker = PKToolPicker(toolItems: [
-        PKToolPickerInkingItem(type: .pen), PKToolPickerInkingItem(type: .marker),
-        PKToolPickerEraserItem(type: .vector), PKToolPickerLassoItem(),
-    ])
+    /// 所有頁面畫布共用的手寫工具（工具列的 `InkSettings`；新 overlay 建立時套用）
+    var inkTool = InkSettings.shared.spec
+    /// Pencil 點兩下切換工具（取代 `PKToolPicker` 原本的行為）
+    var pencilTap: InkPencilInteraction?
     /// 模型 Undo（頁碼 + 前後 elements）；系統 ⌘Z、三指撥動經 responder chain 找到它
     let modelUndo = UndoManager()
     var inking = false
@@ -117,9 +117,6 @@ extension PDFReaderCanvas: @preconcurrency PDFPageOverlayViewProvider {
     func pdfView(_ pdfView: PDFView, willEndDisplayingOverlayView overlayView: PlatformView, for page: PDFPage) {
         guard let overlay = overlayView as? PageOverlayView else { return }
         if editing?.overlay === overlay { endEditing() }
-        #if os(iOS)
-        toolPicker.removeObserver(overlay.canvas)
-        #endif
         // 標註只存在文件模型，overlay 直接丟掉
         if overlays[overlay.pageIndex] === overlay { overlays[overlay.pageIndex] = nil }
     }
@@ -134,6 +131,8 @@ final class PageOverlayView: PlatformView {
     #if os(iOS)
     let inkLayer = PageInkLayer(drawsFreedraw: false)
     let canvas = PageCanvas()
+    /// 畫筆停住變直線（見 architecture/ui.md「手寫工具列」）
+    private(set) lazy var lineAssist = StraightLineAssist(canvas: canvas)
     /// 程式設定 `canvas.drawing` 也會觸發 `canvasViewDrawingDidChange`，這段期間不寫回模型
     private(set) var loadingDrawing = false
     #else
@@ -186,6 +185,7 @@ final class PageOverlayView: PlatformView {
         canvas.isScrollEnabled = false
         canvas.delegate = self
         addSubview(canvas)
+        _ = lineAssist
         addInteraction(UIEditMenuInteraction(delegate: self))
         #else
         wantsLayer = true
@@ -308,7 +308,8 @@ final class PageOverlayView: PlatformView {
     }
 
     func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-        guard !loadingDrawing, laidOut else { return }
+        // 調整直線中的變動（取消 PencilKit 的筆畫）不寫回；放開加進直線時才寫回，模型 Undo 是一筆
+        guard !loadingDrawing, laidOut, !lineAssist.isAdjusting else { return }
         host?.canvasDrawingDidChange(self)
     }
     #else

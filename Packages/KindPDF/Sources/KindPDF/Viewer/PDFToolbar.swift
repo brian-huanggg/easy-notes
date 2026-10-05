@@ -1,60 +1,36 @@
 #if os(iOS)
+import EasyNotesUI
 import SwiftUI
 
-/// iPad / iPhone 的 PDF 工具列（與白板工具列相同的樣式）：畫筆（手寫模式）| 便利貼 | 匯出 | Undo / Redo。導覽列下方獨立一排
+/// iPad / iPhone 的 PDF 工具列（與白板相同的 GoodNotes 式版面，見 architecture/ui.md「手寫工具列」）：
+/// 選取 | 畫筆、螢光筆、橡皮擦、套索 | 便利貼；右側是匯出。Undo / Redo 與手寫選項在下方的浮動列（`PDFFloatingRow`）
 struct PDFToolbar: View {
     @Binding var inking: Bool
     let handle: PDFCanvasHandle
     let export: () -> Void
 
-    @State private var canUndo = false
-    @State private var canRedo = false
+    var body: some View {
+        EditorToolbar {
+            // 非手寫模式：點選、拖曳便利貼，捲動與選取文字
+            ToolbarIconButton(L("選取"), systemImage: "hand.point.up.left", active: !inking) { inking = false }
+            InkToolButtons(inking: $inking)
+            ToolbarSeparator()
+            ToolbarIconButton(L("便利貼"), systemImage: "note.text") { handle.canvas?.addSticky() }
+        } actions: {
+            ToolbarIconButton(L("匯出"), systemImage: "square.and.arrow.up", action: export)
+        }
+    }
+}
+
+/// 工具列下方的浮動列：左邊 Undo / Redo（模型 Undo），中間是手寫選項膠囊
+struct PDFFloatingRow: View {
+    let inking: Bool
+    let handle: PDFCanvasHandle
 
     var body: some View {
-        HStack(spacing: 6) {
-            button(inking ? L("結束手寫") : L("畫筆"), inking ? "pencil.tip.crop.circle.fill" : "pencil.tip.crop.circle",
-                   active: inking) { inking.toggle() }
-            separator
-            button(L("便利貼"), "note.text") { handle.canvas?.addSticky() }
-            button(L("匯出"), "square.and.arrow.up", export)
-            separator
-            button(L("復原"), "arrow.uturn.backward") { handle.canvas?.undo(); refreshUndo() }
-                .disabled(!canUndo)
-            button(L("重做"), "arrow.uturn.forward") { handle.canvas?.redo(); refreshUndo() }
-                .disabled(!canRedo)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
-        .onAppear(perform: refreshUndo)
-        // 不能聽 NSUndoManagerCheckpoint：canUndo / canRedo 本身會發出它，形成無限迴圈
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidCloseUndoGroup)) { _ in refreshUndo() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidUndoChange)) { _ in refreshUndo() }
-        .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidRedoChange)) { _ in refreshUndo() }
-    }
-
-    private func refreshUndo() {
-        canUndo = handle.canvas?.modelUndo.canUndo ?? false
-        canRedo = handle.canvas?.modelUndo.canRedo ?? false
-    }
-
-    private var separator: some View {
-        Divider().frame(height: 22).padding(.horizontal, 4)
-    }
-
-    private func button(_ title: String, _ image: String, active: Bool = false,
-                        _ perform: @escaping () -> Void) -> some View {
-        Button(action: perform) {
-            Image(systemName: image)
-                .frame(width: 34, height: 34)
-                .background(active ? Color.accentColor.opacity(0.18) : .clear, in: RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(Color.accentColor)
-        .help(title)
-        .accessibilityLabel(title)
+        EditorFloatingRow(inking: inking, undo: UndoRedoPill(manager: { handle.canvas?.modelUndo },
+                                                             undo: { handle.canvas?.undo() },
+                                                             redo: { handle.canvas?.redo() }))
     }
 }
 #endif

@@ -24,6 +24,8 @@ struct BoardEditorView: View {
                     .overlay(alignment: .bottomTrailing) {
                         BoardBackgroundMenu(background: $background).padding(16)
                     }
+                    // 浮動列蓋在畫布上，不改畫布的 inset（切換工具時畫面不跳動）
+                    .overlay(alignment: .top) { BoardFloatingRow(editor: editor) }
                     // 工具列獨立一排，在導覽列（檔名、設定）下方
                     .safeAreaInset(edge: .top, spacing: 0) { BoardToolbar(editor: editor, selectionShape: $selectionShape, thisBoard: path) }
                 #else
@@ -31,6 +33,7 @@ struct BoardEditorView: View {
                     .overlay(alignment: .bottomTrailing) {
                         BoardBackgroundMenu(background: $background).padding(16)
                     }
+                    .overlay(alignment: .top) { BoardFloatingRow(editor: editor) }
                     .safeAreaInset(edge: .top, spacing: 0) {
                         BoardToolbar(editor: editor, selectionShape: $selectionShape, thisBoard: path, showsInk: false)
                     }
@@ -64,9 +67,9 @@ private struct BoardCanvas: UIViewRepresentable {
         return view
     }
 
-    /// 讀 `editor.inking`：工具列切換時 SwiftUI 會再呼叫這裡
+    /// 讀 `editor.inking` 與 `InkSettings`：工具列切換時 SwiftUI 會再呼叫這裡
     func updateUIView(_ view: BoardCanvasView, context: Context) {
-        view.apply(inking: editor.inking)
+        view.apply(inking: editor.inking, tool: InkSettings.shared.spec)
         view.apply(background: background)
         editor.selectionShape = selectionShape
     }
