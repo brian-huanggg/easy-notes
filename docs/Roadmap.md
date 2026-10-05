@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證）；3d 從 Anki 匯入 `.apkg`（卡片、圖片、複習紀錄）實作完成（單元測試與真實資料比對通過、macOS 建置通過；實機與 iOS 建置尚未驗證）；3h 多行卡片與圖片實作完成（`swift test`、web 測試與 Chromium e2e 通過、App 建置成功；實機尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證）；3d 從 Anki 匯入 `.apkg`（卡片、圖片、複習紀錄）實作完成（單元測試與真實資料比對通過、macOS 與 iOS Simulator 建置通過；實機尚未驗證）；3h 多行卡片與圖片實作完成（`swift test`、web 測試與 Chromium e2e 通過、App 建置成功；實機尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -291,7 +291,7 @@
 
 - [ ] 手動：TSV 匯入 Anki 後卡片正確
 - [ ] 手動：在 App 內選 `.apkg` → 摘要 → 匯入，卡片、圖片與到期數正確；再匯入一次不重複
-- [ ] iOS 建置：`WebEditorHost.swift` 的 `UIApplication.shared.open` 缺 `await`（與匯入無關），修好後確認 Flashcards（zstd C 套件）在 iOS 可編譯
+- [x] iOS 建置：修好 `WebEditorHost.swift` 的 `UIApplication.shared.open`（iOS SDK 改成 async）；iOS Simulator 建置通過，Flashcards（含 zstd C 套件）可編譯；實機尚未驗證
 - [ ] 同一組紀錄，App 內的優化結果與 Anki 的優化結果相近
 - [ ] 基準線符合非功能預算
 
