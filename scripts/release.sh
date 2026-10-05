@@ -33,6 +33,10 @@ done
 
 die() { echo "✗ $*" >&2; exit 1; }
 
+# MARK: 依賴（git-cliff 與 web 測試用；npm ci 只照 lockfile 安裝，不會改動它）
+
+npm ci --no-audit --no-fund --silent
+
 # MARK: 版本號
 
 CURRENT=$(sed -nE 's/^ *MARKETING_VERSION: "([^"]+)".*/\1/p' project.yml)
@@ -88,7 +92,7 @@ fi
 if [[ $SKIP_TESTS == 0 ]]; then
   ./scripts/check-l10n.py
   python3 scripts/test_changelog.py
-  (cd web && npm test)
+  (cd web && npm ci --no-audit --no-fund --silent && npm test)
   (cd Packages/EasyNotesCore && swift test)
 fi
 
