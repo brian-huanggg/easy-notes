@@ -233,16 +233,6 @@
         }
       }
     },
-    "復原" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Undo"
-          }
-        }
-      }
-    },
     "插入圖片" : {
       "localizations" : {
         "en" : {
@@ -363,16 +353,6 @@
         }
       }
     },
-    "畫筆" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pen"
-          }
-        }
-      }
-    },
     "白板" : {
       "localizations" : {
         "en" : {
@@ -483,16 +463,6 @@
         }
       }
     },
-    "結束手寫" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done Drawing"
-          }
-        }
-      }
-    },
     "網格" : {
       "localizations" : {
         "en" : {
@@ -599,16 +569,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Corners"
-          }
-        }
-      }
-    },
-    "重做" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redo"
           }
         }
       }

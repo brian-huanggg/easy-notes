@@ -40,7 +40,7 @@ func L(_ value: String.LocalizationValue) -> String {
 | 日期、數字、相對時間 | 用 `Date.formatted`、`RelativeDateTimeFormatter`、`Intl.*`，不手拼；不寫死 `Locale(identifier: "zh-Hant")` |
 | 使用者看不到的字串 | 日誌、`precondition` 訊息、`#Preview` 示範資料、`Spike/` 資料夾的驗證用面板不翻 |
 
-`L(…)` 的參數型別是 `String.LocalizationValue`，編譯器認得它，擷取時 key 與插值都正確。**新程式碼不寫沒有經過 `L(…)` 的中文字面值**，`scripts/check-l10n.py` 會檢查。
+`L(…)` 的參數型別是 `String.LocalizationValue`，編譯器認得它，擷取時 key 與插值都正確。**新程式碼不寫沒有經過 `L(…)` 的中文字面值**，`scripts/check-l10n.py` 會檢查：中文字面值有沒有經過 `L(…)`，以及每個 `L(…)` 的 key 在該模組的 catalog 有英文（state 為 translated）、web 的 `t(…)` 在 `i18n.ts` 的 `en` 字典有對應；`--stale` 另外列出程式已經沒用到的 key。
 
 ## 不隨語言改變的字串
 

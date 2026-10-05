@@ -173,16 +173,6 @@
         }
       }
     },
-    "復原" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Undo"
-          }
-        }
-      }
-    },
     "標註已壓平：在其他 App 中無法再編輯，但任何閱讀器與列印都會一致。" : {
       "localizations" : {
         "en" : {
@@ -213,16 +203,6 @@
         }
       }
     },
-    "畫筆" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pen"
-          }
-        }
-      }
-    },
     "第 %lld / %lld 頁" : {
       "localizations" : {
         "en" : {
@@ -239,16 +219,6 @@
         }
       }
     },
-    "結束手寫" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done Drawing"
-          }
-        }
-      }
-    },
     "編輯" : {
       "localizations" : {
         "en" : {
@@ -259,22 +229,22 @@
         }
       }
     },
-    "重做" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Redo"
-          }
-        }
-      }
-    },
     "關閉" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close"
+          }
+        }
+      }
+    },
+    "選取" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
           }
         }
       }
