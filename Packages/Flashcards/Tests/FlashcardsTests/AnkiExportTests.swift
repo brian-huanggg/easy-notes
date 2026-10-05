@@ -32,6 +32,14 @@ struct AnkiExportTests {
         #expect(AnkiExport.cloze("{{**A**}} 與 `{{b}}`") == "{{c1::<b>A</b>}} 與 <code>{{b}}</code>")
     }
 
+    /// 公式轉成 Anki 的 MathJax 分隔符；克漏字內的 `}}` 拆開
+    @Test func mathToMathJax() {
+        #expect(AnkiExport.html("$a<b$ 與 **$$x^2$$**") == "\\(a&lt;b\\) 與 <b>\\[x^2\\]</b>")
+        #expect(AnkiExport.html("$*不轉換*$ 與 \\$5") == "\\(*不轉換*\\) 與 $5")
+        #expect(AnkiExport.cloze("{{$\\frac{a}{b^{2}}$}} 與 $\\sqrt{x}$")
+                == "{{c1::\\(\\frac{a}{b^{2} }\\)}} 與 \\(\\sqrt{x}\\)")
+    }
+
     /// 含引號的欄位加上引號，tab 換成空白
     @Test func quotesFields() {
         #expect(AnkiExport.field("他說 \"好\"") == "\"他說 \"\"好\"\"\"")

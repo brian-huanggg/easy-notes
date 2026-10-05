@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始 | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -324,6 +324,28 @@
 - [ ] 手動：iPhone 直向時頁首按鈕換行正常、Sheet 版面不擠
 
 尚未驗證：實機畫面與暫停 / 重設後的複習佇列（`ReviewStore` 沒有單元測試）。注意：舊版 App 讀不懂 `type: 3`，會略過這幾行，所以其他裝置要一起更新，否則那台裝置算出的卡片狀態會不同（更新後重播即恢復）。
+
+### 3g 卡片內容：Markdown 與 LaTeX
+
+設計見 [flashcards.md](./architecture/flashcards.md)「卡片內容：Markdown 與 LaTeX」。範圍：複習畫面、卡片瀏覽、匯出給 Anki；編輯器（CM6）內的公式預覽另做。
+
+- [x] 解析：公式 `$…$`、`$$…$$` 與行內程式碼一樣受保護；克漏字可包住含 `{}` 的公式（`CardSyntax.mathSpans`、`clozeMatches`）—— `swift test` 通過
+- [x] Markdown 外掛的卡片語法標示套用相同的保護規則（`web/src/markdown/cardSyntax.ts`；`web/test/cardSyntax.test.ts` 通過）
+- [x] `CardMarkup`：行內 Markdown 與公式解析成段落（克漏字前後的 Markdown 不被切斷）—— `swift test` 通過
+- [ ] 原生渲染：`CardText`（`AttributedString` + SwiftMath template 圖片，基線對齊、隨前景色上色、獨立公式置中並在過寬時縮小、無法解析時顯示原文）；複習畫面與卡片瀏覽改用它 —— macOS 建置通過；Mac 實機看過行內與獨立公式、克漏字（卡片瀏覽）；過寬縮小、無法解析的原文顯示尚未驗證
+- [ ] 匯出給 Anki：`$…$` → `\(…\)`、`$$…$$` → `\[…\]`，克漏字內公式的 `}}` 拆開，`\$` → `$` —— 單元測試與輸出檢查通過；匯入 Anki 尚未驗證
+- [x] Vault `CLAUDE.md` 的卡片語法規格補上 Markdown 與公式（只寫入新的 Vault；既有 Vault 的 `CLAUDE.md` 不會改寫）
+- [x] 加入 SwiftMath 1.7.3（`Package.swift`、兩份 `Package.resolved`）
+
+驗收測試：
+
+- [x] 單元測試：`CardSyntaxTests`（`mathIsProtected`、`mathSpans`、`clozeRulesMatchPreviousRegex`）、`CardMarkupTests`、`AnkiExportTests.mathToMathJax`
+- [ ] 手動：Mac、iPad、iPhone 複習含公式的卡片：行內公式與文字基線對齊、長句換行、深色模式顏色正確、克漏字答案中的公式上色；`$$…$$` 置中，過寬時縮小
+- [ ] 手動：「$5 和 $10」顯示為普通文字（Mac 卡片瀏覽已確認）；無法解析的公式顯示原文尚未驗證
+- [ ] 手動：匯出後在 Anki 匯入，公式由 MathJax 顯示，克漏字內的分數正常
+- [ ] 效能：一張卡 10 個公式，翻面與切換卡片沒有明顯延遲（圖片有快取）
+
+尚未驗證：iPad / iPhone、深色模式、公式過寬縮小、無法解析的公式、匯入 Anki、效能（10 個公式的卡片）。
 
 ## Phase 4 — Whiteboard
 

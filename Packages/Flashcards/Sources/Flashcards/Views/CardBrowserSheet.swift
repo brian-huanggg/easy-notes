@@ -165,11 +165,11 @@ private struct CardBrowserRow: View {
         let schedule = store.schedule(of: card)
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                CardView.text(card.front, highlight: Palette.cardNew)
+                CardText.text(card.front, size: 13.5, highlight: Palette.cardNew)
                     .textStyle(TextStyle(13.5, .medium))
                     .foregroundStyle(Palette.textPrimary)
                     .lineLimit(2)
-                CardView.text(card.back, highlight: Palette.cardDue)
+                CardText.text(card.back, size: 12.5, highlight: Palette.cardDue)
                     .textStyle(TextStyle(12.5))
                     .foregroundStyle(Palette.textSecondary)
                     .lineLimit(2)
