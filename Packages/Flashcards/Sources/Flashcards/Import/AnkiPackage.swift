@@ -12,12 +12,22 @@ public struct AnkiPackage: Sendable {
     /// 媒體檔名 → zip 內的項目名稱
     let media: [String: String]
     private let archive: ZipArchive
+    /// 套件的生命週期結束時刪除的暫存檔（媒體檔是在匯入時才從 zip 讀出，所以檔案要活到套件被釋放）
+    private let ownedFile: OwnedFile?
+
+    private final class OwnedFile: @unchecked Sendable {
+        let url: URL
+        init(_ url: URL) { self.url = url }
+        deinit { try? FileManager.default.removeItem(at: url) }
+    }
 
     struct Failure: Error, CustomStringConvertible {
         let description: String
     }
 
-    public init(url: URL) throws {
+    public init(url: URL, deleteWhenDone: Bool = false) throws {
+        let owned = deleteWhenDone ? OwnedFile(url) : nil
+        ownedFile = owned
         let archive = try ZipArchive(url: url)
         self.archive = archive
         // 新格式的 collection.anki2 只是提示升級的空殼，所以先找 anki21b

@@ -432,15 +432,15 @@ public final class ReviewStore: EditorController {
         // 檔案可能在安全範圍外讀不到（iOS）：先複製到暫存
         let copy = FileManager.default.temporaryDirectory.appending(path: "anki-\(UUID().uuidString).apkg")
         try FileManager.default.copyItem(at: url, to: copy)
-        defer { try? FileManager.default.removeItem(at: copy) }
 
         var ids: [String: Set<String>] = [:]
         for item in notes { if let id = item.note.id { ids[id, default: []].insert(item.path) } }
         let suspended = Set(schedules.filter { $0.value.suspended }.keys)
         let fs = session.vault
         let fallback = L("Anki 匯入")
+        // 媒體檔在 `commitAnki` 才從 zip 讀出，所以暫存檔交給 package，釋放時才刪
         return try await Task.detached(priority: .userInitiated) {
-            let package = try AnkiPackage(url: copy)
+            let package = try AnkiPackage(url: copy, deleteWhenDone: true)
             let plan = try AnkiImport.plan(
                 package.collection, hasMedia: { package.resolve($0) != nil }, mediaData: package.mediaData,
                 environment: .init(read: { try? fs.read($0) }, noteIDs: ids, suspended: suspended, fallbackFileName: fallback))
