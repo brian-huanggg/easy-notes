@@ -1,6 +1,7 @@
 // Live Preview：游標所在行顯示 md 語法，其他行隱藏語法標記並套用樣式。
 // 只處理可見範圍（view.visibleRanges），大檔案也不需要走訪全文。
 import { syntaxTree } from "@codemirror/language";
+import { searchPanelOpen } from "@codemirror/search";
 import { EditorState, RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
@@ -114,7 +115,7 @@ export function inCode(state: EditorState, pos: number): boolean {
 
 function build(view: EditorView): DecorationSet {
   const { state } = view;
-  const active = view.hasFocus ? activeLines(state) : new Set<number>();
+  const active = view.hasFocus || searchPanelOpen(state) ? activeLines(state) : new Set<number>();
   const ranges: { from: number; to: number; deco: Decoration }[] = [];
   const isActive = (pos: number) => active.has(state.doc.lineAt(pos).number);
 
@@ -274,7 +275,7 @@ export const livePreview = ViewPlugin.fromClass(
       this.decorations = build(view);
     }
     update(u: ViewUpdate) {
-      if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged || u.transactions.some((tr) => tr.effects.some((e) => e.is(mathLoaded)))) {
+      if (u.docChanged || u.viewportChanged || u.selectionSet || u.focusChanged || u.transactions.some((tr) => searchPanelOpen(tr.state) !== searchPanelOpen(tr.startState) || tr.effects.some((e) => e.is(mathLoaded)))) {
         this.decorations = build(u.view);
       }
     }

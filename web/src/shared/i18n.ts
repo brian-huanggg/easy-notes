@@ -57,6 +57,15 @@ const dictionaries: Record<string, Record<string, string>> = {
     "平均：{value}": "Average: {value}",
     "計數：{n}": "Count: {n}",
     "加總：{value}": "Sum: {value}",
+    拖曳以移動列: "Drag to move row",
+    拖曳以移動欄: "Drag to move column",
+    // 尋找
+    在筆記中尋找: "Find in note",
+    區分大小寫: "Match case",
+    上一個: "Previous",
+    下一個: "Next",
+    關閉: "Close",
+    沒有結果: "No results",
     // 屬性
     新增屬性: "Add Property",
     "＋ 新增屬性": "+ Add Property",
