@@ -54,9 +54,74 @@
 
   /* 標題（第一行 `# `）與 meta 列 */
   .cm-line.cm-doc-title { padding-top: 0; font-size: var(--doc-title-size, 34px); font-weight: 700; line-height: 1.35; color: var(--text-primary); }
-  .cm-doc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); font-family: var(--font-ui); font-size: 11.5px; line-height: 17px; color: var(--text-tertiary); }
-  .cm-doc-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 20px; background: var(--bg-hover); color: var(--text-secondary); font-size: 11px; font-weight: 500; line-height: 16px; cursor: pointer; user-select: none; -webkit-user-select: none; }
-  .cm-doc-tag i { width: 6px; height: 6px; border-radius: 50%; }
+  .cm-doc-meta { margin-bottom: 14px; padding: 10px 0 14px; border-bottom: 1px solid var(--border); font-family: var(--font-ui); font-size: 11.5px; line-height: 17px; color: var(--text-tertiary); }
+
+  /* 屬性面板（frontmatter 欄位，標題下方） */
+  .cm-doc-info { position: relative; font-family: var(--font-ui); }
+  .cm-doc-info:not(:has(.cm-doc-meta)) .cm-props { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .cm-props { padding-top: 8px; font-size: 13px; line-height: 20px; }
+  .cm-prop { position: relative; display: flex; align-items: flex-start; min-height: 30px; border-radius: var(--radius-sm); }
+  .cm-prop:hover, .cm-prop:focus-within { background: var(--bg-hover); }
+  .cm-prop-head { flex: none; display: flex; align-items: center; gap: 6px; width: 150px; padding: 5px 6px; box-sizing: border-box; color: var(--text-tertiary); }
+  .cm-prop-icon { flex: none; display: flex; padding: 2px; border-radius: 4px; cursor: pointer; }
+  .cm-prop-icon:hover { color: var(--text-primary); background: var(--bg-selected); }
+  .cm-prop-key, .cm-prop-new, .cm-prop-input, .cm-prop-chip-input { min-width: 0; padding: 0; border: 0; outline: none; background: transparent; color: inherit; font: inherit; }
+  .cm-prop-key, .cm-prop-new { flex: 1; color: var(--text-secondary); }
+  .cm-prop-value { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 30px; padding: 0 28px 0 6px; box-sizing: border-box; color: var(--text-primary); }
+  .cm-prop-input { flex: 1; height: 30px; }
+  .cm-prop-input::placeholder, .cm-prop-chip-input::placeholder, .cm-prop-new::placeholder { color: var(--text-tertiary); }
+  .cm-prop-input[type="date"] { flex: none; -webkit-appearance: none; appearance: none; }
+  .cm-prop-check { margin: 0; }
+  .cm-prop-chips { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 4px 0; cursor: text; }
+  .cm-prop-chip { display: inline-flex; align-items: center; gap: 2px; padding: 1px 4px 1px 8px; border-radius: 20px; background: var(--accent-soft); color: var(--accent-deep); font-size: 12px; line-height: 18px; user-select: none; -webkit-user-select: none; }
+  .cm-prop[data-key="tags" i] .cm-prop-chip-text { cursor: pointer; }
+  .cm-prop-chip-x { padding: 0 3px; border-radius: 50%; color: var(--text-tertiary); cursor: pointer; }
+  .cm-prop-chip-x:hover { color: var(--text-primary); }
+  .cm-prop-chip-input { flex: 1; min-width: 60px; height: 22px; }
+  .cm-prop-raw { overflow: hidden; white-space: pre; text-overflow: ellipsis; font-family: var(--font-mono); font-size: 0.86em; color: var(--text-tertiary); cursor: pointer; }
+  .cm-prop-del { position: absolute; right: 6px; top: 5px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: var(--text-tertiary); cursor: pointer; opacity: 0; user-select: none; -webkit-user-select: none; }
+  .cm-prop:hover .cm-prop-del, .cm-prop:focus-within .cm-prop-del { opacity: 1; }
+  .cm-prop-del:hover { background: var(--bg-selected); color: var(--text-primary); }
+  @media (hover: none) { .cm-prop-del { opacity: 0.6; } }
+  @media (max-width: 600px) { .cm-prop-head { width: 110px; } }
+  .cm-props-foot { display: flex; gap: 4px; padding: 2px 0; }
+  .cm-props-btn { padding: 3px 6px; border-radius: var(--radius-sm); color: var(--text-tertiary); font-size: 12px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .cm-props-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
+  .cm-prop-menu, .cm-table-menu { position: absolute; z-index: 10; min-width: 150px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-raised); box-shadow: 0 6px 24px rgba(0,0,0,0.18), 0 0 0 0.5px var(--border-strong); font-family: var(--font-ui); font-size: 13px; line-height: 18px; color: var(--text-primary); user-select: none; -webkit-user-select: none; }
+  .cm-prop-menu-item, .cm-table-menu-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 5px; cursor: pointer; white-space: nowrap; }
+  .cm-prop-menu-item:hover, .cm-table-menu-item:hover { background: var(--bg-selected); }
+  .cm-prop-menu-item.is-current { color: var(--accent); }
+  .cm-table-menu-item.is-disabled { color: var(--text-tertiary); cursor: default; }
+  .cm-table-menu-item.is-disabled:hover { background: none; }
+  .cm-table-menu-sep { height: 1px; margin: 4px 2px; background: var(--border); }
+
+  /* 表格（GFM）：可直接編輯的格子 */
+  .cm-table { position: relative; margin: 6px 0 10px; padding: 0 22px 22px 0; font-family: var(--font-ui); }
+  .cm-table-scroll { overflow-x: auto; }
+  .cm-table table { border-collapse: collapse; min-width: 100%; font-size: 14px; line-height: 1.6; }
+  .cm-table th, .cm-table td { position: relative; min-width: 90px; padding: 0; border: 1px solid var(--border); vertical-align: top; text-align: left; }
+  .cm-table th { background: var(--bg-panel); font-weight: 600; color: var(--text-primary); }
+  .cm-table-cell { min-height: 1.6em; padding: 6px 10px; outline: none; white-space: pre-wrap; word-break: break-word; caret-color: var(--accent); }
+  .cm-table td:focus-within, .cm-table th:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cm-table-more { position: absolute; top: 4px; right: 3px; display: none; padding: 1px 3px; border-radius: 4px; background: var(--surface-raised); color: var(--text-tertiary); box-shadow: 0 0 0 0.5px var(--border-strong); cursor: pointer; line-height: 0; }
+  .cm-table-more:hover { color: var(--text-primary); }
+  .cm-table td:hover .cm-table-more, .cm-table th:hover .cm-table-more, .cm-table td:focus-within .cm-table-more, .cm-table th:focus-within .cm-table-more { display: block; }
+  .cm-table-add-row, .cm-table-add-col { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); color: var(--text-tertiary); cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+  .cm-table-add-row { left: 0; right: 22px; bottom: 2px; height: 18px; }
+  .cm-table-add-col { top: 0; right: 2px; bottom: 22px; width: 18px; }
+  .cm-table:hover .cm-table-add-row, .cm-table:hover .cm-table-add-col, .cm-table:focus-within .cm-table-add-row, .cm-table:focus-within .cm-table-add-col { opacity: 1; }
+  .cm-table-add-row:hover, .cm-table-add-col:hover { background: var(--bg-hover); color: var(--text-primary); }
+  @media (hover: none) { .cm-table-add-row, .cm-table-add-col { opacity: 0.6; } .cm-table-more { display: block; opacity: 0.7; } }
+
+  /* 數學公式（KaTeX） */
+  .cm-math { cursor: pointer; }
+  .cm-math.is-loading { font-family: var(--font-mono); font-size: 0.88em; color: var(--text-tertiary); }
+  .cm-math-block { display: block; padding: 4px 0; overflow-x: auto; overflow-y: hidden; text-align: center; }
+  span.cm-math-block { display: inline-block; max-width: 100%; vertical-align: middle; }
+  .cm-math .katex-display { margin: 0.4em 0; }
+  .cm-math .katex-error { color: var(--warn-deep, #c00) !important; font-family: var(--font-mono); font-size: 0.86em; }
+  .cm-lp-math-inline { font-family: var(--font-mono); font-size: 0.88em; color: var(--accent-deep); }
+  .cm-lp-math-src { font-family: var(--font-mono); font-size: 0.86em; line-height: 1.6; background: var(--bg-panel); color: var(--accent-deep); }
   .cm-lp-yaml { font-family: var(--font-mono); font-size: 0.82em; color: var(--text-tertiary); }
 
   /* Live Preview */

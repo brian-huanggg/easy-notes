@@ -56,7 +56,7 @@ public enum AnkiExport {
     static func cloze(_ text: String) -> String {
         CardSyntax.clozeSegments(text).map { segment in
             guard let index = segment.cloze else { return html(segment.text) }
-            return "{{c\(index + 1)::\(html(segment.text))}}"
+            return "{{c\(index + 1)::\(html(segment.text, inCloze: true))}}"
         }
         .joined()
     }
@@ -72,23 +72,45 @@ public enum AnkiExport {
     // MARK: Markdown → HTML
 
     /// 行內 Markdown 轉成 Anki 的 HTML：粗體、斜體、刪除線、螢光、行內程式碼、連結、`[[連結]]`（只留顯示文字）。
-    /// 行內程式碼中的內容不轉換
-    static func html(_ markdown: String) -> String {
-        let code = CardSyntax.codeSpans(in: markdown[...])
-        var result = ""
-        var last = markdown.startIndex
-        for span in code {
-            result += inline(String(markdown[last..<span.lowerBound]))
-            let ticks = markdown[span].prefix { $0 == "`" }.count
-            let content = markdown[span].dropFirst(ticks).dropLast(ticks).trimmingCharacters(in: .whitespaces)
-            result += "<code>\(escape(content))</code>"
+    /// 公式 `$…$` → `\(…\)`、`$$…$$` → `\[…\]`（Anki 內建的 MathJax）。行內程式碼與公式中的內容不轉換；
+    /// 克漏字內的公式把 `}}` 改成 `} }`，否則 Anki 會在那裡結束克漏字
+    static func html(_ markdown: String, inCloze: Bool = false) -> String {
+        let text = markdown[...]
+        let code = CardSyntax.codeSpans(in: text)
+        let math = CardSyntax.mathSpans(in: text, code: code)
+        let spans = (code.map { ($0, nil as CardSyntax.MathSpan?) } + math.map { ($0.range, $0) })
+            .sorted { $0.0.lowerBound < $1.0.lowerBound }
+        // 程式碼與公式先換成私用字元，其餘文字整段轉換（`**$x$**` 的粗體才不會被切斷），最後再換回來
+        var masked = ""
+        var pieces: [String] = []
+        var last = text.startIndex
+        for (span, formula) in spans {
+            masked += text[last..<span.lowerBound]
+            masked.append(placeholder)
+            if let formula {
+                var latex = escape(String(text[formula.content]))
+                if inCloze { latex = latex.replacingOccurrences(of: "}}", with: "} }") }
+                pieces.append(formula.display ? "\\[\(latex)\\]" : "\\(\(latex)\\)")
+            } else {
+                let ticks = text[span].prefix { $0 == "`" }.count
+                let content = text[span].dropFirst(ticks).dropLast(ticks).trimmingCharacters(in: .whitespaces)
+                pieces.append("<code>\(escape(content))</code>")
+            }
             last = span.upperBound
         }
-        return result + inline(String(markdown[last...]))
+        masked += text[last...]
+        var result = ""
+        var next = pieces.makeIterator()
+        for char in inline(masked) {
+            if char == placeholder, let piece = next.next() { result += piece } else { result.append(char) }
+        }
+        return result
     }
 
+    private static let placeholder: Character = "\u{E001}"
+
     private static func inline(_ text: String) -> String {
-        var s = escape(text)
+        var s = escape(text).replacingOccurrences(of: "\\$", with: "$")
         s = s.replacing(/\[\[([^\[\]|]+)\|([^\[\]]+)\]\]/) { String($0.2) }
         s = s.replacing(/\[\[([^\[\]]+)\]\]/) { String($0.1) }
         s = s.replacing(/\[([^\]]+)\]\(([^)\s]+)\)/) { "<a href=\"\($0.2)\">\($0.1)</a>" }

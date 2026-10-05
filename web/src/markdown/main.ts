@@ -14,12 +14,15 @@ import { tags } from "@lezer/highlight";
 import { t } from "../shared/i18n";
 import { post } from "./bridge";
 import { cards } from "./cards";
+import { editorFocus } from "./editorFocus";
 import { docHeader, frontmatterRange, setFrontmatterField, setModified } from "./docHeader";
 import { LinkTarget, linkCards, setLinkTargets, targetsChanged } from "./linkCards";
 import { lineBreakExtension, lineBreakOf, lines, normalized } from "./lineBreak";
 import { livePreview } from "./livePreview";
+import { blockMath, mathLoaded, mathSyntax, onMathReady } from "./math";
 import { rebase } from "./rebase";
 import { StateCache } from "./stateCache";
+import { focusCell, tableWidgets } from "./tableWidget";
 
 declare global {
   interface Window {
@@ -77,9 +80,12 @@ const extensions = [
   history(),
   drawSelection(),
   EditorView.lineWrapping,
-  markdown({ base: markdownLanguage }),
+  markdown({ base: markdownLanguage, extensions: [mathSyntax] }),
   syntaxHighlighting(highlight),
+  editorFocus,
   livePreview,
+  blockMath,
+  tableWidgets,
   cards,
   docHeader,
   linkCards,
@@ -159,6 +165,9 @@ const view = new EditorView({
   parent: document.getElementById("editor")!,
   state: EditorState.create({ doc: "", extensions }),
 });
+
+// KaTeX 第一次載入完成：重畫公式
+onMathReady(() => view.dispatch({ effects: mathLoaded.of(null) }));
 
 function scheduleFlush() {
   dirty = true;
@@ -341,10 +350,15 @@ const api = {
       case "link": wrap("[[", "]]"); break;
       case "insertText": if (arg) insertBlock(arg); break;
       case "table": {
-        // 建立當下依介面語言產生；選取第一個欄名，打字即可取代
+        // 建立當下依介面語言產生；插入後焦點放在第一個欄名（全選，打字即可取代），游標留在表格下一行
         const columns = [1, 2, 3].map((n) => t("欄位 {n}", { n }));
-        insertBlock(`| ${columns.join(" | ")} |\n| --- | --- | --- |\n|  |  |  |`, [2, 2 + columns[0].length]);
-        break;
+        insertBlock(`| ${columns.join(" | ")} |\n| --- | --- | --- |\n|  |  |  |`);
+        const end = view.state.doc.lineAt(view.state.selection.main.head);
+        const start = view.state.doc.line(end.number - 2).from;
+        if (end.number === view.state.doc.lines) view.dispatch({ changes: { from: end.to, insert: Text.of(["", ""]) } });
+        view.dispatch({ selection: EditorSelection.cursor(end.to + 1) });
+        focusCell(view, start, 0, 0, true);
+        return;
       }
     }
     view.focus();

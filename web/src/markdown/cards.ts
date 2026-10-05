@@ -1,17 +1,18 @@
 // 卡片語法標示（Vault 的 Markdown 方言）。規則與 Swift 端 Flashcards 的 CardSyntax 一致：
 //   `問 :: 答` 正向、`中文 ;; English` 雙向、`{{答案}}` 克漏字、行尾 `^id` 是卡片的身分
-//   `::`、`;;` 前後要有空白；程式碼與 frontmatter 內不算
+//   `::`、`;;` 前後要有空白；程式碼、公式（`$…$`）與 frontmatter 內不算
 // 游標所在行顯示原始語法（`^id` 淡化）；其他行 `::` / `;;` 換成箭頭、克漏字隱藏括號、`^id` 隱藏。
 // 只標示，不改內容：`^id` 由 App 在離開檔案後補上，打字與注音組字中不會插入文字。
-import { RangeSetBuilder } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
+import { EditorState, RangeSetBuilder } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { t } from "../shared/i18n";
 import { frontmatterRange } from "./docHeader";
+import { clozeMatches, mathSpans } from "./cardSyntax";
 import { activeLines, inCode } from "./livePreview";
 
 const BLOCK_ID = /\s\^([A-Za-z0-9-]+)\s*$/;
 const LINE_PREFIX = /^\s*(?:>\s?)*\s*(?:#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/;
-const CLOZE = /\{\{([^{}\n]+?)\}\}/g;
 const SEPARATOR = /\s(::|;;)(?=\s)/g;
 
 class SeparatorWidget extends WidgetType {
@@ -38,6 +39,21 @@ const idMark = Decoration.mark({ class: "cm-card-id" });
 const forwardWidget = Decoration.replace({ widget: new SeparatorWidget(false) });
 const bidirectionalWidget = Decoration.replace({ widget: new SeparatorWidget(true) });
 
+/// 一行中行內程式碼的範圍（文件位置）；每個字元都查語法樹太慢，所以一行查一次
+function inlineCode(state: EditorState, from: number, to: number): { from: number; to: number }[] {
+  const ranges: { from: number; to: number }[] = [];
+  syntaxTree(state).iterate({
+    from,
+    to,
+    enter: (n) => {
+      if (n.name !== "InlineCode") return;
+      ranges.push({ from: n.from, to: n.to });
+      return false;
+    },
+  });
+  return ranges;
+}
+
 function build(view: EditorView): DecorationSet {
   const { state } = view;
   const active = view.hasFocus ? activeLines(state) : new Set<number>();
@@ -60,18 +76,22 @@ function build(view: EditorView): DecorationSet {
       const at = (offset: number) => line.from + start + offset;
       const card: typeof ranges = [];
 
-      const clozes = [...body.matchAll(CLOZE)].filter((m) => !inCode(state, at(m.index!)));
+      const code = inlineCode(state, at(0), at(body.length));
+      const codeAt = (offset: number) => code.some((r) => at(offset) >= r.from && at(offset) < r.to);
+      const math = body.includes("$") ? mathSpans(body, codeAt) : [];
+      const inMath = (offset: number) => math.some((m) => offset >= m.from && offset < m.to);
+      const clozes = clozeMatches(body, codeAt, math);
       if (clozes.length > 0) {
-        if (clozes.some((m) => !m[1].trim())) continue;
+        if (clozes.some((m) => !m.answer.trim())) continue;
         for (const m of clozes) {
-          const open = at(m.index!);
-          const close = open + m[0].length - 2;
+          const open = at(m.from);
+          const close = at(m.to) - 2;
           card.push({ from: open, to: open + 2, deco: isActive ? braceMark : hide });
           card.push({ from: open + 2, to: close, deco: clozeMark });
           card.push({ from: close, to: close + 2, deco: isActive ? braceMark : hide });
         }
       } else {
-        const sep = [...body.matchAll(SEPARATOR)].find((m) => !inCode(state, at(m.index! + 1)));
+        const sep = [...body.matchAll(SEPARATOR)].find((m) => !codeAt(m.index! + 1) && !inMath(m.index! + 1));
         if (!sep) continue;
         const sepFrom = sep.index! + 1;
         if (!body.slice(0, sepFrom).trim() || !body.slice(sepFrom + 2).trim()) continue;

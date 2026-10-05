@@ -61,6 +61,48 @@ struct CardSyntaxTests {
         #expect(CardSyntax.parse("空的 {{ }} 克漏字").isEmpty)
     }
 
+    /// 公式與行內程式碼一樣受保護（web/test/cardSyntax.test.ts 有相同的案例）
+    @Test func mathIsProtected() {
+        #expect(CardSyntax.parse("$a :: b$ 不是卡片").isEmpty)
+        #expect(CardSyntax.parse("$\\frac{{a}}{b}$ 不是克漏字").isEmpty)
+        let fraction = CardSyntax.parse("{{$\\frac{a}{b}$}} 是分數").first
+        #expect(fraction?.type == .cloze)
+        #expect(fraction?.clozes == ["$\\frac{a}{b}$"])
+        let energy = CardSyntax.parse("$E=mc^2$ :: 質能等價").first
+        #expect(energy?.front == "$E=mc^2$")
+        #expect(energy?.back == "質能等價")
+    }
+
+    @Test func mathSpans() {
+        func spans(_ text: String) -> [String] {
+            CardSyntax.mathSpans(in: text[...], code: CardSyntax.codeSpans(in: text[...]))
+                .map { ($0.display ? "D:" : "I:") + text[$0.range] }
+        }
+        #expect(spans("能量 $E=mc^2$ 與 $$\\int_0^1 x\\,dx$$") == ["I:$E=mc^2$", "D:$$\\int_0^1 x\\,dx$$"])
+        // 金額不是公式
+        #expect(spans("$5 和 $10").isEmpty)
+        #expect(spans("花了 $5, 剩 $10.").isEmpty)
+        #expect(spans("$ x$ 與 $x $").isEmpty)
+        #expect(spans("$x$5").isEmpty)
+        #expect(spans("$$ $$").isEmpty)
+        // 跳脫與程式碼
+        #expect(spans("\\$x$").isEmpty)
+        #expect(spans("$a\\$b$") == ["I:$a\\$b$"])
+        #expect(spans("`$x$` 與 $y$") == ["I:$y$"])
+        #expect(spans("$a `b$`").isEmpty)
+    }
+
+    @Test func clozeRulesMatchPreviousRegex() {
+        func answers(_ text: String) -> [String] { CardSyntax.clozeMatches(in: text[...]).map { String($0.answer) } }
+        #expect(answers("{{}}").isEmpty)
+        #expect(answers("{{{a}}") == ["a"])
+        #expect(answers("{{a}}}") == ["a"])
+        #expect(answers("{{a}b}}").isEmpty)
+        #expect(answers("`{{b}}` 與 {{c}}") == ["c"])
+        #expect(answers("{{a `b`}}").isEmpty)
+        #expect(answers("$x$ 與 {{y}}") == ["y"])
+    }
+
     @Test func firstSeparatorWins() {
         let note = CardSyntax.parse("a ;; b :: c").first
         #expect(note?.type == .bidirectional)

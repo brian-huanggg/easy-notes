@@ -188,16 +188,15 @@ struct CardView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(L("問題")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
-                Self.text(card.front, highlight: Palette.cardNew)
-                    .textStyle(TextStyle(card.type == .cloze ? 26 : 34, .semibold))
+                CardText(segments: card.front, style: TextStyle(card.type == .cloze ? 26 : 34, .semibold),
+                         highlight: Palette.cardNew)
                     .foregroundStyle(Palette.textPrimary)
             }
             if showingAnswer {
                 Rectangle().fill(Palette.border).frame(height: 1).padding(.vertical, 30)
                 VStack(alignment: .leading, spacing: 16) {
                     Text(L("答案")).textStyle(TextStyle(10, .semibold, tracking: 0.8)).foregroundStyle(Palette.textTertiary)
-                    Self.text(card.back, highlight: Palette.cardDue)
-                        .textStyle(TextStyle(23, .semibold))
+                    CardText(segments: card.back, style: TextStyle(23, .semibold), highlight: Palette.cardDue)
                         .foregroundStyle(Palette.textPrimary)
                 }
             }
@@ -244,14 +243,6 @@ struct CardView: View {
         HStack(spacing: 6) {
             ForEach(tags, id: \.self) { Pill("#\($0)") }
             if lapses > 0 { Pill(L("遺忘 \(lapses) 次"), dot: Palette.cardLearn) }
-        }
-    }
-
-    /// 克漏字的挖空處與答案以顏色標示
-    static func text(_ segments: [StudyCard.Segment], highlight: ColorToken) -> Text {
-        segments.reduce(Text("")) { result, segment in
-            let piece = Text(segment.text)
-            return result + (segment.emphasized ? piece.foregroundColor(highlight.color) : piece)
         }
     }
 }
