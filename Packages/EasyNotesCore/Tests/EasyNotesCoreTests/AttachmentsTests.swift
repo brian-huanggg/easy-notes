@@ -10,4 +10,9 @@ struct AttachmentsTests {
         #expect(Attachments.legacyPath(for: "Attachments/") == nil)
         #expect(Attachments.legacyPath(for: "AttachmentsX/a.png") == nil)
     }
+
+    @Test func embedPathDefaultsToAttachmentsFolder() {
+        #expect(Attachments.embedPath("a.png") == "Attachments/a.png")
+        #expect(Attachments.embedPath("圖/a.png") == "圖/a.png")
+    }
 }

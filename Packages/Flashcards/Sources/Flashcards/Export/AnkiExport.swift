@@ -36,8 +36,8 @@ public enum AnkiExport {
 
     static func row(_ note: CardNote, path: String, tags: [String]) -> [String] {
         let fields: (String, String) = switch note.type {
-        case .forward, .bidirectional: (html(note.front), html(note.back))
-        case .cloze: (cloze(note.front), "")
+        case .forward, .bidirectional: (content(note.front), content(note.back))
+        case .cloze: (content(note.front, cloze: true), content(note.back))
         }
         return [note.id ?? "", deck(path), fields.0, fields.1, tags.map(tag).joined(separator: " ")]
     }
@@ -54,11 +54,107 @@ public enum AnkiExport {
 
     /// 克漏字：第 n 個 `{{}}` → `{{cn::…}}`，其餘文字轉成 HTML
     static func cloze(_ text: String) -> String {
-        CardSyntax.clozeSegments(text).map { segment in
-            guard let index = segment.cloze else { return html(segment.text) }
-            return "{{c\(index + 1)::\(html(segment.text, inCloze: true))}}"
+        content(text, cloze: true)
+    }
+
+    /// 欄位內容轉成 HTML。多行：行與行之間 `<br>`、空行 `<br><br>`、清單 `<ul>` / `<ol>`、程式碼區塊 `<pre><code>`；
+    /// 圖片 `![[x.png]]` → `<img src="x.png">`（Anki 的 `collection.media` 只有檔名）。
+    /// `cloze`：`{{}}` 依整筆 note 的出現順序轉成 `{{cn::…}}`
+    static func content(_ text: String, cloze: Bool = false) -> String {
+        var number: Int? = cloze ? 0 : nil
+        guard text.contains("\n") else { return line(text, number: &number) }
+        let lines = CardSyntax.lines(text)
+        let fences = CardSyntax.fenceFlags(lines)
+        var out = ""
+        var lists: [(indent: Int, tag: String)] = []
+        /// 上一個輸出的是文字行（下一行文字前要 `<br>`）
+        var afterText = false
+        var blank = false
+        func closeLists(above indent: Int) {
+            while let top = lists.last, top.indent > indent {
+                out += "</\(top.tag)>"
+                lists.removeLast()
+            }
         }
-        .joined()
+        var n = 0
+        while n < lines.count {
+            if fences[n] {
+                closeLists(above: -1)
+                var code: [String] = []
+                var m = n + 1
+                while m < lines.count, fences[m], CardSyntax.fenceMarker(lines[m]) == nil {
+                    code.append(lines[m])
+                    m += 1
+                }
+                if m < lines.count, fences[m] { m += 1 }
+                out += "<pre><code>" + code.map(escape).joined(separator: "<br>") + "</code></pre>"
+                afterText = false
+                blank = false
+                n = m
+                continue
+            }
+            let raw = lines[n]
+            n += 1
+            if raw.allSatisfy(\.isWhitespace) {
+                blank = true
+                continue
+            }
+            let indent = CardSyntax.indentColumns(raw.prefix { $0 == " " || $0 == "\t" })
+            if let item = raw.wholeMatch(of: /([ \t]*)([-*+]|\d+[.)])[ \t]+(.*)/) {
+                let tag = item.2.first?.isNumber == true ? "ol" : "ul"
+                closeLists(above: indent)
+                // 同一層換了清單種類（`-` → `1.`）：關掉重開
+                if let top = lists.last, top.indent == indent, top.tag != tag {
+                    out += "</\(top.tag)>"
+                    lists.removeLast()
+                }
+                if lists.last.map({ indent > $0.indent }) ?? true {
+                    out += "<\(tag)>"
+                    lists.append((indent, tag))
+                }
+                out += "<li>" + line(String(item.3), number: &number) + "</li>"
+                afterText = false
+                blank = false
+                continue
+            }
+            let body = line(raw.trimmingCharacters(in: .whitespaces), number: &number)
+            if indent > 0, !lists.isEmpty {
+                // 清單項目的續行
+                out += "<li style=\"list-style:none\">" + body + "</li>" // l10n:fixed HTML
+                continue
+            }
+            closeLists(above: -1)
+            if afterText { out += blank ? "<br><br>" : "<br>" }
+            out += body
+            afterText = true
+            blank = false
+        }
+        closeLists(above: -1)
+        return out
+    }
+
+    /// 一行：圖片換成 `<img>`，其餘轉成 HTML；`number` 不是 nil 時轉換克漏字並累加編號
+    private static func line(_ text: String, number: inout Int?) -> String {
+        var result = ""
+        var rest = text[...]
+        func part(_ piece: Substring) {
+            guard let start = number else { return result += html(String(piece)) }
+            for segment in CardSyntax.clozeSegments(String(piece)) {
+                if let index = segment.cloze {
+                    result += "{{c\(start + index + 1)::\(html(segment.text, inCloze: true))}}"
+                } else {
+                    result += html(segment.text)
+                }
+            }
+            number = start + CardSyntax.clozeAnswers(String(piece)).count
+        }
+        while let match = rest.firstMatch(of: CardMarkup.image) {
+            part(rest[..<match.range.lowerBound])
+            result += "<img src=\"\(escape((String(match.1) as NSString).lastPathComponent))\">" // l10n:fixed HTML
+            rest = rest[match.range.upperBound...]
+        }
+        part(rest)
+        return result
     }
 
     /// 含 `"`、tab 或換行時加上引號（雙引號重複一次），其餘原樣輸出

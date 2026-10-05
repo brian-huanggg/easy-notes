@@ -1,6 +1,7 @@
 // 卡片語法的純函式（不碰 DOM），規則與 Swift 端 Flashcards 的 CardSyntax 一致：
 //   公式 `$…$`、`$$…$$` 與行內程式碼一樣受保護，裡面的 `::`、`;;`、`{{`、`}}` 不算卡片語法
-//   克漏字的 `{{`、`}}` 要在公式與程式碼之外；內容中的 `{`、`}` 只能出現在公式裡
+//   克漏字的 `{{`、`}}` 要在公式與程式碼之外；內容中的 `{`、`}` 只能出現在公式或行內程式碼裡（程式碼要完整包在克漏字內）
+//   多行 note：清單項目以 ` ::` / ` ;;` 結尾時，縮排的子行屬於同一筆 note（`blockHead`、`blockEnd`）
 // `inCode(offset)`：該位置是否在行內程式碼中（編輯器由語法樹判斷）
 
 export interface MathSpan {
@@ -73,7 +74,7 @@ function closing(text: string, start: number, display: boolean, inCode: (offset:
   return null;
 }
 
-/// 克漏字 `{{答案}}`：答案至少一個字元，不含換行；`{`、`}` 只能在公式裡；不能跨進程式碼
+/// 克漏字 `{{答案}}`：答案至少一個字元，不含換行；`{`、`}` 只能在公式或程式碼裡；程式碼要完整在答案內
 export function clozeMatches(
   text: string,
   inCode: (offset: number) => boolean = () => false,
@@ -96,7 +97,12 @@ export function clozeMatches(
         j = span.to;
         continue;
       }
-      if (inCode(j) || text[j] === "\n" || text[j] === "{") break;
+      // `{{` 在程式碼之外，所以答案中遇到的程式碼都從答案內開始，整段跳過
+      if (inCode(j)) {
+        while (j < text.length && inCode(j)) j++;
+        continue;
+      }
+      if (text[j] === "\n" || text[j] === "{") break;
       if (text[j] === "}") {
         if (j > start && text[j + 1] === "}" && !inCode(j + 1)) end = j;
         break;
@@ -112,3 +118,65 @@ export function clozeMatches(
   }
   return result;
 }
+
+const BLOCK_ID = /\s\^([A-Za-z0-9-]+)\s*$/;
+const LIST_ITEM = /^([ \t]*)([-*+]|\d+[.)])([ \t]+)/;
+
+/// 縮排的欄數（tab = 4 欄）
+export function indentColumns(line: string): number {
+  let n = 0;
+  for (const c of line) {
+    if (c === " ") n++;
+    else if (c === "\t") n += 4;
+    else break;
+  }
+  return n;
+}
+
+export interface BlockHead {
+  /// 子行的縮排門檻（清單文字的起點）
+  column: number;
+  /// 行尾分隔符號在該行的位置
+  sepFrom: number;
+  bidirectional: boolean;
+}
+
+/// 多行 note 的首行：清單項目、去掉 `^id` 後以 ` ::` / ` ;;` 結尾（不在程式碼與公式內），前面要有文字。
+/// `inCode(offset)` 的 offset 是該行內的位置
+export function blockHead(text: string, inCode: (offset: number) => boolean = () => false): BlockHead | null {
+  const id = BLOCK_ID.exec(text);
+  const content = (id ? text.slice(0, id.index) : text).replace(/\s+$/, "");
+  const item = LIST_ITEM.exec(content);
+  if (!item) return null;
+  const start = item[0].length;
+  const body = content.slice(start);
+  const symbol = body.slice(-2);
+  if (body.length <= 3 || (symbol !== "::" && symbol !== ";;") || !isSpace(body[body.length - 3])) return null;
+  if (!body.slice(0, -2).trim()) return null;
+  const off = body.length - 2;
+  const codeAt = (o: number) => inCode(start + o);
+  if (codeAt(off) || codeAt(off + 1)) return null;
+  if (mathSpans(body, codeAt).some((m) => m.from < off + 2 && m.to > off)) return null;
+  return {
+    column: indentColumns(item[1]) + item[2].length + Math.min(item[3].length, 4),
+    sepFrom: start + off,
+    bidirectional: symbol === ";;",
+  };
+}
+
+/// 子行的範圍：縮排達到 `column` 的行（中間的空行也算，結尾的不算）。回傳最後一個子行；沒有子行時回傳 `head`。
+/// `line(n)` 超出文件時回傳 null
+export function blockEnd(line: (n: number) => string | null, head: number, column: number): number {
+  let end = head;
+  for (let n = head + 1; ; n++) {
+    const text = line(n);
+    if (text === null) break;
+    if (!text.trim()) continue;
+    if (indentColumns(text) < column) break;
+    end = n;
+  }
+  return end;
+}
+
+/// 分界行：只有 `::` 或 `;;`
+export const isDivider = (text: string) => text.trim() === "::" || text.trim() === ";;";

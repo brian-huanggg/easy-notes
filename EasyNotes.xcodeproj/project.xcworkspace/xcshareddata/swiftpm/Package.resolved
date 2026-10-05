@@ -1,5 +1,5 @@
 {
-  "originHash" : "8952bbd6047dac38475bf856cbd9860839c0f59ad2f85ca40f4ac8a3b8f76e91",
+  "originHash" : "1bc9563cce8137389b88fc37479109d8686ff02673b750ebb9158d63f4abac8e",
   "pins" : [
     {
       "identity" : "supabase-swift",
@@ -88,6 +88,15 @@
       "state" : {
         "revision" : "d9308ad679143c26a30dec52daefe82f54af2b82",
         "version" : "1.13.1"
+      }
+    },
+    {
+      "identity" : "zstd",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/facebook/zstd.git",
+      "state" : {
+        "revision" : "f8745da6ff1ad1e7bab384bd1f9d742439278e99",
+        "version" : "1.5.7"
       }
     }
   ],

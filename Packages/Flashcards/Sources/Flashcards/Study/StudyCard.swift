@@ -13,6 +13,8 @@ public struct StudyCard: Identifiable, Equatable, Sendable {
     public let ordinal: Int
     public let front: [Segment]
     public let back: [Segment]
+    /// 多行 note（顯示時用較小的字級）
+    public let multiline: Bool
 
     /// 卡片正反面的一段文字；`emphasized` = 克漏字的答案或挖空處
     public struct Segment: Equatable, Sendable {
@@ -36,7 +38,7 @@ public struct StudyCard: Identifiable, Equatable, Sendable {
         guard let noteID = note.id else { return [] }
         func make(_ id: String, _ ordinal: Int, _ front: [Segment], _ back: [Segment]) -> StudyCard {
             StudyCard(id: id, noteID: noteID, path: path, line: note.line, type: note.type, ordinal: ordinal,
-                      front: front, back: back)
+                      front: front, back: back, multiline: note.endLine > note.line)
         }
         switch note.type {
         case .forward:
@@ -50,7 +52,9 @@ public struct StudyCard: Identifiable, Equatable, Sendable {
                 let front = segments.map { part in
                     part.cloze == target ? Segment(clozeBlank, emphasized: true) : Segment(part.text)
                 }
-                let back = segments.map { Segment($0.text, emphasized: $0.cloze == target) }
+                var back = segments.map { Segment($0.text, emphasized: $0.cloze == target) }
+                // Back Extra 接在答案下方（空一行 = 另起一段）
+                if !note.back.isEmpty { back.append(Segment("\n\n" + note.back)) }
                 return make("\(noteID):\(target + 1)", target, merge(front), merge(back))
             }
         }

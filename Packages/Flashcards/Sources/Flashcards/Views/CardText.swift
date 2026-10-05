@@ -17,17 +17,36 @@ struct CardText: View {
                     Self.text(inlines, size: style.size, highlight: highlight).textStyle(style)
                 case .math(let latex, let mathStyle):
                     DisplayMath(latex: latex, size: style.size, highlight: mathStyle.contains(.cloze) ? highlight : nil)
+                case .listItem(let level, let marker, let inlines):
+                    HStack(alignment: .firstTextBaseline, spacing: style.size * 0.4) {
+                        Text(marker ?? "").textStyle(style).foregroundStyle(Palette.textTertiary)
+                            .frame(minWidth: style.size * 0.6, alignment: .trailing)
+                        Self.text(inlines, size: style.size, highlight: highlight).textStyle(style)
+                    }
+                    .padding(.leading, CGFloat(level) * style.size * 1.2)
+                case .code(let code):
+                    Text(code)
+                        .font(.system(size: style.size * 0.8, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.bgHover))
+                case .image(let path, let width):
+                    CardImage(path: path, width: width)
                 }
             }
         }
     }
 
-    /// 單一個 `Text`（列表等需要 `lineLimit` 的地方）：獨立公式也排在行內
+    /// 單一個 `Text`（列表等需要 `lineLimit` 的地方）：獨立公式也排在行內，區塊之間換行，圖片顯示為檔名
     static func text(_ segments: [StudyCard.Segment], size: CGFloat, highlight: ColorToken) -> Text {
-        let inlines = CardMarkup.blocks(segments).flatMap { block -> [CardMarkup.Inline] in
+        let inlines = CardMarkup.blocks(segments).enumerated().flatMap { index, block -> [CardMarkup.Inline] in
+            let lead: [CardMarkup.Inline] = index == 0 ? [] : [.text("\n")]
             switch block {
-            case .paragraph(let inlines): inlines
-            case .math(let latex, let style): [.text(" "), .math(latex, style), .text(" ")]
+            case .paragraph(let inlines): return lead + inlines
+            case .math(let latex, let style): return lead + [.math(latex, style)]
+            case .listItem(_, let marker, let inlines): return lead + [.text((marker ?? " ") + " ")] + inlines
+            case .code(let code): return lead + [.text(code, .code)]
+            case .image(let path, _): return lead + [.text("[" + (path as NSString).lastPathComponent + "]")] // l10n:fixed
             }
         }
         return text(inlines, size: size, highlight: highlight)
@@ -61,6 +80,36 @@ struct CardText: View {
         }
         if style.contains(.cloze) { result.foregroundColor = highlight.color }
         return result
+    }
+}
+
+/// `![[x.png]]`：寬度不超過卡片（有指定寬度時照指定，不放大），高度上限 400pt；讀不到時顯示原文
+private struct CardImage: View {
+    let path: String
+    let width: Double?
+    @State private var image: PlatformImage?
+    @State private var failed = false
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(platformImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: min(width.map { CGFloat($0) } ?? .infinity, image.size.width), maxHeight: 400)
+            } else if failed {
+                Text("![[" + (path as NSString).lastPathComponent + "]]") // l10n:fixed 嵌入語法
+                    .textStyle(.meta)
+                    .foregroundStyle(Palette.textSecondary)
+            } else {
+                Color.clear.frame(height: 40)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: path) {
+            image = await ReviewStore.shared.cardImage(path)
+            failed = image == nil
+        }
     }
 }
 
@@ -165,13 +214,13 @@ enum MathImage {
 #if os(macOS)
 typealias PlatformImage = NSImage
 
-private extension Image {
+extension Image {
     init(platformImage: NSImage) { self.init(nsImage: platformImage) }
 }
 #else
 typealias PlatformImage = UIImage
 
-private extension Image {
+extension Image {
     init(platformImage: UIImage) { self.init(uiImage: platformImage) }
 }
 #endif
