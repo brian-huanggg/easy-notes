@@ -1,21 +1,21 @@
 import Foundation
 
-/// 附件（封面、插入的圖片）放在 Vault 根目錄的 `Attachments/`。
-/// 舊版放在 `附件/`：不搬動、不改寫連結，讀取時找不到 `Attachments/` 的檔案才改找 `附件/`。
-/// 兩個名稱都是路徑，被連結引用、跨裝置同步，不隨介面語言改變。
+/// Attachments (cover, inserted images) live in the vault root's `Attachments/`.
+/// Older versions used `附件/`: not moved and links not rewritten; when a file is not found in `Attachments/` on read, `附件/` is tried.
+/// Both names are paths, referenced by links and synced across devices, and never change with the UI language.
 public enum Attachments {
     public static let folder = "Attachments" // l10n:fixed
     public static let legacyFolder = "附件" // l10n:fixed
 
-    /// 可以用 `![[x.png]]` 嵌入顯示的圖片副檔名（小寫）
+    /// Image extensions (lowercase) that can be shown embedded with `![[x.png]]`
     public static let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "heic", "avif"] // l10n:fixed
 
-    /// `![[x.png]]` 的目標路徑（與編輯器 `linkCards.ts` 相同）：沒有 `/` 時在 `Attachments/`，有 `/` 時是 Vault 相對路徑
+    /// The target path of `![[x.png]]` (same as the editor's `linkCards.ts`): without `/` it is in `Attachments/`, with `/` it is a vault-relative path
     public static func embedPath(_ target: String) -> String {
         target.contains("/") ? target : folder + "/" + target
     }
 
-    /// `Attachments/a.png` → `附件/a.png`；不在 `Attachments/` 底下時回傳 nil
+    /// `Attachments/a.png` → `附件/a.png`; nil when not under `Attachments/`
     public static func legacyPath(for path: String) -> String? {
         let prefix = folder + "/"
         guard path.hasPrefix(prefix), path.count > prefix.count else { return nil }

@@ -2,7 +2,7 @@ import EasyNotesCore
 import EasyNotesUI
 import SwiftUI
 
-/// 內容區上方的分頁列（Mac / iPad）：只有一個分頁時不顯示
+/// The tab bar above the content area (Mac / iPad): hidden when there is only one tab
 struct DocumentTabBar: View {
     @Environment(VaultStore.self) private var store
 

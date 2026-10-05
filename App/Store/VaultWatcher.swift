@@ -4,9 +4,9 @@ import Foundation
 #if os(macOS)
 import CoreServices
 
-/// 監看 Vault 的外部修改（Finder、VS Code、Claude Code、git…）。FSEvents 會收到所有寫入，
-/// 不需要其他 App 使用 NSFileCoordinator。只回報事件帶來的路徑（相對於 Vault），
-/// `.easynotes/`（索引、快取、同步狀態）的變動會被忽略。
+/// Watches the vault for external changes (Finder, VS Code, Claude Code, git…). FSEvents receives all writes,
+/// so other apps need not use NSFileCoordinator. Reports only the paths the event carries (relative to the vault);
+/// changes under `.easynotes/` (index, cache, sync state) are ignored.
 final class VaultWatcher: @unchecked Sendable {
     private var stream: FSEventStreamRef?
     private let root: URL
@@ -34,7 +34,7 @@ final class VaultWatcher: @unchecked Sendable {
         FSEventStreamStart(stream)
     }
 
-    /// 絕對路徑 → Vault 內相對路徑；Vault 根目錄、隱藏檔與 `.easynotes/` 回傳 nil
+    /// Absolute path → vault-relative path; the vault root, hidden files and `.easynotes/` return nil
     private func relativePath(_ absolute: String) -> String? {
         let base = root.path(percentEncoded: false).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let full = absolute.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
@@ -52,7 +52,7 @@ final class VaultWatcher: @unchecked Sendable {
     }
 }
 #else
-/// iOS 沒有 FSEvents；改在 App 回到前景時同步（見 EasyNotesApp 的 scenePhase）
+/// iOS has no FSEvents; sync runs when the app returns to the foreground instead (see scenePhase in EasyNotesApp)
 final class VaultWatcher: @unchecked Sendable {
     init(root: URL, onChange: @escaping @MainActor @Sendable (Set<String>) -> Void) {}
 }

@@ -1,14 +1,14 @@
 import Foundation
 
-/// Fractional index（Excalidraw 的 `index` 欄位用的是 rocicorp/fractional-indexing，base62）。
-/// 在兩個 key 之間永遠能產生新的 key，所以插入元素不必改動其他元素，合併時也能依 key 排序。
+/// Fractional index (Excalidraw's `index` field uses rocicorp/fractional-indexing, base62).
+/// A new key can always be generated between two keys, so inserting an element changes no other element and merging can sort by key.
 enum FractionalIndex {
     struct Invalid: Error { let reason: String }
 
     private static let digits = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz")
     private static let smallestInteger = "A" + String(repeating: "0", count: 26)
 
-    /// 逐 byte 比較（與 JS 的字串比較一致）；key 都是 ASCII
+    /// Compares byte by byte (consistent with JS string comparison); keys are all ASCII
     static func less(_ a: String, _ b: String) -> Bool {
         a.utf8.lexicographicallyPrecedes(b.utf8)
     }
@@ -17,7 +17,7 @@ enum FractionalIndex {
         (try? validate(key)) != nil
     }
 
-    /// `a` 與 `b` 之間的 key；`a` 為 nil = 最前面，`b` 為 nil = 最後面
+    /// The key between `a` and `b`; `a` nil = at the very front, `b` nil = at the very end
     static func between(_ a: String?, _ b: String?) throws -> String {
         if let a { try validate(a) }
         if let b { try validate(b) }
@@ -44,7 +44,7 @@ enum FractionalIndex {
         return ia + (try midpoint(fa, nil))
     }
 
-    /// `a` 與 `b` 之間的 `n` 個 key（遞增）
+    /// `n` keys between `a` and `b` (ascending)
     static func between(_ a: String?, _ b: String?, count n: Int) throws -> [String] {
         if n <= 0 { return [] }
         if n == 1 { return [try between(a, b)] }
@@ -65,7 +65,7 @@ enum FractionalIndex {
         return try between(a, c, count: mid) + [c] + between(c, b, count: n - mid - 1)
     }
 
-    // MARK: 內部
+    // MARK: Internal
 
     private static func midpoint(_ a: String, _ b: String?) throws -> String {
         let a = Array(a), b = b.map(Array.init)
@@ -87,7 +87,7 @@ enum FractionalIndex {
         let digitA = a.first.flatMap { digits.firstIndex(of: $0) } ?? 0
         let digitB = b?.first.flatMap { digits.firstIndex(of: $0) } ?? digits.count
         if digitB - digitA > 1 {
-            // JS 的 Math.round(0.5 * x) 對 .5 進位
+            // JS's Math.round(0.5 * x) rounds .5 up
             return [digits[(digitA + digitB + 1) / 2]]
         }
         if let b, b.count > 1 { return [b[b.startIndex]] }

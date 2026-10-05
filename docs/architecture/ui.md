@@ -1,80 +1,79 @@
-# 外殼、列表與編輯器（UI）
+# Shell, Lists and Editor (UI)
 
-外殼依 `design/easy-notes-ui.pen`（節點 id 見 Roadmap「Phase 2.5」）；設計稿不改變資料模型與外掛邊界。
+The shell follows `design/easy-notes-ui.pen`; the design file does not change the data model or plugin boundaries.
 
-## 設計稿與 EasyNotes 模型的對應
+## Mapping from the design file to the EasyNotes model
 
-| 設計稿 | EasyNotes 對應 |
+| Design | EasyNotes counterpart |
 | --- | --- |
-| 側邊欄 Vault 標頭（名稱 + 帳號） | 單一 Vault，不可切換；帳號來自 Supabase Auth |
-| Spaces | Vault 根目錄的第一層資料夾；`+` = 新增第一層資料夾 |
-| All Documents / Recents | 索引的 `files` 表，依 `mtime` 排序 |
-| Pinned（側邊欄與列表頁同一概念） | frontmatter `pinned: true`（跟著檔案同步、Claude Code 可讀寫） |
-| Tags | 現有標籤索引 |
-| 篩選 All / Notes / Boards / PDFs / Sheets | 依 Registry 中已註冊的 Kind 產生；尚未實作的外掛不顯示 |
-| 類型顏色 `type-doc` / `type-board` / `type-pdf` / `type-csv` | 外掛註冊 Kind 時一併提供顏色，App 不寫死 |
-| 卡片縮圖與副標（「CSV · 86 rows」「PDF · 18 pages」） | 各外掛的 DocumentPreviewProvider 產生縮圖與一行摘要 |
-| New Document 選單（⌘N、⇧⌘N、匯入 PDF / CSV、新資料夾） | `addNewFile` 加上 `addImport`（把外部檔案複製進 Vault） |
-| 文件 icon、封面、標籤 | frontmatter `icon`、`cover`（Vault 內圖片路徑）、`tags` |
-| Review | Flashcards 外掛以 `addPanel` 註冊；沒有註冊時不顯示 |
-| Recently Deleted（保留 30 天） | 「最近刪除」 |
-| Synced · 2 min ago | 同步狀態（已同步 / 待上傳 / 衝突） |
-| 資料夾圖示（`folder-open`） | 在 Finder 中顯示（iOS：在「檔案」App 中顯示） |
-| Me（Mobile 分頁） | 帳號、同步面板、設定 |
+| Sidebar vault header (name + account) | A single vault, not switchable; the account comes from Supabase Auth |
+| Spaces | First-level folders of the vault root; `+` = new first-level folder |
+| All Documents / Recents | The index's `files` table, ordered by `mtime` |
+| Pinned (same concept in sidebar and list page) | frontmatter `pinned: true` (syncs with the file, readable and writable by Claude Code) |
+| Tags | The existing tag index |
+| Filter All / Notes / Boards / PDFs / Sheets | Generated from the Kinds registered in the Registry; plugins that are not implemented are not shown |
+| Type colors `type-doc` / `type-board` / `type-pdf` / `type-csv` | Plugins provide the color when registering a Kind; the App hardcodes nothing |
+| Card thumbnail and subtitle ("CSV · 86 rows", "PDF · 18 pages") | Each plugin's DocumentPreviewProvider produces the thumbnail and a one-line summary |
+| New Document menu (⌘N, ⇧⌘N, import PDF / CSV, new folder) | `addNewFile` plus `addImport` (copies an external file into the vault) |
+| Document icon, cover, tags | frontmatter `icon`, `cover` (image path in the vault), `tags` |
+| Review | Registered by the Flashcards plugin with `addPanel`; hidden when not registered |
+| Recently Deleted (kept 30 days) | "Recently Deleted" |
+| Synced · 2 min ago | Sync status (synced / pending upload / conflict) |
+| Folder icon (`folder-open`) | Reveal in Finder (iOS: show in the Files app) |
+| Me (Mobile tab) | Account, sync panel, settings |
 
-## 設計系統
+## Design system
 
-- Pen variables（`mode: light / dark`）轉成 `EasyNotesUI/DesignSystem/`：`Palette`、`KindTint`、`TextStyle`、`Metrics`、`ThemeCSS` 與共用元件（Sidebar Item、Icon Button、Doc Card、Doc Row、Pin Card、Tab Bar、空狀態）。類型顏色由外掛註冊 Kind 時提供，App 與列表頁只讀 Registry。
-- 同一組 tokens 由 `ThemeCSS.stylesheet()` 輸出成 CSS variables，WebEditorHost 以 user script 在頁面載入前注入 CM6（不經 Bridge）；WebView 自己跟隨系統深淺色。
-- 字型：Pen 不支援蘋果字型，設計稿以 Inter 代替（`font-ui`、`font-doc`、`font-cjk`）。實作一律用系統字型：拉丁字 SF Pro、中文蘋方-繁（SwiftUI 預設；CM6 用 `-apple-system`），不打包 Inter；字級、字重、行高照設計稿。
-- `DesignSystemGallery` 可在 Xcode Preview 或 `EASYNOTES_SNAPSHOT_DIR=… swift test` 輸出截圖，與設計稿比對。
+- Pen variables (`mode: light / dark`) become `EasyNotesUI/DesignSystem/`: `Palette`, `KindTint`, `TextStyle`, `Metrics`, `ThemeCSS` and shared components (Sidebar Item, Icon Button, Doc Card, Doc Row, Pin Card, Tab Bar, empty state). Type colors are provided by plugins when they register a Kind; the App and list pages only read the Registry.
+- The same tokens are emitted as CSS variables by `ThemeCSS.stylesheet()`; WebEditorHost injects them into CM6 as a user script before the page loads (not through the Bridge); the WebView follows the system light / dark mode by itself.
+- Fonts: Pen does not support Apple fonts, so the design uses Inter as a stand-in (`font-ui`, `font-doc`, `font-cjk`). The implementation always uses system fonts: SF Pro for Latin text and PingFang TC for Chinese (SwiftUI default; CM6 uses `-apple-system`); Inter is not bundled; sizes, weights and line heights follow the design.
+- `DesignSystemGallery` can render screenshots in an Xcode Preview or with `EASYNOTES_SNAPSHOT_DIR=… swift test` for comparison with the design.
 
-## 外殼與導覽
+## Shell and navigation
 
-- **Accessibility identifier**：外殼中 E2E 會操作或檢查的元素（側邊欄項目與檔案樹、列表的文件與篩選、工具列、選單項目、⌘K、編輯器容器）掛 `A11yID` 的 identifier（`App/Support/UITestContract.swift`）。容器用 `.accessibilityElement(children: .contain)` 再掛 identifier，才不會蓋掉子元素的 identifier。新增這類元素時一併加上。
+- **Accessibility identifiers**: shell elements that E2E operates or inspects (sidebar items and file tree, list documents and filters, toolbar, menu items, ⌘K, editor container) carry an `A11yID` identifier (`App/Support/UITestContract.swift`). A container uses `.accessibilityElement(children: .contain)` before getting its identifier, otherwise it would hide its children's identifiers. Add one whenever you add such an element.
+- Navigation = `Route` (all documents / recents / pinned / folder / tag / file / plugin panel) plus back / forward history (⌘[ / ⌘]); the app opens on all documents. iPhone uses bottom tabs (Docs / Search / Spaces / Me) instead of a collapsing `NavigationSplitView`.
+- **Tabs (Mac / iPad, not iPhone)**: a tab bar above the content area (`DocumentTabBar`, shown only with more than one tab). `TabSet<State>` (EasyNotesUI, generic, pure logic) manages only the tab list and the current tab; `VaultStore`'s `TabState` = location + that tab's own back / forward, and the current tab's values stay in sync with `route`, `backStack` and `forwardStack` (didSet). **Background tabs do not hold an editor**: switching = loading that tab's `Route` with the existing editor lifecycle (Markdown swaps `EditorState`, other plugins rebuild), so the tab count does not affect memory.
+  - Opening a file (sidebar, list, ⌘K, `[[link]]`, new, import) opens it in a new tab by default (right of the current tab); a file already open in a tab is switched to instead of duplicated. Folders, tags, lists and plugin panels navigate within the current tab with normal history.
+  - Rename / move updates all tabs; deleting a file or folder closes background tabs pointing to it and the current tab goes up one level. Closing the last tab = replace with "All Documents". After closing a file tab, if nothing else has it open, the editor is told to drop its retained state.
+  - The tab list is stored in `UserDefaults` (per device, not in the vault, not synced), location only and no history; it is restored the first time SplitShell shows on the next launch, skipping files that no longer exist. E2E (`-EasyNotesVaultRoot`, `-EasyNotesOpen`) neither restores nor keeps it.
+  - Shortcuts: ⌘T new tab, ⌘W close, ⇧⌘] / ⇧⌘[ next / previous tab.
+- Plugins add sidebar items with `addPanel`; the App hardcodes none. The backlinks inspector was removed (the index still keeps backlink data).
+- Interface language follows the system between zh-Hant and English (US); see [translation.md](./translation.md).
+- Shortcuts: ⌘K quick open (reuses FTS5 search), Markdown "[[link]]" ⇧⌘K, new note ⌘N, new whiteboard ⇧⌘N, new folder ⇧⌘F.
+- Sidebar file tree: on Mac, double-clicking a file or folder renames it in place (Return confirms, Esc cancels, losing focus confirms; for files only the name changes and the extension is kept); the context-menu "Rename" is still a dialog. Files and folders can be dragged to another folder, and dragging onto the "Spaces" header = move to the vault root; moving does not change the file name, so `[[links]]` need no rewriting; nothing moves when the destination has an item with the same name or a folder is dragged into itself (including its subfolders). Companions, sync (file id preserved), editor and navigation are handled the same as rename. The drag payload is a vault-relative path string, and the drop checks the path exists before moving.
+- The import destination = the current folder (folder page = that folder, editor = the document's folder, other list pages = vault root); there is no separate `Inbox/`.
 
-- 導覽 = `Route`（所有文件 / 最近 / 釘選 / 資料夾 / 標籤 / 檔案 / 外掛面板）＋上一頁 / 下一頁歷史（⌘[ / ⌘]）；App 啟動時顯示所有文件。iPhone 用底部分頁（Docs / Search / Spaces / Me），不用 `NavigationSplitView` 的摺疊。
-- **分頁（Mac / iPad，iPhone 不做）**：內容區上方的分頁列（`DocumentTabBar`，多於一個分頁才顯示）。`TabSet<State>`（EasyNotesUI，泛型、純邏輯）只管分頁清單與目前分頁；`VaultStore` 的 `TabState` = 位置 + 該分頁自己的上一頁 / 下一頁，目前分頁的值與 `route`、`backStack`、`forwardStack` 同步（didSet）。**背景分頁不持有編輯器**：切換 = 載入該分頁的 `Route`，沿用原本的編輯器生命週期（Markdown 換 `EditorState`、其他外掛重建），所以分頁數不影響記憶體。
-  - 開啟檔案（側邊欄、列表、⌘K、`[[連結]]`、新增、匯入）預設開在新分頁（目前分頁右邊）；檔案已在某個分頁開著就切過去，不重複。資料夾、標籤、列表、外掛面板在目前分頁內導覽，歷史照常。
-  - 改名 / 搬移更新所有分頁；刪除檔案或資料夾時，指向它的背景分頁直接關閉，目前分頁回到上一層。關閉最後一個分頁 = 換成「所有文件」。關閉檔案分頁後，若沒有別處開著它，通知編輯器丟掉保留的狀態。
-  - 分頁清單存在 `UserDefaults`（跟著裝置，不進 Vault、不同步），只存位置不存歷史；下次啟動第一次顯示 SplitShell 時還原，檔案已不存在的略過。E2E（`-EasyNotesVaultRoot`、`-EasyNotesOpen`）不還原也不保留。
-  - 快捷鍵：⌘T 新分頁、⌘W 關閉、⇧⌘] / ⇧⌘[ 下一個 / 上一個分頁。
-- 外掛以 `addPanel` 加側邊欄項目，App 不寫死。反向連結 inspector 已移除（索引仍保留反向連結資料）。
-- 介面語言統一繁體中文：App 宣告 `zh-Hant` 在地化，系統選單也是中文；側邊欄顯示「空間」「標籤」。
-- 快捷鍵：⌘K 快速開啟（重用 FTS5 搜尋）、Markdown 的「[[連結]]」⇧⌘K、新筆記 ⌘N、新白板 ⇧⌘N、新資料夾 ⇧⌘F。
-- 側邊欄檔案樹：Mac 雙擊檔案或資料夾就地改名（Return 確定、Esc 取消、失去焦點視為確定；檔案只改名稱，副檔名保留），右鍵「重新命名」仍是對話框。檔案與資料夾可拖到另一個資料夾，拖到「空間」標題 = 搬到 Vault 根目錄；搬移不改檔名，所以 `[[連結]]` 不必改寫；目的地有同名項目、或把資料夾拖進自己（含子資料夾）時不搬。伴隨檔、同步（保留 file id）、編輯器與導覽的處理與改名相同。拖曳內容是 Vault 相對路徑字串，放下時確認路徑存在才搬。
-- 匯入的目的地 = 目前所在資料夾（資料夾頁 = 該資料夾、編輯器 = 文件所在資料夾、其他列表頁 = Vault 根目錄），不另設 `Inbox/`。
+## Document list
 
-## 文件列表
+- **Pinned is stored in frontmatter `pinned: true`**: Claude Code can read and write it directly and `.easynotes/` need not sync. `DocumentKind.setPinned` defaults to nil = unsupported, and the list's "Pin" menu appears only for supporting types; after writing, the App restores mtime so pinning does not push the document to the top of "Recents". The whiteboard will store it in `customData` later; PDF and others are handled when they get there. Pinning adds frontmatter to an md without one, so CM6 collapses it into a one-line property row when the cursor is not inside the block.
+- `IndexEntry`'s `icon`, `pinned` and `summary` (a plugin provides a one-line summary; Core does not understand "word count"); the index also stores the content `hash` as the preview-cache key.
+- `addKind(..., name:)` supplies the filter chip's name; Mobile and Desktop filters are the same (All + registered types).
+- List documents and folders have a hover state: cards darken the border and lift, rows get `bg-hover`, the cursor becomes a pointing hand; iPad pointer uses the system highlight.
 
-- **釘選存 frontmatter `pinned: true`**：Claude Code 可直接讀寫，`.easynotes/` 不必加入同步。`DocumentKind.setPinned` 預設 nil = 不支援，列表的「釘選」選單只對支援的類型顯示；App 寫入後把 mtime 還原，釘選不會讓文件跑到「最近」最上面。白板之後改存 `customData`，PDF 等外掛完成再處理。釘選會替沒有 frontmatter 的 md 加上 frontmatter，所以 CM6 在游標不在區塊內時把它收合成一行屬性。
-- `IndexEntry` 的 `icon`、`pinned`、`summary`（外掛提供一行摘要，Core 不認識「字數」）；索引另存內容 `hash` 作為預覽快取的 key。
-- `addKind(..., name:)` 提供篩選 chip 的名稱；Mobile 與 Desktop 的篩選相同（全部 + 已註冊類型）。
-- 列表的文件與資料夾有 hover 狀態：卡片加深邊框並浮起、列加 `bg-hover`、游標變手指；iPad 指標用系統 highlight。
+## Editor document header and toolbar
 
-## 編輯器文件頭與工具列
+- **The header is CM6 decorations**: the cover + icon is a block widget at the start of the file; the title is simply the first `#` line (ordinary text, so composition is unaffected and the indexing rule is unchanged); the meta row (tags, "edited N minutes ago", no reading time) is a block widget after the title line. The raw YAML shows only when the cursor enters the frontmatter.
+- **Cover** `cover: Attachments/xxx.jpg` (vault path): an image chosen from outside the vault (including pasted from the clipboard) is copied to the root `Attachments/`, with a number appended on name collision. The legacy `附件/` folder is neither moved nor are its links rewritten: when `vault://` finds no file in `Attachments/` it looks in `附件/`, so name-only `![[x.png]]` and legacy links that spell out `附件/` still display. Changing the cover / icon goes through the normal write path (updates mtime, enters sync), unlike pinning. Images are read through `vault://` and only vault paths are allowed.
+- **Icon** supports emoji and SF Symbols (Lucide is not bundled): `icon: 🗺` or `icon: sf:map`; Core stores only the string. The picker is "Icons | Emoji"; Apple has no API listing all SF Symbols, so a common list is built in and the search box also accepts a full name; a nonexistent name shows the type's default icon. In list cards, an emoji is placed before the title and an SF Symbol replaces the type icon; the editor shows it through `symbol:///<name>`. Outside the app (for example in Obsidian) only the text `sf:` is visible.
+- **Link cards**: a `[[link]]` alone on a line renders as a card (with the target's type icon), adjacent ones side by side; the design's "related pages" is this inline style, not an auto-generated block. The target's type, summary and time are passed as `LinkTarget` by `EditorController.linkTargetsChanged`; the WebView has no SF Symbols, so Swift draws the icon as a PNG from the Registry's symbol.
+- **Toolbar**: the floating format toolbar (Desktop) and the iOS Format Bar share `FormatBar`, native SwiftUI, sending `exec` on press, off the typing path; the editor toolbar (save status, pin, more) lives in the App and is shared by all file types.
 
-- **文件頭是 CM6 decorations**：封面 + icon 為檔案開頭的 block widget；標題就是第一行 `#`（一般文字，組字不受影響，索引規則不變）；meta 列（標籤、「N 分鐘前編輯」，不顯示閱讀時間）為標題行之後的 block widget。游標進入 frontmatter 才顯示原始 YAML。
-- **封面** `cover: Attachments/xxx.jpg`（Vault 內路徑）：從 Vault 外選的圖片（含貼上剪貼簿）複製到根目錄 `Attachments/`，重名加序號。舊版的 `附件/` 不搬動也不改寫連結：`vault://` 在 `Attachments/` 找不到檔案時改找 `附件/`，所以只寫檔名的 `![[x.png]]` 與明確寫 `附件/` 的舊連結都照常顯示。更換封面 / icon 走一般寫檔路徑（更新 mtime、進同步），與釘選不同。圖片經 `vault://` 讀取，只允許 Vault 內路徑。
-- **icon** 支援 Emoji 與 SF Symbols（不打包 Lucide）：`icon: 🗺` 或 `icon: sf:map`，Core 只存字串。選單為「圖示 | 表情符號」；Apple 沒有列出所有 SF Symbols 的 API，所以內建常用清單，搜尋框也接受完整名稱；名稱不存在時顯示類型預設圖示。列表卡片：emoji 接在標題前、SF Symbol 取代類型圖示；編輯器經 `symbol:///<名稱>` 顯示。在 App 外（例如 Obsidian）只會看到 `sf:` 文字。
-- **連結卡片**：`[[連結]]` 獨占一行時顯示為卡片（含目標的類型圖示），相鄰的多行並排；設計稿的「關聯頁面」就是這個內文樣式，不是自動產生的區塊。目標的類型、摘要、時間由 `EditorController.linkTargetsChanged` 傳 `LinkTarget`；WebView 沒有 SF Symbols，圖示由 Swift 依 Registry 的 symbol 畫成 PNG。
-- **工具列**：浮動格式工具列（Desktop）與 iOS Format Bar 共用 `FormatBar`，原生 SwiftUI，按下時送 `exec`，不在打字路徑上；編輯器工具列（儲存狀態、釘選、更多）放在 App，所有檔案類型共用。
+## Ink toolbar (shared by whiteboard and PDF, GoodNotes style)
 
-## 手寫工具列（白板、PDF 共用，GoodNotes 式）
-
-- **兩層**：上方一排（導覽列下方，`safeAreaInset(edge: .top)`）是工具；選了畫筆類工具時，下面浮著一條膠囊（畫筆種類、粗細、顏色），以及左邊的 Undo / Redo 膠囊。浮動列蓋在內容上、不改畫布的 inset，所以切換工具時畫面不跳動；空白處不攔觸控。再按一次已選的工具可以收起 / 叫回膠囊。
-- **上方一排的版面**：工具置中，右側放與目前選取或文件有關的動作（白板的樣式 / 再製 / 刪除、PDF 的匯出）。工具依序是「選取（離開手寫）| 畫筆、螢光筆、橡皮擦、套索 | 外掛自己的插入工具」。
-- **不用 `PKToolPicker`**：系統工具盤是浮動面板，位置與樣式無法放進工具列。改由 EasyNotesUI 的共用元件自己設定 `PKCanvasView.tool`：
-  - `InkSettings`（`@Observable`、`@MainActor`，單例）：目前的手寫工具（畫筆 / 螢光筆 / 橡皮擦 / 套索）、畫筆種類、各工具的顏色與粗細、使用者加的顏色。存在 `UserDefaults`（App 偏好，不進 Vault、不同步），白板與 PDF 共用：在 PDF 選的筆換到白板還是同一支。手寫模式的開關仍由各編輯器自己記（白板 `BoardEditor.inking`、PDF 檢視器的狀態）。
-  - **畫筆種類**：鋼筆（`pen`）、原子筆（`monoline`）、鉛筆（`pencil`）；螢光筆是 `marker`。只用這四種墨水（其他墨水存成 freedraw 會失真）。
-  - **粗細**：三段，墨水的 `defaultWidth` × 0.5 / 1 / 2（夾在 `validWidthRange` 內），各工具各記一段。
-  - **顏色**：每個工具 5 個預設色 + 使用者加的顏色（「+」開系統顏色選擇器，最多 5 個，長按刪除）。畫筆預設 `#1e1e1e`、`#1971c2`、`#e03131`、`#2f9e44`、`#f08c00`；螢光筆 `#ffd43b`、`#69db7c`、`#74c0fc`、`#f783ac`、`#ffa94d`（透明度由 `marker` 墨水本身決定）。畫布固定淺色，顏色不隨深色模式反轉。
-  - **橡皮擦**：整筆（`vector`）/ 部分（`bitmap`，三段粗細）。部分擦除切開的筆畫仍是一般 `PKStroke`，照常存成 freedraw。
-  - 尺（`PKToolPicker` 的尺）不再提供：直線改用「停住變直線」。
-- **Pencil 點兩下**（`UIPencilInteraction`，取代工具盤原本的行為）：依系統設定，「切換橡皮擦」= 橡皮擦 ⇄ 上一個工具、「切換上一個工具」= 與上一個工具互換、「顯示色盤」= 收起 / 叫回膠囊；不在手寫模式時不處理。
-- **停住變直線（Apple 備忘錄 / GoodNotes 式）**：畫一筆後筆尖停住約 0.5 秒（移動 < 3 螢幕點），這一筆變成「起點 → 目前位置」的直線；不放開筆可以繼續移動終點，角度接近水平、垂直或 45° 時（±3°）吸附。實作在 EasyNotesUI 的 `StraightLineAssist`（iOS），白板與 PDF 的 `PKCanvasView` 各掛一個：
-  - 觸控以一個只觀察、不攔截的手勢辨識器取得（`cancelsTouchesInView = false`，與所有手勢同時辨識），只看 `drawingPolicy` 允許書寫的觸控、只在畫筆 / 螢光筆時作用。筆畫長度不到 12 螢幕點時不觸發（點一下停住不會變直線）。
-  - 觸發時把 `drawingGestureRecognizer` 停用再開啟，取消 PencilKit 進行中的筆畫；若取消後 PencilKit 仍留下這一筆，就還原成開始時的 `drawing`。調整期間在畫布上方用一條 `CAShapeLayer` 預覽（顏色、粗細與墨水相同），放開時才把直線 `PKStroke`（同一種墨水、顏色與粗細，沿線每 2 點一個控制點）加進 `drawing`。
-  - 調整中的 `drawing` 變動不寫回（宿主檢查 `isAdjusting`），放開後的那一次變動才寫回，所以模型只看到「多了一條直線」，PDF 的模型 Undo 是一筆。直線本身在畫布的 `undoManager` 註冊一筆 Undo（還原成加線前的 `drawing`）：白板與筆畫共用那個堆疊；PDF 的畫布 `undoManager` 是私有的、照舊丟掉，由模型 Undo 負責。
-  - 座標：畫布座標 = 觸控在 `PKCanvasView` 的位置 ÷ `zoomScale`（白板的畫布會縮放；PDF 的畫布不捲動、倍率 1）。
-- **Mac**：沒有 PencilKit 書寫，白板工具列不顯示手寫工具（只有選取與插入工具）；PDF 維持右下角的按鈕。
+- **Two layers**: the top row (below the navigation bar, `safeAreaInset(edge: .top)`) holds the tools; when a pen-type tool is selected, a capsule floats below it (pen kind, width, color), along with an Undo / Redo capsule on the left. The floating bars sit over the content without changing the canvas inset, so the view does not jump when switching tools, and empty areas let touches through. Tapping the already selected tool again collapses / restores the capsule.
+- **Top row layout**: tools are centered, and actions related to the current selection or document go on the right (whiteboard style / duplicate / delete, PDF export). The tools in order are "Select (leave ink) | Pen, Highlighter, Eraser, Lasso | the plugin's own insert tools".
+- **No `PKToolPicker`**: the system tool palette is a floating panel whose position and style cannot be embedded in a toolbar. Instead, the shared EasyNotesUI components set `PKCanvasView.tool` themselves:
+  - `InkSettings` (`@Observable`, `@MainActor`, singleton): the current ink tool (pen / highlighter / eraser / lasso), pen kind, each tool's color and width, user-added colors. Stored in `UserDefaults` (app preference, not in the vault, not synced) and shared by whiteboard and PDF: a pen chosen in PDF is the same pen on the whiteboard. Whether ink mode is on is still remembered by each editor (whiteboard `BoardEditor.inking`, the PDF viewer's state).
+  - **Pen kinds**: fountain pen (`pen`), ballpoint (`monoline`), pencil (`pencil`); the highlighter is `marker`. Only these four inks are used (other inks distort when saved as freedraw).
+  - **Width**: three steps, the ink's `defaultWidth` × 0.5 / 1 / 2 (clamped to `validWidthRange`), remembered per tool.
+  - **Color**: 5 presets per tool plus user-added colors ("+" opens the system color picker, at most 5, long-press to delete). Pen presets `#1e1e1e`, `#1971c2`, `#e03131`, `#2f9e44`, `#f08c00`; highlighter `#ffd43b`, `#69db7c`, `#74c0fc`, `#f783ac`, `#ffa94d` (opacity is determined by the `marker` ink itself). The canvas is always light, so colors do not invert in dark mode.
+  - **Eraser**: whole stroke (`vector`) / partial (`bitmap`, three widths). Strokes split by partial erasing are still ordinary `PKStroke`s and are saved as freedraw as usual.
+  - The `PKToolPicker` ruler is no longer offered: straight lines use "hold to straighten".
+- **Pencil double-tap** (`UIPencilInteraction`, replacing the tool palette's behavior): follows the system setting; "switch eraser" = eraser ⇄ previous tool, "switch previous tool" = swap with the previous tool, "show color palette" = collapse / restore the capsule; not handled outside ink mode.
+- **Hold to straighten (Apple Notes / GoodNotes style)**: after drawing a stroke, if the pen tip holds for about 0.5 s (moving < 3 points), the stroke becomes a straight line "start → current position"; keep the pen down to move the end point, which snaps when the angle is near horizontal, vertical or 45° (±3°). Implemented in EasyNotesUI's `StraightLineAssist` (iOS), attached to each of the whiteboard's and PDF's `PKCanvasView`:
+  - Touches come from an observe-only gesture recognizer that does not intercept (`cancelsTouchesInView = false`, recognized simultaneously with all gestures), considering only touches the `drawingPolicy` allows to write and acting only for pen / highlighter. A stroke shorter than 12 points does not trigger (a tap-and-hold never becomes a line).
+  - On trigger, `drawingGestureRecognizer` is disabled and re-enabled to cancel PencilKit's in-progress stroke; if PencilKit still leaves the stroke after cancelling, the `drawing` is restored to what it was at the start. While adjusting, a `CAShapeLayer` above the canvas previews the line (same color and width as the ink), and only on release is the straight-line `PKStroke` (same ink, color and width, one control point every 2 points along the line) added to the `drawing`.
+  - `drawing` changes during adjustment are not written back (the host checks `isAdjusting`); only the change after release is, so the model sees just "one more straight line" and PDF's model undo is one step. The line registers one Undo on the canvas `undoManager` (restoring the `drawing` before the line was added): the whiteboard shares that stack with strokes; PDF's canvas `undoManager` is private and is discarded as before, with the model undo responsible.
+  - Coordinates: canvas coordinates = the touch position in `PKCanvasView` ÷ `zoomScale` (the whiteboard canvas zooms; PDF's canvas does not scroll and stays at 1×).
+- **Mac**: no PencilKit writing, so the whiteboard toolbar hides the ink tools (only select and insert tools); PDF keeps its bottom-right buttons.

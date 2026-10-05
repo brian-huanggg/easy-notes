@@ -2,17 +2,17 @@ import CryptoKit
 import Foundation
 import os
 
-/// 同步引擎：只看 file id、path、內容 hash 與版本，合併交給各 DocumentKind。
+/// The sync engine: sees only file id, path, content hash and version, and delegates merging to each DocumentKind.
 ///
-/// 一輪同步 = 掃描本地 → 拉取遠端 → 上傳本地變更；上傳遇到版本衝突時再拉一次（最多 3 輪）。
-/// 狀態存在 `.easynotes/sync.sqlite`，合併基準存在 `.easynotes/cache/base/<hash>`，
-/// 兩者都可以刪掉：基準會從內容定址的 Storage 重新下載。
+/// One sync round = scan local → pull remote → upload local changes; on a version conflict during upload it pulls again (at most 3 rounds).
+/// State lives in `.easynotes/sync.sqlite` and merge bases in `.easynotes/cache/base/<hash>`,
+/// both of which can be deleted: bases are downloaded again from content-addressed Storage.
 public actor SyncEngine {
-    /// 刪除後可還原的天數；伺服器端的 pg_cron 同樣以 30 天清除
+    /// Days a deletion can be restored; the server-side pg_cron purges at 30 days as well
     public static let retentionDays = 30
-    /// 衝突副本檔名的標記：同步到每台裝置，App 也靠它辨識，所以不隨介面語言改變
+    /// The marker in conflict-copy file names: synced to every device and recognized by the app, so it does not change with the UI language
     public static let conflictMarker = "衝突" // l10n:fixed
-    /// `name` 是不是 `stem` 的衝突副本
+    /// Whether `name` is a conflict copy of `stem`
     public static func isConflictCopy(_ name: String, of stem: String) -> Bool {
         name.hasPrefix("\(stem) (\(conflictMarker)")
     }
@@ -28,28 +28,28 @@ public actor SyncEngine {
             }
         }
     }
-    /// 下載的內容與其 SHA-256 不符：雲端內容被竄改或傳輸損毀，不套用也不快取
+    /// Downloaded content does not match its SHA-256: cloud content was tampered with or corrupted in transit; it is neither applied nor cached
     public struct HashMismatchError: Error, LocalizedError {
         public var errorDescription: String? { L("下載的內容與雜湊不符，已拒絕套用") }
     }
     public struct Status: Sendable, Equatable {
         public var isSyncing = false
-        /// 待上傳的檔案數
+        /// Number of files pending upload
         public var pending = 0
         public var lastSynced: Date?
         public var lastError: String?
-        /// 最近一輪產生的衝突副本
+        /// Conflict copies produced in the latest round
         public var conflicts: [String] = []
 
         public init() {}
     }
 
-    /// 同步要動到本地檔案時通知 App（編輯器、索引、檔案樹）
+    /// Notifies the app (editors, index, file tree) when sync is about to touch local files
     public struct Hooks: Sendable {
-        /// 改寫、搬移或刪除 `path` 前呼叫：讓編輯器把未存的變更寫回磁碟
+        /// Called before rewriting, moving or deleting `path`: lets the editor write unsaved changes to disk
         public var willChange: @Sendable (_ path: String) async -> Void
-        /// 改寫、搬移或刪除後呼叫。`oldPath` 不為 nil = 從那裡搬過來；`data` 為新內容（只搬移時為 nil）；
-        /// 兩者都是 nil = 已刪除
+        /// Called after rewriting, moving or deleting. `oldPath` not nil = moved from there; `data` is the new content (nil for a pure move);
+        /// both nil = deleted
         public var didChange: @Sendable (_ path: String, _ oldPath: String?, _ data: Data?) async -> Void
         public var statusChanged: @Sendable (Status) async -> Void
 
@@ -76,9 +76,9 @@ public actor SyncEngine {
     private var baseCache: URL { fs.root.appending(path: "\(VaultFS.metaFolder)/cache/base", directoryHint: .isDirectory) }
 
     /// - Parameters:
-    ///   - userID: 換帳號時清空本地同步狀態（檔案留著，下一輪以 hash 對上遠端）
-    ///   - deviceName: 衝突副本檔名用，例如「iPad」
-    ///   - syncedMetaFolders: `.easynotes/` 下參與同步的子資料夾（`PluginRegistry.syncedMetaFolders`）
+    ///   - userID: when the account changes, clears local sync state (files stay and match the remote by hash in the next round)
+    ///   - deviceName: used in conflict-copy file names, for example "iPad"
+    ///   - syncedMetaFolders: subfolders under `.easynotes/` that take part in sync (`PluginRegistry.syncedMetaFolders`)
     public init(fs: VaultFS, backend: any SyncBackend, userID: String, deviceName: String,
                 syncedMetaFolders: [String] = [], stateURL: URL? = nil, hooks: Hooks = Hooks()) throws {
         self.fs = fs
@@ -91,13 +91,13 @@ public actor SyncEngine {
             try state.removeAll()
             state[meta: "user"] = userID
         }
-        // 舊版的 id 存在 sync.sqlite：搬到 `.easynotes/device-id`，id 不變
+        // Older versions kept the id in sync.sqlite: move it to `.easynotes/device-id`, the id unchanged
         deviceID = try fs.deviceID(migrating: state[meta: "device"])
     }
 
     public var currentStatus: Status { status }
 
-    /// 執行一輪同步。同步進行中再被呼叫時，結束後再跑一輪，不會重疊執行。
+    /// Runs one sync round. When called while a sync is in progress, another round runs after it finishes; rounds never overlap.
     public func sync() async {
         if running {
             rerun = true
@@ -127,7 +127,7 @@ public actor SyncEngine {
         running = false
     }
 
-    /// App 內改名或搬移（含資料夾）：直接更新路徑，保留 file id
+    /// In-app rename or move (including folders): updates the path directly and keeps the file id
     public func moved(from oldPath: String, to newPath: String) throws {
         for var r in state.records.values where r.path == oldPath || r.path.hasPrefix(oldPath + "/") {
             r.path = newPath + r.path.dropFirst(oldPath.count)
@@ -135,9 +135,9 @@ public actor SyncEngine {
         }
     }
 
-    // MARK: 最近刪除
+    // MARK: Recently deleted
 
-    /// 30 天內在任何裝置上刪除、本地也不存在的檔案，最新刪除的在前；伴隨檔不列出（隨主檔還原）
+    /// Files deleted within 30 days on any device and also missing locally, most recently deleted first; companions are not listed (restored with the main file)
     public func recentlyDeleted() async throws -> [RemoteFile] {
         try await deletedLocally().filter { !fs.kinds.isCompanion($0.path) }
     }
@@ -150,8 +150,8 @@ public actor SyncEngine {
         }
     }
 
-    /// 以同一個 file id 還原到原路徑（被佔用時改用衝突副本的命名），回傳還原後的路徑。
-    /// 同一路徑最近刪除的伴隨檔一起還原到主檔旁
+    /// Restores to the original path with the same file id (using conflict-copy naming when occupied) and returns the restored path.
+    /// A companion recently deleted at the same path is restored next to the main file
     @discardableResult
     public func restore(_ file: RemoteFile) async throws -> String {
         let path = try await restoreFile(file, to: file.path)
@@ -194,11 +194,11 @@ public actor SyncEngine {
         await hooks.statusChanged(status)
     }
 
-    // MARK: 掃描本地
+    // MARK: Scan local
 
-    /// 比對磁碟與同步狀態：只在 mtime 或大小改變時重算 hash。
-    /// 外部工具改名會看到「刪除 + 新增」，兩者 hash 相同時推斷為改名並保留 file id；
-    /// 主檔被推斷為改名時，留在原地的伴隨檔一起搬過去。回傳搬移的伴隨檔
+    /// Compares disk with sync state: the hash is recomputed only when mtime or size changes.
+    /// An external tool rename shows as "delete + add"; when both have the same hash it infers a rename and keeps the file id;
+    /// when a main file is inferred to be renamed, a companion left behind moves with it. Returns the companions moved
     @discardableResult
     func scanLocal() throws -> [(from: String, to: String)] {
         let disk = try diskFiles()
@@ -217,7 +217,7 @@ public actor SyncEngine {
             r.size = stat.size
             try state.save(r)
         }
-        // 消失的檔案與之前已刪除、尚未上傳的檔案，都可能是改名的來源
+        // Both vanished files and files deleted earlier but not yet uploaded can be the source of a rename
         var vanished = unseen.values.map { state.records[$0]! } + state.records.values.filter(\.localDeleted)
         var renamed: [(from: String, to: String)] = []
         for path in added.sorted() {
@@ -246,7 +246,7 @@ public actor SyncEngine {
         return try moveCompanions(renamed)
     }
 
-    /// 外部工具只改了主檔的名字：把原地的伴隨檔搬到新名字旁，保留 file id
+    /// An external tool changed only the main file's name: moves the companion left behind next to the new name, keeping the file id
     private func moveCompanions(_ renamed: [(from: String, to: String)]) throws -> [(from: String, to: String)] {
         var moves: [(from: String, to: String)] = []
         for (old, new) in renamed where !fs.exists(old) {
@@ -263,8 +263,8 @@ public actor SyncEngine {
         return moves
     }
 
-    /// 參與同步的檔案：Vault 內所有一般檔案，略過隱藏檔與 `.easynotes/`（索引、快取、同步狀態），
-    /// 但包含外掛註冊的 `.easynotes/<folder>/`
+    /// Files that take part in sync: all ordinary files in the vault, skipping hidden files and `.easynotes/` (index, cache, sync state),
+    /// but including the `.easynotes/<folder>/` that plugins registered
     private func diskFiles() throws -> [String: (mtime: Double, size: Int)] {
         let roots = [fs.root] + syncedMetaFolders.map {
             fs.root.appending(path: "\(VaultFS.metaFolder)/\($0)", directoryHint: .isDirectory)
@@ -284,7 +284,7 @@ public actor SyncEngine {
         return result
     }
 
-    // MARK: 拉取
+    // MARK: Pull
 
     private func pull() async throws {
         let cursor = state[meta: "cursor"].flatMap(Double.init).map { Date(timeIntervalSince1970: $0) }
@@ -305,8 +305,8 @@ public actor SyncEngine {
             if !row.deleted { try await applyNew(row) }
             return
         }
-        if let base = known.baseVersion, row.version <= base { return } // 自己的提交或已套用過
-        // 先下載（網路），再讓編輯器寫回：下載期間打的字也會算進合併，不會被遠端內容蓋掉
+        if let base = known.baseVersion, row.version <= base { return } // Our own commit, or already applied
+        // Download first (network), then have the editor write back: text typed during the download is included in the merge and not overwritten by remote content
         var remoteData: Data?
         var baseData: Data?
         if !known.localDeleted, !row.deleted, row.hash != known.baseHash {
@@ -314,7 +314,7 @@ public actor SyncEngine {
             if let baseHash = known.baseHash { baseData = try await content(hash: baseHash) }
         }
         if !known.localDeleted { await hooks.willChange(known.path) }
-        // 等待期間 App 可能改名或搬移（`moved`）：以最新的紀錄為準
+        // The app may rename or move during the wait (`moved`): the latest record wins
         guard var r = state.records[row.id] else { return }
         if !r.localDeleted { try refreshHash(&r) }
 
@@ -322,7 +322,7 @@ public actor SyncEngine {
             if r.localDeleted {
                 try state.remove(r.id)
             } else if r.needsPush {
-                // 修改勝過刪除：保留本地，下次上傳時復活
+                // Modify beats delete: keep local and revive it on the next upload
                 r.baseVersion = row.version
                 r.basePath = row.path
                 try state.save(r)
@@ -336,11 +336,11 @@ public actor SyncEngine {
 
         if r.localDeleted {
             guard row.hash != r.baseHash || row.path != r.basePath else {
-                r.baseVersion = row.version // 遠端沒有實質變更，刪除照常上傳
+                r.baseVersion = row.version // The remote has no substantive change, so the delete uploads as usual
                 try state.save(r)
                 return
             }
-            // 修改勝過刪除：還原遠端版本
+            // Modify beats delete: restore the remote version
             let data = try await content(hash: row.hash)
             let path = try await makeRoom(at: row.path, for: r.id)
             try write(data, to: path, record: &r)
@@ -356,7 +356,7 @@ public actor SyncEngine {
             if remoteData == nil { remoteData = try await content(hash: row.hash) }
             if baseData == nil, let baseHash = r.baseHash { baseData = try await content(hash: baseHash) }
         }
-        // 本地沒改名才跟著遠端改名；兩邊都改名時保留本地的，下次上傳覆蓋遠端
+        // Follow the remote rename only if local did not rename; when both renamed, keep the local one and overwrite the remote on the next upload
         if row.path != r.basePath, r.path == r.basePath, row.path != r.path {
             let target = try await makeRoom(at: row.path, for: r.id)
             try FileManager.default.createDirectory(at: fs.url(for: target).deletingLastPathComponent(),
@@ -364,7 +364,7 @@ public actor SyncEngine {
             try FileManager.default.moveItem(at: fs.url(for: r.path), to: fs.url(for: target))
             r.path = target
         }
-        // 從讀取本地到寫回之間沒有 await：編輯器不會在中間寫入而被蓋掉
+        // No await between reading local and writing back: the editor cannot write in between and be overwritten
         var newData: Data?
         var conflict: (path: String, data: Data)?
         if row.hash != r.baseHash, let remote = remoteData {
@@ -390,10 +390,10 @@ public actor SyncEngine {
         }
     }
 
-    /// 本地沒有這個 id 的遠端檔案
+    /// A remote file whose id local does not have
     private func applyNew(_ row: RemoteFile) async throws {
         let remote = try await content(hash: row.hash)
-        // 掃描之後才建立的本地檔案（例如剛新增的筆記）：先登記成本地新檔，再依內容採用、合併或讓位，不直接覆寫
+        // A local file created after the scan (for example a just-added note): first register it as a local new file, then adopt, merge or yield by content, never overwriting directly
         if state.record(at: row.path) == nil, let stat = try fs.fileStat(row.path) {
             try state.save(SyncRecord(id: UUID(), path: row.path, hash: try hash(of: row.path),
                                       mtime: stat.mtime, size: stat.size))
@@ -403,7 +403,7 @@ public actor SyncEngine {
             await hooks.willChange(occupant.path)
             try refreshHash(&occupant)
             if occupant.baseVersion == nil, occupant.hash == row.hash {
-                // 兩台裝置各自建立了相同內容（例如範例檔）：採用遠端的 id
+                // Two devices each created identical content (for example the sample files): adopt the remote's id
                 try state.remove(occupant.id)
                 r.mtime = occupant.mtime
                 setBase(&r, row, data: remote)
@@ -419,7 +419,7 @@ public actor SyncEngine {
                 await hooks.didChange(row.path, nil, merged)
                 return
             }
-            // 路徑被另一個檔案佔用：本地那份讓位成衝突副本
+            // The path is occupied by another file: the local one yields as a conflict copy
             _ = try await makeRoom(at: row.path, for: row.id)
         }
         try write(remote, to: row.path, record: &r)
@@ -428,9 +428,9 @@ public actor SyncEngine {
         await hooks.didChange(row.path, nil, remote)
     }
 
-    // MARK: 上傳
+    // MARK: Upload
 
-    /// 回傳被伺服器拒絕（版本不符）的數量
+    /// Returns the number rejected by the server (version mismatch)
     private func push() async throws -> Int {
         var rejected = 0
         for var r in state.records.values.sorted(by: { $0.path < $1.path }) where r.needsPush {
@@ -449,7 +449,7 @@ public actor SyncEngine {
                 }
                 continue
             }
-            // 掃描之後可能又被修改：上傳磁碟上的最新內容
+            // It may have been modified again after the scan: upload the latest content on disk
             let data = try fs.read(r.path)
             r.hash = Self.sha256(data)
             r.size = data.count
@@ -473,7 +473,7 @@ public actor SyncEngine {
         return rejected
     }
 
-    // MARK: 工具
+    // MARK: Utilities
 
     private func kind(for path: String) -> any DocumentKind.Type {
         fs.kinds.kind(for: path) ?? OpaqueKind.self
@@ -505,7 +505,7 @@ public actor SyncEngine {
         if oldBase != row.hash { dropBase(oldBase) }
     }
 
-    /// 合併基準：先找本地快取，沒有就從 Storage 下載（內容定址，舊版本永遠在）
+    /// Merge base: look in the local cache first, otherwise download from Storage (content-addressed, old versions always exist)
     private func content(hash: String) async throws -> Data {
         let cached = baseCache.appending(path: hash)
         if let data = try? Data(contentsOf: cached) { return data }
@@ -531,8 +531,8 @@ public actor SyncEngine {
         try? FileManager.default.removeItem(at: baseCache.appending(path: hash))
     }
 
-    /// `path` 被另一個本地檔案佔用時，把那個檔案改名成衝突副本，回傳可用的 `path`。
-    /// 掃描之後才建立、還沒有紀錄的檔案也算佔用（下一輪掃描會把衝突副本當成新增並上傳）
+    /// When `path` is occupied by another local file, renames that file to a conflict copy and returns the usable `path`.
+    /// Files created after the scan and without a record also count as occupying (the next scan sees the conflict copy as an addition and uploads it)
     private func makeRoom(at path: String, for id: UUID) async throws -> String {
         let occupant = state.record(at: path)
         if let occupant, occupant.id == id { return path }
@@ -549,7 +549,7 @@ public actor SyncEngine {
         return path
     }
 
-    /// 衝突副本是新檔案，下一輪掃描會把它當成新增並上傳；寫完主檔後才通知 App（`didChange`）
+    /// A conflict copy is a new file; the next scan treats it as an addition and uploads it; the app is notified (`didChange`) only after the main file is written
     private func writeConflictCopy(of data: Data, for path: String) throws -> String {
         let copy = conflictPath(for: path)
         try fs.write(data, to: copy)
@@ -570,7 +570,7 @@ public actor SyncEngine {
     }
 }
 
-/// 未註冊的檔案類型（圖片、PDF…）：內容不同就產生衝突副本
+/// Unregistered file types (images, PDF…): different content produces a conflict copy
 private enum OpaqueKind: DocumentKind {
     static let id = "opaque"
     static let fileExtensions: [String] = []

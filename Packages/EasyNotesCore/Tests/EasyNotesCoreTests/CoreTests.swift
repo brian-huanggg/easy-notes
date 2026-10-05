@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// 核心測試不依賴任何外掛：用純文字的測試類型驗證 Vault 與 Registry
+/// Core tests depend on no plugin: a plain-text test type verifies Vault and Registry
 enum TextKind: DocumentKind {
     static let id = "text"
     static let fileExtensions = ["txt"]
@@ -68,7 +68,7 @@ struct VaultTests {
     }
 }
 
-/// 以空白分隔、`#` 開頭的詞當作標籤
+/// Words separated by whitespace that start with `#` count as tags
 enum TaggedKind: DocumentKind {
     static let id = "tagged"
     static let fileExtensions = ["tag"]

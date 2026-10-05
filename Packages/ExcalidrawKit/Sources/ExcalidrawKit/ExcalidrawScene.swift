@@ -1,6 +1,6 @@
 import Foundation
 
-/// 平台無關的手寫筆畫。PencilKit 與 Excalidraw freedraw 之間都經過它轉換。
+/// A platform-independent ink stroke. Conversions between PencilKit and Excalidraw freedraw both go through it.
 public struct InkStroke: Equatable, Sendable {
     public struct Point: Equatable, Sendable {
         public var x: Double
@@ -19,11 +19,11 @@ public struct InkStroke: Equatable, Sendable {
         }
     }
 
-    /// Excalidraw 元素 id；從 PencilKit 來的新筆畫為 nil（PKStroke 沒有穩定 id）
+    /// The Excalidraw element id; nil for a new stroke from PencilKit (PKStroke has no stable id)
     public var id: String?
-    /// PKInk.InkType 的 rawValue，例如 "com.apple.ink.pen"
+    /// The rawValue of PKInk.InkType, for example "com.apple.ink.pen"
     public var ink: String
-    /// sRGB，格式 "#rrggbb"
+    /// sRGB, format "#rrggbb"
     public var color: String
     public var opacity: Double
     public var points: [Point]
@@ -32,7 +32,7 @@ public struct InkStroke: Equatable, Sendable {
         self.id = id; self.ink = ink; self.color = color; self.opacity = opacity; self.points = points
     }
 
-    /// PencilKit 以 Float 儲存座標，來回轉換會有微小誤差，比對時需要容忍度
+    /// PencilKit stores coordinates as Float, so round trips have tiny errors and comparisons need a tolerance
     public func matches(_ other: InkStroke, tolerance: Double = 1e-3) -> Bool {
         guard ink == other.ink, color == other.color, points.count == other.points.count else { return false }
         return zip(points, other.points).allSatisfy { a, b in
@@ -41,9 +41,9 @@ public struct InkStroke: Equatable, Sendable {
     }
 }
 
-/// `.excalidraw` 場景。以原始 JSON 字典保存，非 freedraw 元素與未知欄位原封不動寫回，確保格式相容。
+/// A `.excalidraw` scene. Kept as raw JSON dictionaries; non-freedraw elements and unknown fields are written back untouched, ensuring format compatibility.
 public struct ExcalidrawScene {
-    /// Apple Pencil 的 maximumPossibleForce，用來把 force 正規化成 Excalidraw 的 0...1 pressure
+    /// Apple Pencil's maximumPossibleForce, used to normalize force to Excalidraw's 0...1 pressure
     public static let maxForce = 4.166_666_7
     static let customKey = "easynotes"
 
@@ -80,11 +80,11 @@ public struct ExcalidrawScene {
         try JSONSerialization.data(withJSONObject: raw, options: [.prettyPrinted, .sortedKeys])
     }
 
-    // MARK: 合併
+    // MARK: Merge
 
-    /// 與 Excalidraw 官方協作相同：依元素 id 取 version 較高者，同 version 取 versionNonce 較小者。
-    /// 刪除是墓碑（`isDeleted`），所以只在一邊出現的元素一定是新增的，直接保留。
-    /// 順序沿用本地，遠端新增的元素依遠端順序附加在後；`files` 取聯集，`appState` 用本地。
+    /// The same as Excalidraw's official collaboration: per element id take the higher version, and with equal versions the smaller versionNonce.
+    /// Deletion is a tombstone (`isDeleted`), so an element that appears on one side only is certainly new and is kept directly.
+    /// Order follows local; elements newly added remotely are appended after in remote order; `files` takes the union and `appState` uses local.
     public static func merge(local: ExcalidrawScene, remote: ExcalidrawScene) -> ExcalidrawScene {
         let remoteByID = Dictionary(remote.elements.compactMap { el in (el["id"] as? String).map { ($0, el) } },
                                     uniquingKeysWith: { a, _ in a })
@@ -100,7 +100,7 @@ public struct ExcalidrawScene {
             return !seen.contains(id)
         }
         var merged = local
-        // 有 index 就依它排序（相同時依 id），兩台裝置合併出來的順序一致；舊檔案沿用本地順序
+        // With an index, sort by it (ties by id) so two devices merge to the same order; older files keep local order
         merged.raw["elements"] = SceneEditor.sorted(result.map(Element.init(raw:))).map(\.raw)
         let localFiles = local.raw["files"] as? [String: Any] ?? [:]
         let remoteFiles = remote.raw["files"] as? [String: Any] ?? [:]
@@ -123,10 +123,10 @@ public struct ExcalidrawScene {
         }
     }
 
-    /// 以新的筆畫清單更新場景：
-    /// - 與既有元素相同的筆畫：元素原封不動（version 不變，同步時不產生變更）
-    /// - 消失的筆畫：標記 `isDeleted` 並遞增 version（Excalidraw 協作合併依賴墓碑）
-    /// - 新筆畫：附加到最上層
+    /// Updates the scene with a new list of strokes:
+    /// - A stroke identical to an existing element: the element is untouched (version unchanged, so sync produces no change)
+    /// - A vanished stroke: marked `isDeleted` with version incremented (Excalidraw collaboration merge relies on tombstones)
+    /// - A new stroke: appended on top
     public mutating func replaceInk(with strokes: [InkStroke]) {
         var remaining = strokes
         var result: [[String: Any]] = []
@@ -145,7 +145,7 @@ public struct ExcalidrawScene {
             }
         }
         raw["elements"] = result
-        // 新筆畫放最上層；有 index 的場景替它們產生 index
+        // New strokes go on top; a scene with an index generates indexes for them
         for stroke in remaining { insert(Element(raw: Self.encode(stroke))) }
     }
 
@@ -159,8 +159,8 @@ public struct ExcalidrawScene {
         let times = (custom?["t"] as? [Any])?.compactMap(number)
         let azimuths = (custom?["az"] as? [Any])?.compactMap(number)
         let altitudes = (custom?["alt"] as? [Any])?.compactMap(number)
-        // excalidraw.com 畫的筆畫沒有點大小：沿用渲染器的 perfect-freehand 寬度（strokeWidth × 4.25），
-        // 否則 strokeWidth 1 的筆畫在 PencilKit 只有 1pt，與縮圖、excalidraw.com 不一致
+        // Strokes drawn on excalidraw.com have no point sizes: keep the renderer's perfect-freehand width (strokeWidth × 4.25),
+        // otherwise a strokeWidth 1 stroke would be only 1 pt in PencilKit, inconsistent with thumbnails and excalidraw.com
         let widths = sizes == nil ? ElementGeometry.freedrawWidths(Element(raw: el)) : []
 
         let points = rawPoints.enumerated().compactMap { i, p -> InkStroke.Point? in
@@ -215,7 +215,7 @@ public struct ExcalidrawScene {
             "pressures": stroke.points.map { min(max($0.force / maxForce, 0), 1) },
             "simulatePressure": false,
             "lastCommittedPoint": NSNull(),
-            // Excalidraw 會保留 customData；放 PencilKit 專屬資訊讓來回轉換無損
+            // Excalidraw keeps customData; PencilKit-specific information goes there so round trips are lossless
             "customData": [customKey: [
                 "ink": stroke.ink,
                 "force": stroke.points.map(\.force),

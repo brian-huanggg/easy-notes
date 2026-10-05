@@ -1,37 +1,37 @@
 import Foundation
 
-/// 每種檔案類型的核心行為。核心層（Vault、Index、Sync）只透過這個協定認識檔案類型。
-/// 實作放在各外掛；編輯器由外掛向 EasyNotesUI 的 PluginRegistry 註冊，讓核心保持無 UI 相依、可單元測試。
+/// The core behavior of each file type. The core layer (Vault, Index, Sync) knows file types only through this protocol.
+/// Implementations live in plugins; editors are registered by plugins with EasyNotesUI's PluginRegistry, keeping Core free of UI dependencies and unit-testable.
 public protocol DocumentKind: SendableMetatype {
     static var id: String { get }
-    /// 完整副檔名（不含前導點），例如 "md"、"excalidraw"
+    /// The full extension (without the leading dot), for example "md", "excalidraw"
     static var fileExtensions: [String] { get }
-    /// 新建檔案的預設內容
+    /// Default content of a newly created file
     static func template(title: String) -> Data
-    /// 抽出搜尋、連結、標籤等索引資訊
+    /// Extracts index information such as search text, links and tags
     static func index(_ data: Data, fileName: String) -> IndexEntry
-    /// 三方合併；回傳 nil 代表無法合併，由同步層產生衝突副本
+    /// Three-way merge; nil means it cannot merge and the sync layer creates a conflict copy
     static func merge(base: Data?, local: Data, remote: Data) -> Data?
-    /// 筆記改名時更新內容中指向它的連結；回傳 nil 代表沒有要改的
+    /// When a note is renamed, updates links in the content that point at it; nil means nothing to change
     static func renameLinks(in data: Data, from oldName: String, to newName: String) -> Data?
-    /// 設定或取消釘選，其餘內容不變；回傳 nil 代表這個類型不支援釘選
+    /// Sets or clears pinning leaving the rest of the content unchanged; nil means this type does not support pinning
     static func setPinned(_ pinned: Bool, in data: Data) -> Data?
-    /// 伴隨檔（例如 PDF 的標註旁檔 `x.pdf.ink`）回傳主檔路徑；預設 nil = 一般檔案。
-    /// 伴隨檔的路徑必須以主檔路徑開頭（`x.pdf` + `.ink`），改名時 Core 據此算出新路徑。
-    /// Core 不在檔案樹、列表、搜尋顯示伴隨檔；改名、刪除、還原主檔時一起處理；仍照常索引與同步。
+    /// A companion (for example a PDF's annotation sidecar `x.pdf.ink`) returns its main file's path; default nil = an ordinary file.
+    /// A companion's path must start with its main file's path (`x.pdf` + `.ink`), from which Core computes the new path on rename.
+    /// Core does not show companions in the file tree, lists or search; rename, delete and restore of the main file handle them together; they are still indexed and synced as usual.
     static func companionOf(_ path: String) -> String?
 }
 
-/// `icon`、`pinned`、`summary` 由外掛決定，Core 只存不解讀
+/// `icon`, `pinned` and `summary` are decided by the plugin; Core only stores them and never interprets them
 public struct IndexEntry: Equatable, Sendable {
     public var title: String
     public var plainText: String
     public var links: [String]
     public var tags: [String]
-    /// 文件圖示（例如 frontmatter 的 emoji）
+    /// Document icon (for example a frontmatter emoji)
     public var icon: String?
     public var pinned: Bool
-    /// 列表卡片副標的一行摘要，例如「1,240 字」
+    /// A one-line summary for the list card subtitle, for example "1,240 words"
     public var summary: String?
 
     public init(title: String, plainText: String, links: [String] = [], tags: [String] = [],
@@ -46,7 +46,7 @@ public struct IndexEntry: Equatable, Sendable {
     }
 }
 
-/// 啟動時由外掛組成的檔案類型表；之後不再變動，可在任何執行緒使用。
+/// The file-type table assembled by plugins at launch; immutable afterwards and usable on any thread.
 public struct KindRegistry: Sendable {
     public enum RegistrationError: Error, Equatable {
         case duplicateExtension(String)
@@ -54,7 +54,7 @@ public struct KindRegistry: Sendable {
 
     public let all: [any DocumentKind.Type]
 
-    /// 同一個副檔名只能屬於一個 Kind
+    /// One extension can belong to only one Kind
     public init(_ kinds: [any DocumentKind.Type]) throws {
         var seen = Set<String>()
         for ext in kinds.flatMap({ $0.fileExtensions }) {
@@ -78,7 +78,7 @@ public struct KindRegistry: Sendable {
         all.first { $0.id == id }
     }
 
-    /// 伴隨檔的主檔路徑；不是伴隨檔回傳 nil
+    /// A companion's main file path; nil when not a companion
     public func mainFile(ofCompanion path: String) -> String? {
         kind(for: path)?.companionOf(path)
     }
@@ -87,13 +87,13 @@ public struct KindRegistry: Sendable {
         mainFile(ofCompanion: path) != nil
     }
 
-    /// 主檔從 `oldMain` 搬到 `newMain` 時，伴隨檔 `companion` 的新路徑（主檔路徑換掉、後綴不變）
+    /// When the main file moves from `oldMain` to `newMain`, the new path of companion `companion` (main path replaced, suffix unchanged)
     public func companionPath(_ companion: String, from oldMain: String, to newMain: String) -> String? {
         guard companion.hasPrefix(oldMain), mainFile(ofCompanion: companion) == oldMain else { return nil }
         return newMain + companion.dropFirst(oldMain.count)
     }
 
-    /// 去掉已註冊的副檔名，例如 "a/筆記.md" → "筆記"
+    /// Removes the registered extension, for example "a/筆記.md" → "筆記"
     public func displayName(_ path: String) -> String {
         var name = (path as NSString).lastPathComponent
         while !(name as NSString).pathExtension.isEmpty,
@@ -105,7 +105,7 @@ public struct KindRegistry: Sendable {
 }
 
 extension DocumentKind {
-    /// 沒有特定合併策略時：內容相同即視為已合併，否則交給衝突副本
+    /// With no specific merge strategy: identical content counts as merged, otherwise it goes to a conflict copy
     public static func merge(base: Data?, local: Data, remote: Data) -> Data? {
         local == remote ? local : nil
     }
@@ -122,7 +122,7 @@ extension DocumentKind {
         nil
     }
 
-    /// 是否支援釘選（列表的釘選選單只對支援的類型顯示）
+    /// Whether pinning is supported (the list's pin menu shows only for supporting types)
     public static var supportsPinning: Bool {
         setPinned(true, in: template(title: "")) != nil
     }

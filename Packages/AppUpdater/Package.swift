@@ -1,8 +1,8 @@
 // swift-tools-version: 6.0
 import PackageDescription
 
-/// macOS 的自動更新（Sparkle）。不是外掛：App 負責組裝。
-/// Sparkle 只有 macOS 版，用 target 的平台條件讓 iOS 建置不連結它（XcodeGen 的 package 依賴不能依平台過濾）。
+/// macOS auto-update (Sparkle). Not a plugin: the App assembles it.
+/// Sparkle exists only on macOS; a platform condition on the target keeps iOS builds from linking it (XcodeGen package dependencies cannot filter by platform).
 let package = Package(
     name: "AppUpdater",
     platforms: [.iOS(.v18), .macOS(.v15)],

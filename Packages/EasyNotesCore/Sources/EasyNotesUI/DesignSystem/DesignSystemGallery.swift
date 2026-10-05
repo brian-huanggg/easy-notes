@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// 設計系統一覽：所有顏色 tokens 與共用元件，給 Xcode Preview 與截圖比對設計稿用。
-/// 示範資料只在這裡，不代表任何外掛。
+/// Design system overview: all color tokens and shared components, for Xcode Previews and screenshot comparison with the design.
+/// Sample data lives only here and represents no plugin.
 public struct DesignSystemGallery: View {
     @State private var chip = 0
     @State private var viewMode = 0

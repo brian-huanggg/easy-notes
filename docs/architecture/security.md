@@ -1,111 +1,109 @@
-# 資安設計與威脅模型
+# Security Design and Threat Model
 
-@Brian
+This document holds: assets, trust boundaries, the threat model, the protections each boundary uses today and why, and the security invariants that must never be violated. Open security work is tracked in [Status](../Status.md); version changes live in [Changelog](../Changelog.md).
 
-**本文件只放**：資產、信任邊界、威脅模型、各邊界現在採用的防護與其理由、不可違反的安全不變條件。**不放**審查進度與待修項目（寫在 [Roadmap](../Roadmap.md)「資安審查」）、版本變更（寫在 [Changelog](../Changelog.md)）。
+EasyNotes is a personal, unpublished app (see [README](./README.md)), so the threat model centers on "my data is not obtained, rewritten or damaged by other people or malicious files"; multi-tenancy and compliance are out of scope.
 
-EasyNotes 是個人使用、不上架的 App（見 [README](./README.md)），所以威脅模型以「自己的資料不被別人或惡意檔案取得、改寫、毀損」為主，不處理多租戶與合規。
+## Assets
 
-## 資產
-
-| 資產 | 位置 | 為什麼重要 |
+| Asset | Location | Why it matters |
 | --- | --- | --- |
-| 筆記內容 | Vault 內的 `.md` / `.excalidraw` / `.pdf` / `.csv` | 可能含密碼、個資、工作內容；是唯一真相 |
-| 登入狀態（Supabase session） | Keychain（supabase-swift 預設） | 取得即可讀寫雲端 Vault |
-| 索引資料庫 | `.easynotes/` 內的 SQLite（可重建） | 含全文，等同筆記內容的副本 |
-| 同步中繼資料 | `files` 資料表、Storage `vault` bucket | 雲端上的筆記副本 |
-| 簽署身分與 TestFlight 憑證 | 開發機 Keychain、Apple 帳號 | 偽造 App 發佈 |
+| Note content | `.md` / `.excalidraw` / `.pdf` / `.csv` inside the vault | May contain passwords, personal data, work content; it is the only truth |
+| Login state (Supabase session) | Keychain (supabase-swift default) | Whoever has it can read and write the cloud vault |
+| Index database | SQLite inside `.easynotes/` (rebuildable) | Contains full text, equivalent to a copy of the notes |
+| Sync metadata | `files` table, Storage `vault` bucket | Cloud copy of the notes |
+| Signing identity and TestFlight credentials | Dev machine Keychain, Apple account | Forging app releases |
 
-## 信任邊界與攻擊者
+## Trust boundaries and attackers
 
 ```
-惡意檔案（md / pdf / csv / excalidraw，來自別人或下載）
-        │ 解析、渲染
+Malicious file (md / pdf / csv / excalidraw, from others or downloaded)
+        │ parse, render
         ▼
   ┌── App ───────────────────────────────┐
-  │ WebView（JS）──Bridge──► Swift 外殼   │
-  │ 外掛（原生解析）──► Vault（檔案系統）  │
+  │ WebView (JS) ──Bridge──► Swift shell  │
+  │ Plugins (native parsing) ──► Vault    │
   └──────────────┬───────────────────────┘
-                 │ HTTPS（supabase-swift）
+                 │ HTTPS (supabase-swift)
                  ▼
-        Supabase（Auth · Postgres · Storage · Realtime）
+        Supabase (Auth · Postgres · Storage · Realtime)
 ```
 
-| 攻擊者 | 能做的事 | 主要防線 |
+| Attacker | What they can do | Main defenses |
 | --- | --- | --- |
-| 惡意內容（別人傳來的筆記、PDF、匯入檔） | 讓渲染器執行腳本、讀寫 Vault 外的檔案、讓 App 崩潰或卡死 | WebView 隔離、Bridge 白名單、解析器健壯性 |
-| 同機其他程式 | 讀 Vault、索引、日誌、剪貼簿 | 檔案權限、FileVault、日誌不含內容 |
-| 網路中間人 | 竊聽或竄改同步流量 | TLS（ATS 預設）、內容定址 hash 驗證 |
-| 其他 Supabase 使用者 | 讀寫別人的列與 blob | RLS、Storage policy |
-| 被入侵的雲端或帳號 | 竄改路徑、內容、刪除 | 客戶端不信任遠端資料：驗證路徑與 hash |
-| 供應鏈 | 惡意的 SPM / npm 套件 | 鎖定版本、審計、最少依賴 |
-| 遺失的裝置 | 讀 Vault | 全碟加密（FileVault / iOS 資料保護）；App 本身不另加密 |
+| Malicious content (notes, PDFs, import files sent by others) | Make a renderer run script, read or write files outside the vault, crash or hang the app | WebView isolation, Bridge allowlist, parser robustness |
+| Other programs on the same machine | Read the vault, index, logs, clipboard | File permissions, FileVault, logs contain no content |
+| Network man-in-the-middle | Eavesdrop on or tamper with sync traffic | TLS (ATS default), content-addressed hash verification |
+| Other Supabase users | Read or write other people's rows and blobs | RLS, Storage policy |
+| Compromised cloud or account | Tamper with paths, content, delete | The client does not trust remote data: validates paths and hashes |
+| Supply chain | Malicious SPM / npm packages | Pinned versions, audits, minimal dependencies |
+| Lost device | Read the vault | Full-disk encryption (FileVault / iOS data protection); the app adds no encryption of its own |
 
-**不防的**：已取得使用者登入 session 的惡意程式、被完全入侵的作業系統、使用者主動打開並信任的外部連結。檔案即真相、本地明文是刻意的取捨（Claude Code 與其他工具要能直接讀寫），所以靜態加密交給系統層。
+**Not defended against**: malware that already holds the user's login session, a fully compromised operating system, external links the user deliberately opens and trusts. Files as truth and plaintext on disk are a deliberate trade-off (Claude Code and other tools must read and write directly), so encryption at rest is left to the system layer.
 
-## 安全不變條件
+## Security invariants
 
-下列規則是審查與修改時的判準，違反即為漏洞：
+These rules are the yardstick for review and changes; violating one is a vulnerability:
 
-1. **Vault 路徑一律是相對路徑，且永遠停在 Vault 內。** 任何來源（Bridge、遠端同步、`vault://`、檔案名稱）給的路徑，在轉成檔案 URL 之前都拒絕絕對路徑、`..`、`.` 段與解開 symlink 後離開 Vault 的結果。
-2. **不信任遠端資料。** 從 Supabase 取得的 `path` 要驗證後才可寫入；下載的 blob 要比對 SHA-256 與其 `hash` 才可套用或快取。
-3. **WebView 沒有通用原生能力。** Bridge 只暴露各外掛定義的具名訊息；沒有「讀任意檔」「開任意 URL」「執行命令」這類通用入口。JS 傳來的所有欄位都當成不受信任的輸入。
-4. **WebView 只載入 App 內的資源與自訂 scheme。** 不載入遠端頁面或腳本；頁面內的外部連結交給系統瀏覽器，不在 WebView 內導覽。
-5. **憑證只放 Keychain；程式與 repo 只有公開金鑰。** App 內只允許 Supabase publishable（anon）key，不得出現 `service_role` 或任何私鑰；`.env*` 不進版控。
-6. **寫入雲端一律經 `commit_file`。** 資料表沒有 insert / update / delete policy；Storage 只增不覆寫、不刪除。
-7. **日誌與崩潰資訊不含筆記內容。** DEBUG 以外不印訊息內容；`os_log` 使用者資料標 `.private`。
-8. **測試掛鉤只在 DEBUG。** Release 忽略 `-EasyNotesVaultRoot` 等啟動參數（見 [README](./README.md)「測試」）。
+1. **Vault paths are always relative and always stay inside the vault.** For a path from any source (Bridge, remote sync, `vault://`, file names), before it becomes a file URL, reject absolute paths, `..`, `.` segments and results that leave the vault after resolving symlinks.
+2. **Do not trust remote data.** A `path` obtained from Supabase must be validated before it can be written; a downloaded blob's SHA-256 must be compared with its `hash` before it can be applied or cached.
+3. **The WebView has no generic native capability.** The Bridge exposes only the named messages each plugin defines; there is no generic entry such as "read any file", "open any URL" or "run a command". Every field from JS is treated as untrusted input.
+4. **The WebView loads only in-app resources and custom schemes.** No remote pages or scripts; external links in a page are handed to the system browser and never navigated inside the WebView.
+5. **Credentials live only in the Keychain; code and the repo hold only public keys.** Only the Supabase publishable (anon) key is allowed in the app; `service_role` or any private key must not appear; `.env*` is not under version control.
+6. **Cloud writes always go through `commit_file`.** Tables have no insert / update / delete policy; Storage is append-only with no overwrite or delete.
+7. **Logs and crash information contain no note content.** Outside DEBUG no message content is printed; `os_log` user data is marked `.private`.
+8. **Test hooks exist only in DEBUG.** Release ignores launch arguments such as `-EasyNotesVaultRoot` (see "Testing" in the [README](./README.md)).
 
-## 各邊界的現行設計
+## Current design per boundary
 
-### Vault（檔案系統）
+### Vault (file system)
 
-- macOS：`~/Documents/EasyNotes`，**不開沙盒**（理由見 [README](./README.md)「Vault 位置」：Finder 與 Claude Code 要能直接讀寫）。沒有沙盒就沒有 OS 層的檔案隔離，所以路徑規則（不變條件 1）完全由程式碼負責。
-- 寫入是 atomic（先寫暫存檔再替換），不留半個檔案。
-- `vault://` scheme 只回應 Vault 內的相對路徑，拒絕 `..`、`.` 與空路徑，query 與 fragment 先剝掉；`embed://` 套用同一套規則；`symbol://` 只回傳 SF Symbol 圖。
-- `.easynotes/device-id` 不同步。
+- macOS: `~/Documents/EasyNotes`, **not sandboxed** (reasons in "Vault location" of the [README](./README.md): Finder and Claude Code must read and write directly). Without a sandbox there is no OS-level file isolation, so the path rules (invariant 1) rest entirely on code.
+- Writes are atomic (write a temp file, then replace), never leaving half a file.
+- The `vault://` scheme answers only vault-relative paths, rejects `..`, `.` and empty paths, and strips query and fragment first; `embed://` applies the same rules; `symbol://` returns only SF Symbol images.
+- `.easynotes/device-id` is not synced.
 
-### WebView 與 Bridge
+### WebView and Bridge
 
-- 只有 Markdown 與 Sheets 兩個外掛使用 WebView，共用 `WebEditorHost`：單一 `bridge` message handler，訊息是 `{type, …}`，由外掛的 `onMessage` 依 `type` 分派。
-- 頁面以 `loadFileURL(_, allowingReadAccessTo:)` 載入，讀取範圍限於外掛 bundle 內該頁面所在資料夾；Vault 的圖片不走 `file://`，只走 `vault://`（上節的路徑檢查）。
-- **導覽**：`WebEditorHost` 的 navigation delegate 只放行頁面本身；任何其他導覽取消，使用者點擊的 `http(s)` / `mailto` 交給系統開啟。
-- **CSP**：兩個頁面以 `<meta>` 設定 `default-src 'none'`，只放行同資料夾的腳本（`'self'`）、同資料夾的樣式與字型（KaTeX）、inline 樣式（CodeMirror 與注入的主題需要）、`vault:` / `embed:` / `symbol:` / `data:` 圖片；`connect-src 'none'`，沒有遠端資源、沒有 inline 腳本。新增外掛的 WebView 頁面必須套用同一份 CSP。
-- Swift → JS 用 `callAsyncJavaScript` 傳具名參數，不拼接字串；注入的語言與主題以 JSON 編碼成字面值。
-- Bridge 傳來的任何路徑都不直接當寫入目標：Markdown 的 `changed` 只接受該編輯器載入過的文件 id，且通過 `VaultFS.isSafe`；`VaultStore.write` 再檢查一次。連結標題建立新檔時經 `VaultFS.safeFileName`，只會是單一路徑段。
-- Bridge 不在打字熱路徑上（見 [markdown.md](./markdown.md)），所以對訊息的驗證不影響手感。
-- 筆記內容在 WebView 內以 CodeMirror 的 decorations 渲染，不把使用者文字當 HTML 插入；`innerHTML` 只用於 App 內建的 SVG 圖示常數。
+- Only the Markdown and Sheets plugins use a WebView, sharing `WebEditorHost`: one `bridge` message handler, messages are `{type, …}` and the plugin's `onMessage` dispatches by `type`.
+- Pages load with `loadFileURL(_, allowingReadAccessTo:)`, with read access limited to the folder holding that page inside the plugin bundle; vault images do not use `file://` but only `vault://` (with the path checks above).
+- **Navigation**: `WebEditorHost`'s navigation delegate lets only the page itself through; any other navigation is cancelled, and an `http(s)` / `mailto` the user clicked is handed to the system to open.
+- **CSP**: both pages set `default-src 'none'` through `<meta>`, allowing only scripts from the same folder (`'self'`), styles and fonts from the same folder (KaTeX), inline styles (needed by CodeMirror and the injected theme), and `vault:` / `embed:` / `symbol:` / `data:` images; `connect-src 'none'`, with no remote resources and no inline script. A WebView page of a new plugin must apply the same CSP.
+- Swift → JS uses `callAsyncJavaScript` with named parameters and never concatenates strings; the injected language and theme are JSON-encoded as literals.
+- No path from the Bridge is used directly as a write target: Markdown's `changed` accepts only document ids that editor has loaded and that pass `VaultFS.isSafe`; `VaultStore.write` checks again. When a link title creates a new file it goes through `VaultFS.safeFileName` and can only be a single path segment.
+- The Bridge is not on the typing hot path (see [markdown.md](./markdown.md)), so message validation does not affect feel.
+- Note content renders in the WebView with CodeMirror decorations and user text is never inserted as HTML; `innerHTML` is used only for the app's built-in SVG icon constants.
 
-### 同步（Supabase）
+### Sync (Supabase)
 
-- **身分**：Supabase Auth；`files` 的 RLS 只允許 `select` 自己的列（`user_id = auth.uid()`）。
-- **寫入**：只能呼叫 `commit_file`（`security definer`、`search_path = ''`）；`anon` 與 `public` 無執行權限；以 `auth.uid()` 決定列的擁有者，client 無法指定 `user_id`。
-- **Blob**：Storage bucket `vault` 為私有，路徑 `<user_id>/<hash>`，policy 以資料夾名稱比對 `auth.uid()`；只有 `select` 與 `insert`，沒有 `update` / `delete`，所以已上傳的內容無法被覆寫。
-- **內容定址**：hash 是 SHA-256，同一 hash 重複上傳視為成功；因此下載後的內容必須自己驗證 hash（不變條件 2）。
-- **軟刪除**：保留 30 天後由 `pg_cron` 清除列；Storage 內容不刪（可能被其他版本共用）。
-- **金鑰**：App 內是 publishable key，權限完全由 RLS 與 RPC 決定。
-- **傳輸**：預設 ATS（HTTPS），不設定例外網域。
+- **Identity**: Supabase Auth; `files` RLS allows only `select` on one's own rows (`user_id = auth.uid()`).
+- **Writes**: only by calling `commit_file` (`security definer`, `search_path = ''`); `anon` and `public` have no execute permission; the row's owner is decided by `auth.uid()` and the client cannot specify `user_id`.
+- **Blobs**: the Storage bucket `vault` is private with path `<user_id>/<hash>`, the policy matches the folder name against `auth.uid()`; only `select` and `insert` exist, with no `update` / `delete`, so uploaded content cannot be overwritten.
+- **Content addressing**: the hash is SHA-256 and re-uploading the same hash counts as success; so downloaded content must have its hash verified by the client (invariant 2).
+- **Soft delete**: rows are purged by `pg_cron` after 30 days; Storage content is not deleted (it may be shared by other versions).
+- **Key**: the app holds a publishable key, and permissions are decided entirely by RLS and RPC.
+- **Transport**: default ATS (HTTPS) with no exception domains.
 
-### 外掛與檔案解析
+### Plugins and file parsing
 
-- 外掛是編譯期 SPM 模組，沒有執行期載入程式碼，沒有第三方外掛介面。
-- 所有解析器（Markdown、Excalidraw JSON、`.pdf.ink`、CSV / TSV、Anki 匯出入、`.jsonl` 複習紀錄）面對的都是可能被竄改的檔案：必須容忍畸形輸入、不崩潰、不無限迴圈、不因巢狀或大小而耗盡記憶體；未知欄位原樣保留，不當成指令。
-- **成本上限**：任何對檔案內容的處理都必須是線性（或有明確上限）的。同步合併的 `Diff3` 以估計的 diff 成本設上限，超過就當衝突、留衝突副本；`[[…]]` 的正則不允許目標或別名包含 `[`，避免 `[[[[…` 造成平方成本。
-- **Bridge 的數值**：欄位索引、row id 等來自 JS 的整數一律檢查範圍（`SheetDocument.maxColumns`、row id 限 53 位元），超出就拒絕，不得用來索引陣列或配置記憶體。
-- PDF 由 PDFKit 渲染，App 不改動原檔，標註寫在旁檔。
+- Plugins are compile-time SPM modules; no code is loaded at run time and there is no third-party plugin interface.
+- Every parser (Markdown, Excalidraw JSON, `.pdf.ink`, CSV / TSV, Anki import / export, `.jsonl` review logs) faces files that may have been tampered with: it must tolerate malformed input, never crash, never loop forever, and never exhaust memory through nesting or size; unknown fields are preserved as is and never treated as instructions.
+- **Cost caps**: any processing of file content must be linear (or have an explicit cap). The sync merge `Diff3` caps on an estimated diff cost and treats exceeding it as a conflict leaving a conflict copy; the `[[…]]` regex does not allow the target or alias to contain `[`, avoiding quadratic cost from `[[[[…`.
+- **Numeric values from the Bridge**: integers from JS such as column indexes and row ids are always range-checked (`SheetDocument.maxColumns`, row ids limited to 53 bits), and out-of-range values are rejected and must never be used to index arrays or allocate memory.
+- PDF is rendered by PDFKit; the app never modifies the original file and annotations go into the sidecar.
 
-### 發佈與簽署
+### Distribution and signing
 
-- iOS / iPadOS：TestFlight（Apple 簽署與審查）。
-- macOS：DMG 安裝，之後由 Sparkle 更新。更新通道是新增的攻擊面，所以 appcast 與 DMG 都用 EdDSA 簽章，App 內建公鑰（`SPARKLE_PUBLIC_ED_KEY`）驗證，只允許 HTTPS 的 `SUFeedURL`；私鑰只放在發版那台 Mac 的 keychain，不進 repo 或 CI。
-- macOS 目前未啟用 Hardened Runtime 與沙盒；個人使用、不公證。若要給他人安裝，必須先啟用 Hardened Runtime 並公證，且盤點所需的例外 entitlement。
-- Entitlements 維持最小：目前只有 Sign in with Apple。
+- iOS / iPadOS: TestFlight (Apple signing and review).
+- macOS: DMG install, updated afterwards by Sparkle. The update channel is a new attack surface, so both the appcast and the DMG are EdDSA-signed and verified by the public key built into the app (`SPARKLE_PUBLIC_ED_KEY`), only an HTTPS `SUFeedURL` is allowed, and the private key lives only in the release Mac's keychain, never in the repo or CI.
+- macOS currently has neither Hardened Runtime nor the sandbox enabled; it is for personal use and not notarized. Before anyone else installs it, Hardened Runtime must be enabled with notarization, and the needed exception entitlements inventoried.
+- Entitlements stay minimal: currently only Sign in with Apple.
 
-### 供應鏈
+### Supply chain
 
-- Swift：`Package.resolved` 鎖定版本；npm 套件（pnpm）：`pnpm-lock.yaml` 鎖定，`pnpm install --frozen-lockfile` 安裝，只放行 `pnpm-workspace.yaml` 的 `onlyBuiltDependencies` 執行安裝腳本，打包後的 JS 內含在 App 內（不在執行時下載）。
-- 新增依賴前確認授權、維護狀態與是否有已知漏洞；優先選依賴少的套件。
+- Swift: `Package.resolved` pins versions; npm packages (pnpm): `pnpm-lock.yaml` pins, installation uses `pnpm install --frozen-lockfile`, only `onlyBuiltDependencies` in `pnpm-workspace.yaml` may run install scripts, and the bundled JS is contained in the app (never downloaded at run time).
+- Before adding a dependency, check its license, maintenance status and known vulnerabilities; prefer packages with few dependencies.
 
-## 審查方法
+## Review method
 
-審查流程、工具與每次的發現寫在 Roadmap「資安審查」；本文件只定義「什麼算安全」。每次審查以上面的不變條件逐條驗證，並在發現新的攻擊面時回來更新本文件的邊界與不變條件。
+Review process, tools and findings are tracked in [Status](../Status.md); this document defines only "what counts as secure". Each review verifies the invariants above one by one, and when a new attack surface is found, comes back to update this document's boundaries and invariants.

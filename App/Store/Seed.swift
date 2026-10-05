@@ -1,12 +1,12 @@
 import Foundation
 
-// l10n:fixed-file 首次啟動的範例內容；建立當下依介面語言選擇，之後就是使用者的檔案
+// l10n:fixed-file Sample content for first launch; chosen by UI language at creation time, and the user's own files afterwards
 enum Seed {
     private static var usesChinese: Bool {
         Bundle.main.preferredLocalizations.first?.hasPrefix("zh") == true
     }
 
-    /// 由對應的外掛產生空白範本（外掛沒註冊就略過）
+    /// Has the matching plugin produce a blank template (skipped when no plugin is registered)
     static var templates: [(path: String, title: String)] {
         usesChinese ? [("Spike/手寫測試.excalidraw", "手寫測試")]
                     : [("Spike/Handwriting Test.excalidraw", "Handwriting Test")]

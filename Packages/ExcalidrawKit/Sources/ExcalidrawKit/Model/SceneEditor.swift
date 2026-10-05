@@ -1,8 +1,8 @@
 import CoreGraphics
 import Foundation
 
-/// 場景編輯的工作區：把元素陣列載入、修改、寫回。所有會牽動其他元素的操作
-/// （刪除、移動、綁定、文字排版）都在這裡，`ExcalidrawScene` 的公開方法只是薄薄一層。
+/// The workspace of scene editing: loads the element array, modifies, writes back. All operations that affect other elements
+/// (delete, move, bind, text layout) live here, and `ExcalidrawScene`'s public methods are just a thin layer.
 struct SceneEditor {
     var elements: [Element]
     private(set) var position: [String: Int]
@@ -16,7 +16,7 @@ struct SceneEditor {
         position[id].map { elements[$0] }
     }
 
-    /// 修改元素的共用路徑：內容有變才遞增 `version`、重抽 `versionNonce`、更新 `updated`
+    /// The shared path for modifying elements: increments `version`, redraws `versionNonce` and updates `updated` only when content changed
     @discardableResult
     mutating func update(_ id: String, _ body: (inout Element) -> Void) -> Bool {
         guard let i = position[id] else { return false }
@@ -36,15 +36,15 @@ struct SceneEditor {
         elements.filter { $0.containerId == containerID && !$0.isDeleted }
     }
 
-    // MARK: 順序與插入
+    // MARK: Order and insertion
 
-    /// 所有元素都有合法的 `index`（空場景也算）：依它排序、新元素產生 index。
-    /// 沒有 `index` 的舊檔案沿用陣列順序，不替既有元素補 index（補了要遞增每個元素的 version）。
+    /// Every element has a valid `index` (an empty scene counts too): sort by it and generate indexes for new elements.
+    /// Older files without `index` keep array order and existing elements are not backfilled (backfilling would increment every element's version).
     var isIndexed: Bool {
         elements.allSatisfy { $0.index.map(FractionalIndex.isValid) ?? false }
     }
 
-    /// 依 index 排序（index 相同時依 id，所以兩台裝置的結果一致）；舊檔案維持陣列順序
+    /// Sort by index (ties by id, so two devices get the same result); older files keep array order
     static func sorted(_ elements: [Element]) -> [Element] {
         guard !elements.isEmpty, SceneEditor(elements).isIndexed else { return elements }
         return elements.sorted { a, b in
@@ -53,7 +53,7 @@ struct SceneEditor {
         }
     }
 
-    /// 插入到 `at`（在完整順序中的位置，含已刪除的元素；nil = 最上層）
+    /// Inserts at `at` (a position in the full order, including deleted elements; nil = top)
     mutating func insert(_ element: Element, at requested: Int? = nil) {
         var el = element
         var pos = min(max(requested ?? elements.count, 0), elements.count)
@@ -61,7 +61,7 @@ struct SceneEditor {
             elements = Self.sorted(elements)
             pos = min(max(requested ?? elements.count, 0), elements.count)
             let lower = pos > 0 ? elements[pos - 1].index : nil
-            // 兩台裝置在同一處插入、合併後會有相同的 index：越過這一串，從下一個較大的 index 之前插入
+            // Two devices inserting at the same spot get the same index after merging: skip past this run and insert before the next larger index
             if let lower { while pos < elements.count, elements[pos].index == lower { pos += 1 } }
             let upper = pos < elements.count ? elements[pos].index : nil
             el.index = try? FractionalIndex.between(lower, upper)
@@ -70,7 +70,7 @@ struct SceneEditor {
         rebuildPosition()
     }
 
-    /// 元素在完整順序中的位置
+    /// The element's position in the full order
     func orderIndex(of id: String) -> Int? {
         Self.sorted(elements).firstIndex { $0.id == id }
     }
@@ -79,10 +79,10 @@ struct SceneEditor {
         position = Dictionary(elements.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
-    // MARK: 刪除
+    // MARK: Delete
 
-    /// 刪除是墓碑（`isDeleted`），合併依賴它。連帶處理：frame 的子元素、形狀內的文字一併刪除；
-    /// 被刪形狀上的箭頭綁定清除；被刪箭頭從形狀的 `boundElements` 移除。
+    /// Deletion is a tombstone (`isDeleted`), which merging relies on. Side effects: a frame's children and text inside shapes are deleted too;
+    /// arrow bindings on the deleted shape are cleared; a deleted arrow is removed from the shapes' `boundElements`.
     mutating func delete(_ ids: Set<String>) {
         var doomed = Set(ids.filter { self[$0] != nil && self[$0]?.isDeleted == false })
         for id in doomed {
@@ -101,7 +101,7 @@ struct SceneEditor {
             }
             if let container = el.containerId, !doomed.contains(container) { removeBound(id, from: container) }
         }
-        // 綁在被刪形狀上的箭頭（箭頭本身沒被刪）：清除綁定
+        // Arrows bound to the deleted shape (the arrow itself not deleted): clear the binding
         for arrow in elements where arrow.type == .arrow && !arrow.isDeleted {
             for end in [ArrowEnd.start, .end] {
                 if let b = arrow.binding(end), doomed.contains(b.elementId) {
@@ -125,10 +125,10 @@ struct SceneEditor {
         update(containerID) { c in c.boundElements = c.boundElements.filter { $0.id != id } }
     }
 
-    // MARK: 移動
+    // MARK: Move
 
-    /// 移動元素。frame 帶動子元素，形狀帶動內部文字；箭頭綁定的形狀沒一起移動時解除該端綁定；
-    /// 其餘綁在移動形狀上的箭頭重算端點。
+    /// Moves elements. A frame carries its children and a shape carries the text inside; when the shape an arrow is bound to did not move along, that end's binding is released;
+    /// other arrows bound to the moved shape recompute their endpoints.
     mutating func move(_ ids: Set<String>, dx: Double, dy: Double) {
         guard dx != 0 || dy != 0 else { return }
         var moving = Set(ids.filter { self[$0]?.isDeleted == false })
@@ -147,11 +147,11 @@ struct SceneEditor {
         rebindArrows(movedIDs: moving)
     }
 
-    // MARK: 縮放
+    // MARK: Resize
 
-    /// 把元素縮放到 `rect`（未旋轉的外框，見 `ElementGeometry.box`）。線與箭頭的點依外框等比例換算；
-    /// 獨立文字依高度縮放字級；形狀內的文字重新排版（容器高度不夠會長高）；綁定的箭頭重算端點。
-    /// `original` = 開始縮放時的元素：拖曳中每一幀都從它計算，不累積誤差（省略時用目前的元素）。
+    /// Scales an element to `rect` (the unrotated bounding box, see `ElementGeometry.box`). Points of lines and arrows are converted proportionally to the box;
+    /// standalone text scales the font size by height; text inside a shape is re-laid out (the container grows if too short); bound arrows recompute endpoints.
+    /// `original` = the element when scaling began: every frame during the drag is computed from it so errors do not accumulate (the current element is used if omitted).
     mutating func resize(_ id: String, to rect: CGRect, from original: Element? = nil) {
         guard let current = self[id], !current.isDeleted else { return }
         let old = original ?? current
@@ -183,14 +183,14 @@ struct SceneEditor {
 
     // MARK: frame
 
-    /// 指定（或清除）元素所屬的 frame
+    /// Assigns (or clears) the frame an element belongs to
     mutating func setFrame(_ ids: Set<String>, to frameID: String?) {
         for id in ids where self[id]?.type != .frame { update(id) { $0.frameId = frameID } }
     }
 
-    // MARK: 文字
+    // MARK: Text
 
-    /// 設定文字內容。形狀內的文字依容器排版，獨立文字依 `autoResize` 決定是否換行。
+    /// Sets text content. Text inside a shape is laid out by its container; standalone text decides wrapping by `autoResize`.
     mutating func setText(_ id: String, to text: String) {
         guard let el = self[id], el.type == .text else { return }
         if let container = el.containerId, self[container] != nil {
@@ -204,7 +204,7 @@ struct SceneEditor {
         }
     }
 
-    /// 在形狀內加文字（`containerId` 綁定，置中換行）；形狀已有文字就改寫它。回傳文字元素 id。
+    /// Adds text inside a shape (bound with `containerId`, centered and wrapped); if the shape already has text it is rewritten. Returns the text element's id.
     @discardableResult
     mutating func addBoundText(_ text: String, to containerID: String) -> String? {
         guard let container = self[containerID], !container.isDeleted else { return nil }
@@ -228,7 +228,7 @@ struct SceneEditor {
         return el.id
     }
 
-    /// 重新排版容器內的文字：換行、置中；文字比容器高就讓容器長高。回傳容器尺寸是否改變。
+    /// Re-lays out text inside a container: wrap, center; if the text is taller than the container the container grows. Returns whether the container size changed.
     @discardableResult
     mutating func layoutBoundText(in containerID: String) -> Bool {
         guard let container = self[containerID], let textEl = boundTexts(of: containerID).first else { return false }

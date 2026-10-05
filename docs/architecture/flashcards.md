@@ -1,261 +1,261 @@
 # Flashcards
 
-**總覽**：排程用 swift-fsrs 的 FSRS-6、參數優化用 fsrs-rs；資料夾 = 牌組、標籤 = 篩選；設定以 preset 管理，預設值與 Anki 相同。
+**Overview**: scheduling uses swift-fsrs (FSRS-6) and parameter optimization uses fsrs-rs; folder = deck, tag = filter; settings are managed as presets whose defaults match Anki.
 
-## 卡片類型與身分
+## Card types and identity
 
-語法（類 RemNote）屬於 Vault 的 Markdown 方言：一行是一筆 note（可延伸成多行，見「多行卡片」），首行行尾 `^id` 是 note 的身分，缺少時由 App 補上。一筆 note 依語法產生一或多張卡片，卡片 id = note id + 後綴：
+The syntax (RemNote-like) belongs to the vault's Markdown dialect: one line is one note (extendable to several lines, see "Multi-line cards"), and the `^id` at the end of the first line is the note's identity, added by the App when missing. A note produces one or more cards according to its syntax, with card id = note id + suffix:
 
-| 語法 | 產生 | 卡片 id |
+| Syntax | Produces | Card id |
 | --- | --- | --- |
-| `光合作用發生在 :: 葉綠體 ^c-a1b2c3` | 1 張（正向） | `c-a1b2c3` |
-| `中文 ;; Chinese ^c-d4e5f6` | 2 張（正向、反向） | `c-d4e5f6`、`c-d4e5f6:r` |
-| `{{粒線體}}是{{細胞的發電廠}} ^c-g7h8i9` | 每個 `{{}}` 一張 | `c-g7h8i9:1`、`c-g7h8i9:2` |
+| `Photosynthesis happens in :: chloroplasts ^c-a1b2c3` | 1 card (forward) | `c-a1b2c3` |
+| `apple ;; 蘋果 ^c-d4e5f6` | 2 cards (forward, reverse) | `c-d4e5f6`, `c-d4e5f6:r` |
+| `{{Mitochondria}} are the {{powerhouse of the cell}} ^c-g7h8i9` | one card per `{{}}` | `c-g7h8i9:1`, `c-g7h8i9:2` |
 
-- 同一筆 note 產生的卡片互為 sibling（「埋藏 sibling」的對象）。
-- 卡片身分只跟 `^id` 綁定，與檔案路徑無關：整筆 note 剪下貼到別篇筆記，複習歷史跟著走。
-- 複製貼上造成 `^id` 重複時，後出現的那一行重新產生 id。
-- 刪掉這一行卡片就消失，紀錄留在 jsonl；同一個 `^id` 回來時歷史一併恢復。
-- `::`、`;;` 前後要有空白（避免 `std::vector` 之類的文字被當成卡片）；程式碼區塊、行內程式碼與 frontmatter 內不解析卡片。
-- `^id` 格式為 `c-` + 6 碼小寫英數，由「檔案路徑 + 該行內容」的 hash 決定：兩台裝置替同一行補 id 會得到相同結果，diff3 視為相同的修改，不會產生衝突。行尾已有其他 block id（例如 Obsidian 的 `^abc`）時直接沿用。
-- 補 id 由 `ContentFixer` 執行（見 [core.md](./core.md)「擴充點」）：開啟中的檔案不補，離開後才補。重複的 id：同一檔案內改後出現的那一行；與其他檔案重複時改目前處理的這個檔案（複製貼上的新位置）。
-- 卡片類型是 Flashcards 外掛內部的 enum，Core 不認識。語法規格寫在 Vault 的 `CLAUDE.md`，Markdown 外掛（語法標示）與 Flashcards 外掛（解析）各自依規格實作，不互相 import。
+- Cards produced by the same note are siblings (the target of "bury siblings").
+- Card identity is bound only to `^id` and is independent of the file path: cutting a whole note and pasting it into another note carries the review history along.
+- When copy and paste duplicates a `^id`, the line that appears later gets a new id.
+- Deleting the line makes the card disappear while its log stays in the jsonl; when the same `^id` returns the history is restored with it.
+- `::` and `;;` need whitespace on both sides (so text like `std::vector` is not taken as a card); cards are not parsed inside code blocks, inline code or frontmatter.
+- `^id` has the form `c-` + 6 lowercase alphanumerics, decided by a hash of "file path + the line's content": two devices adding an id to the same line get the same result, which diff3 treats as the same change and produces no conflict. When the line already ends with another block id (for example Obsidian's `^abc`) it is reused.
+- Adding ids is done by `ContentFixer` (see "Extension points" in [core.md](./core.md)): open files are not fixed and are handled after the user leaves them. Duplicate ids: within one file the later line after the change; against another file, the file currently being processed (the pasted-to location).
+- The card type is an enum inside the Flashcards plugin and Core does not know it. The syntax specification is written in the vault's `CLAUDE.md`, and the Markdown plugin (syntax highlighting) and the Flashcards plugin (parsing) each implement it from that spec without importing each other.
 
-## 多行卡片
+## Multi-line cards
 
-一筆 note 預設是一行；要寫清單、段落、圖片時，用清單項目的子項目延伸成多行。判斷只看第一行（下稱「首行」）：
+A note is one line by default; to write lists, paragraphs or images, extend it into several lines with the children of a list item. Only the first line ("first line" below) decides:
 
-- **首行以分隔符號結尾 = 多行 note**：首行是清單項目（`-`、`*`、`+`、`1.`），去掉 `^id` 後以 ` ::` 或 ` ;;` 結尾。內容 = 首行文字 + 這個清單項目的所有子行。
-- **子行的範圍**照 CommonMark 的清單項目：縮排達到首行文字起點（清單符號之後）的行都算，中間可以有空行；遇到第一個縮排不足的非空行就結束，結尾的空行不算。tab 算 4 欄。子行去掉這段縮排後就是內容。
-- **單獨一行的 `::`（或 `;;`）是正反面的分界**：子行中第一個「去掉縮排後只剩 `::` 或 `;;`」的行。沒有分界行時，正面 = 首行文字，背面 = 全部子行；有分界行時，正面 = 首行文字 + 分界行之前的子行，背面 = 分界行之後的子行。類型（正向 / 雙向）由首行的符號決定。
-- **克漏字**：內容任何地方有 `{{}}` 就是克漏字，依整筆 note 的出現順序編號；分界行之後是 Back Extra（只在背面顯示，裡面的 `{{}}` 不算）。克漏字的 `{{`、`}}` 必須在同一行。
-- 首行文字不能是空的，背面（克漏字為 Text）不能是空的，否則不是卡片。
-- `^id` 寫在首行行尾（`Q :: ^c-a1b2c3`），對應 Obsidian 清單項目的 block id（涵蓋整個項目與其子項目）。id 的 hash 只取首行內容，補 id、重複判斷與單行相同。
-- **子行一律是內容**：子行中的 `::`、`{{}}`、`^id` 都不另外產生卡片；把既有的卡片縮排進多行 note，會變成它的內容（原本的 `^id` 不再算，顯示時去掉）。程式碼區塊在子行範圍內時屬於內容；範圍結束時還沒關閉的程式碼區塊在範圍結束處視為關閉。
-- **與單行相容**：`Q :: A`（兩邊都有文字）、首行有 `{{}}` 但不以分隔符號結尾，仍是單行 note，子項目不算進去（可以照舊在單行卡片底下放子卡片）。清單以外的首行（段落、標題、引言）不能延伸成多行。
-- note 的位置是首行行號（複習畫面的「編輯筆記」、卡片瀏覽的行號、排序），另記錄最後一行。
+- **A first line ending with a delimiter = multi-line note**: the first line is a list item (`-`, `*`, `+`, `1.`) which, after removing `^id`, ends with ` ::` or ` ;;`. Content = the first line's text + all child lines of this list item.
+- **The range of child lines** follows a CommonMark list item: lines indented to the start of the first line's text (after the list marker) count, with blank lines allowed in between; it ends at the first non-blank line with insufficient indentation, and trailing blank lines do not count. A tab counts as 4 columns. After removing that indentation, a child line is content.
+- **A line with only `::` (or `;;`) is the divider between front and back**: the first child line that is just `::` or `;;` after removing indentation. With no divider line, front = the first line's text and back = all child lines; with a divider, front = the first line's text + child lines before the divider and back = child lines after it. The type (forward / bidirectional) is decided by the first line's symbol.
+- **Cloze**: `{{}}` anywhere in the content makes it a cloze, numbered by order of appearance in the whole note; what follows the divider line is Back Extra (shown only on the back, and `{{}}` inside it does not count). A cloze's `{{` and `}}` must be on the same line.
+- The first line's text cannot be empty and the back (Text for a cloze) cannot be empty, otherwise it is not a card.
+- `^id` goes at the end of the first line (`Q :: ^c-a1b2c3`), matching the block id of an Obsidian list item (covering the whole item and its children). The id hash takes only the first line's content, so id adding and duplicate detection are the same as single-line.
+- **Child lines are always content**: `::`, `{{}}` and `^id` in child lines never produce cards of their own; indenting an existing card into a multi-line note turns it into content (its old `^id` no longer counts and is stripped when displayed). A code block inside the child range belongs to the content; one not closed by the end of the range is treated as closed there.
+- **Compatible with single-line**: `Q :: A` (text on both sides), or a first line containing `{{}}` but not ending with a delimiter, remains a single-line note and its children do not count (sub-cards can still sit under a single-line card as before). A first line that is not a list item (paragraph, heading, quote) cannot extend into multiple lines.
+- A note's position is the first line's line number (the review screen's "Edit note", the card browser's line number, sorting), with the last line recorded too.
 
 ```markdown
-- 請說明 **SDT** 的三大基本要素 :: ^c-a1b2c3
+- Explain the three basic elements of **SDT** :: ^c-a1b2c3
   ![[sdt.png]]
-  - Competence：能力
-  - Autonomy：自主、控制、決策
-  - Relatedness：人際關係
+  - Competence
+  - Autonomy
+  - Relatedness
 
 - To find all **running processes** :: ^c-d4e5f6
   - The process **containing** "python"
   ::
   `ps aux | grep python`
 
-- Erik Erikson 的發展理論 :: ^c-g7h8i9
-  - **嬰兒期（0–1 歲）**：{{信任對不信任}}，發展出「希望」
-  - **成年早期（18–40 歲）**：{{親密對孤立}}，發展出「愛」
+- Erik Erikson's developmental theory :: ^c-g7h8i9
+  - **Infancy (0–1)**: {{trust vs. mistrust}}, developing "hope"
+  - **Early adulthood (18–40)**: {{intimacy vs. isolation}}, developing "love"
   ::
-  每個階段的危機解決後，得到對應的心理效能。
+  Resolving each stage's crisis yields the corresponding psychological strength.
 ```
 
-第一筆：正面一行、背面是圖片與清單。第二筆：正面兩行、背面一行。第三筆：克漏字兩張，分界行之後是 Back Extra。
+First note: one-line front, back with an image and a list. Second: two-line front, one-line back. Third: two cloze cards, with Back Extra after the divider.
 
-## 圖片
+## Images
 
-- **語法**：`![[x.png]]`、`![[x.png|300]]`（寬度，pt）；路徑規則與編輯器相同：沒有 `/` 時是 `Attachments/x.png`（找不到再找舊版的 `附件/`），有 `/` 時是 Vault 相對路徑。規則放在 Core 的 `Attachments`（Swift）與 `linkCards.ts`（編輯器），兩邊各自依同一規則實作。支援的副檔名同編輯器：png、jpg、jpeg、gif、webp、heic、avif（svg 不支援，顯示原文）。
-- 單行與多行 note 都可以用；在多行 note 中獨占一行時，編輯器照常顯示成圖片。
-- **原生顯示**：圖片自成一個區塊（寫在文字中間時也拆成獨立區塊），寬度不超過卡片、高度上限 400pt，有指定寬度時照指定寬度（不放大）。資料經 `DocumentSession.resourceReader` 在背景讀取（與 `vault://` 同一條路徑，只允許 Vault 內路徑），解碼結果依路徑 + 修改時間快取在記憶體。找不到或無法解碼時以次要顏色顯示原文。
-- 附件的匯入、同步、改名照 Core 的既有規則，Flashcards 不另外管理檔案。
-- **音檔**：`![[x.mp3]]`（mp3、m4a、wav、aac、ogg、flac）自成一個區塊，路徑規則同圖片，顯示播放鈕加檔名，點一下播放、再點停止（不自動播放）；資料經同一條 `resourceReader` 讀取，不快取。讀不到或無法解碼時顯示原文。匯出 Anki 時寫成 `[sound:x.mp3]`。其他非圖片的嵌入（如 pdf）顯示原文。
+- **Syntax**: `![[x.png]]`, `![[x.png|300]]` (width in pt); path rules match the editor: without `/` it is `Attachments/x.png` (falling back to the legacy `附件/`), with `/` it is a vault-relative path. The rules live in Core's `Attachments` (Swift) and `linkCards.ts` (editor), each implemented from the same rule. Supported extensions match the editor: png, jpg, jpeg, gif, webp, heic, avif (svg is unsupported and shows the raw text).
+- Usable in single-line and multi-line notes; alone on a line inside a multi-line note, the editor shows it as an image as usual.
+- **Native display**: an image forms its own block (split out even when written mid-text), no wider than the card, height capped at 400 pt, using the specified width when given (never enlarged). Data is read in the background through `DocumentSession.resourceReader` (the same path as `vault://`, vault paths only), and the decoded result is cached in memory by path + modified time. When not found or undecodable, the raw text shows in the secondary color.
+- Attachment import, sync and rename follow Core's existing rules; Flashcards manages no files of its own.
+- **Audio**: `![[x.mp3]]` (mp3, m4a, wav, aac, ogg, flac) forms its own block with the same path rules as images, showing a play button and the file name; one tap plays and another stops (no autoplay); data is read through the same `resourceReader` and not cached. When unreadable or undecodable the raw text shows. When exporting to Anki it is written as `[sound:x.mp3]`. Other non-image embeds (such as pdf) show the raw text.
 
-## 卡片內容：Markdown 與 LaTeX
+## Card content: Markdown and LaTeX
 
-卡片文字用 Markdown 與 LaTeX 公式（類似 Anki，但不寫 HTML）。單行 note 只有行內語法；多行 note 另外支援以下區塊：
+Card text uses Markdown and LaTeX math (like Anki, but without writing HTML). A single-line note has inline syntax only; a multi-line note additionally supports these blocks:
 
-| 區塊 | 寫法 | 顯示 |
+| Block | Syntax | Display |
 | --- | --- | --- |
-| 段落 | 連續的文字行 | 每一行照原樣換行（同 Anki 的 `<br>`）；空行 = 段落間距 |
-| 清單 | `-`、`*`、`+`、`1.`，子項目再縮排 | 項目符號 / 編號，依縮排分層 |
-| 圖片 | `![[x.png]]` | 見「圖片」 |
-| 程式碼區塊 | ```` ``` ```` 圍起來 | 等寬字、保留空白，不解析其中的 Markdown 與公式 |
-| 獨立公式 | 一行 `$$…$$` | 置中 |
+| Paragraph | Consecutive text lines | Each line breaks as written (like Anki's `<br>`); a blank line = paragraph spacing |
+| List | `-`, `*`, `+`, `1.`, children indented further | Bullets / numbers, nested by indentation |
+| Image | `![[x.png]]` | See "Images" |
+| Code block | Fenced with ```` ``` ```` | Monospace, whitespace preserved, no Markdown or math parsed inside |
+| Display math | A line `$$…$$` | Centered |
 
-標題、引言、表格在卡片中以一般文字顯示（不解析）。
+Headings, quotes and tables show as plain text in cards (not parsed).
 
-| 語法 | 顯示 |
+| Syntax | Display |
 | --- | --- |
-| `**粗體**`、`__粗體__`、`*斜體*`、`~~刪除線~~`、`==螢光==`、`` `程式碼` `` | 對應樣式 |
-| `[文字](https://…)`、`[[筆記]]`、`[[筆記\|文字]]` | 連結；`[[ ]]` 只顯示文字 |
-| `$E=mc^2$` | 行內公式 |
-| `$$\int_0^1 x\,dx$$` | 獨立公式（自成一段、置中；寫在同一行內） |
-| `\$` | 字面上的 `$` |
+| `**bold**`, `__bold__`, `*italic*`, `~~strikethrough~~`, `==highlight==`, `` `code` `` | The corresponding style |
+| `[text](https://…)`, `[[note]]`, `[[note\|text]]` | A link; `[[ ]]` shows only the text |
+| `$E=mc^2$` | Inline math |
+| `$$\int_0^1 x\,dx$$` | Display math (its own paragraph, centered; written on one line) |
+| `\$` | A literal `$` |
 
-- **公式的判斷**（同 Obsidian / Pandoc，避免把金額當成公式）：開頭的 `$` 後面不能是空白，結尾的 `$` 前面不能是空白、後面不能是數字；同一行內要找得到結尾，否則 `$` 是普通文字。`$$…$$` 優先於 `$…$`；`\` 後面的字元一律不當作分隔符。所以「$5 和 $10」不是公式。
-- **公式與行內程式碼一樣受保護**：程式碼內的 `$` 不算公式；公式內的 `::`、`;;`、`{{`、`}}` 不算卡片語法（`$\frac{{a}}{b}$` 不是克漏字）。
-- **克漏字可以包住整個公式或行內程式碼**：`{{$E=mc^2$}}`、``{{`ps aux`}}``；克漏字的 `{{`、`}}` 必須在公式與程式碼之外，內容中的 `{`、`}` 只能出現在公式或程式碼裡，行內程式碼要完整包在克漏字內（不能只包住一半）。
-- **原生渲染**：複習畫面與卡片瀏覽不開 WebView。多行內容先切成區塊（`CardBlocks`），每個區塊各自排版後垂直堆疊；文字區塊內的行內 Markdown 由外掛自己的解析器（`CardMarkup`，與 TSV 匯出同一套規則）轉成 `AttributedString`；公式由 [SwiftMath](https://github.com/mgriebling/SwiftMath)（iosMath 的 Swift 版，MIT）排版成 template 圖片，以 `Text(Image)` 嵌入文字並對齊基線，所以會隨文字換行、顏色跟著前景色（克漏字的答案也會上色）。圖片依「LaTeX + 字級」快取在記憶體。SwiftMath 只支援 LaTeX 的數學子集（分數、根號、上下標、希臘字母、矩陣、`\sum`、`\int` 等）；無法解析的公式以程式碼樣式顯示原文。
-- 編輯器（CM6）內的公式預覽不在此範圍；卡片語法標示只套用上述的保護規則。
+- **Deciding what is math** (the same as Obsidian / Pandoc, so amounts are not taken as math): the `$` after the opening must not be whitespace, the closing `$` must not be preceded by whitespace nor followed by a digit; the closing must be found on the same line, otherwise `$` is plain text. `$$…$$` takes precedence over `$…$`; the character after `\` is never a delimiter. So "$5 and $10" is not math.
+- **Math is protected like inline code**: a `$` inside code is not math; `::`, `;;`, `{{` and `}}` inside math are not card syntax (`$\frac{{a}}{b}$` is not a cloze).
+- **A cloze may wrap a whole formula or inline code**: `{{$E=mc^2$}}`, ``{{`ps aux`}}``; a cloze's `{{` and `}}` must be outside math and code, `{` and `}` in the content may appear only inside math or code, and inline code must sit wholly inside the cloze (not half in).
+- **Native rendering**: the review screen and card browser open no WebView. Multi-line content is first split into blocks (`CardBlocks`), each laid out on its own and stacked vertically; inline Markdown in a text block is converted to `AttributedString` by the plugin's own parser (`CardMarkup`, the same rules as TSV export); math is typeset by [SwiftMath](https://github.com/mgriebling/SwiftMath) (the Swift port of iosMath, MIT) into template images embedded in text with `Text(Image)` and baseline-aligned, so it wraps with the text and takes the foreground color (cloze answers are colored too). Images are cached in memory by "LaTeX + font size". SwiftMath supports only a math subset of LaTeX (fractions, roots, sub / superscripts, Greek letters, matrices, `\sum`, `\int`, etc.); unparseable formulas show their raw text in code style.
+- Math preview inside the editor (CM6) is out of scope here; card syntax highlighting applies only the protection rules above.
 
-## 牌組
+## Decks
 
-- **資料夾 = 牌組**：每篇筆記只在一個資料夾，所以每張卡片只屬於一個牌組。牌組有階層（同 Anki 的 `A::B`），母牌組的上限涵蓋所有子牌組；Vault 根目錄的筆記屬於根牌組。
-- **標籤 = 篩選學習**（同 Anki 的 filtered deck）：可以臨時只複習「#考試」，但標籤沒有自己的上限與設定，也不改變卡片所屬的牌組。
-- **Preset**：多個牌組共用一組設定（presets + 「資料夾路徑 → preset」），跟著同步，以欄位為單位 LWW 合併（檔案格式見「設定」）。沒有指定的資料夾繼承上層，根目錄用預設 preset。資料夾改名時與連結改名一樣一併更新路徑。
+- **Folder = deck**: each note is in exactly one folder, so each card belongs to one deck. Decks are hierarchical (like Anki's `A::B`), and a parent deck's limit covers all child decks; notes in the vault root belong to the root deck.
+- **Tag = filtered study** (like Anki's filtered deck): you can temporarily review only "#exam", but a tag has no limits or settings of its own and does not change which deck a card belongs to.
+- **Preset**: several decks share one set of settings (presets + "folder path → preset"), synced and merged per field with LWW (file format in "Settings"). A folder with no assignment inherits from its parent and the root uses the default preset. When a folder is renamed its path is updated, as with link renames.
 
-## 排程
+## Scheduling
 
-- **不自寫演算法**。排程用 swift-fsrs，參數優化用 fsrs-rs（Anki 本身使用的函式庫），透過 UniFFI 包成 Swift；兩者共用同一組 FSRS-6 的 21 個參數 `w`。
-- **swift-fsrs 以 `revision:` 固定 commit**：FSRS-6 在 2026-05 合併進 `main`，但最後一個 release 仍是 v5.0.0（2024-10），且預設是 FSRS-5 的 19 個參數；初始化時明確傳入 `FSRSDefaults.defaultWv6` 或優化後的 `w`。固定在 `4fbaf20`（2026-05-25）。
-- **以參考向量做回歸測試**：與 fsrs-rs / py-fsrs 的結果比對（向量由 `scripts/fsrs-vectors.py` 產生成 JSON fixture）；對不上且修不了時，排程也改用 fsrs-rs。
-- **參數優化**手動執行（或累積一定筆數後提醒），紀錄太少時不允許；結果寫回 preset 的 `w`。
+- **No self-written algorithm**. Scheduling uses swift-fsrs and parameter optimization uses fsrs-rs (the library Anki itself uses), wrapped for Swift through UniFFI; both share the same FSRS-6 set of 21 parameters `w`.
+- **swift-fsrs is pinned by `revision:` to a commit**: FSRS-6 was merged into `main` in 2026-05 but the last release is still v5.0.0 (2024-10) with FSRS-5's 19 default parameters; initialization passes `FSRSDefaults.defaultWv6` or the optimized `w` explicitly. Pinned at `4fbaf20` (2026-05-25).
+- **Regression tests with reference vectors**: results are compared with fsrs-rs / py-fsrs (vectors are generated into a JSON fixture by `scripts/fsrs-vectors.py`); if they cannot be matched and cannot be fixed, scheduling also moves to fsrs-rs.
+- **Parameter optimization** is run manually (or prompted after a number of entries accumulate) and is disallowed when there are too few logs; the result is written back to the preset's `w`.
 
-## 複習紀錄與重播
+## Review log and replay
 
-- **紀錄**：`.easynotes/srs/<deviceId>.jsonl`，只由該裝置追加。欄位對齊 Anki 的 `revlog`（`id` 毫秒時間戳、`cid`、`ease`、`ivl`、`lastIvl`、`time`、`type`）。
-- **卡片狀態不另存**：由重播所有裝置的紀錄算出，結果快取在可重建的索引中。
-- **重播不重算間隔**：到期日一律採用紀錄中的 `ivl`（fuzz 有亂數，參數也可能被優化改掉）；只有記憶狀態（stability、difficulty）用目前的參數重算，與 Anki 換參數後的行為相同。這樣同一組紀錄在任何裝置都得到相同狀態。
-- **手動操作也是事件**：暫停 / 恢復、重設、Leech 處理寫成 jsonl 事件（Anki revlog 的 Manual 類型），不寫進 md。
+- **Log**: `.easynotes/srs/<deviceId>.jsonl`, appended only by that device. Fields align with Anki's `revlog` (`id` millisecond timestamp, `cid`, `ease`, `ivl`, `lastIvl`, `time`, `type`).
+- **Card state is not stored separately**: it is computed by replaying every device's log and the result is cached in the rebuildable index.
+- **Replay does not recompute intervals**: due dates always use the `ivl` in the log (fuzz is random and parameters may be changed by optimization); only the memory state (stability, difficulty) is recomputed with the current parameters, the same as Anki after a parameter change. This way the same logs give the same state on every device.
+- **Manual operations are events too**: suspend / unsuspend, reset and leech handling are written as jsonl events (Anki revlog's Manual type), not into md.
 
-**3b 紀錄與重播**：
+**Log and replay details**:
 
-- **紀錄格式**：一行一筆 JSON，欄位名稱與意義照 Anki `revlog`，另加 `op` 擴充欄位：
+- **Log format**: one JSON per line; field names and meanings follow Anki `revlog`, plus an `op` extension field:
 
   ```json
   {"id":1759400000123,"cid":"c-a1b2c3:r","ease":3,"ivl":-600,"lastIvl":-60,"time":5320,"type":0}
   {"id":1759400100000,"cid":"c-a1b2c3:r","ease":0,"ivl":0,"lastIvl":0,"time":0,"type":4,"op":"suspend"}
   ```
 
-  | 欄位 | 意義 |
+  | Field | Meaning |
   | --- | --- |
-  | `id` | 複習時間（Unix 毫秒） |
-  | `cid` | 卡片 id（`^id` + 後綴） |
-  | `ease` | 1 Again、2 Hard、3 Good、4 Easy；手動事件為 0 |
-  | `ivl` / `lastIvl` | 這次 / 上次的間隔；正數 = 天，負數 = 秒（learning steps） |
-  | `time` | 作答花費的毫秒 |
-  | `type` | 複習當下的狀態：0 Learning（含 New）、1 Review、2 Relearning、3 Filtered（提前複習：還沒到期的複習卡）、4 Manual |
-  | `op` | 只在 `type: 4`：`suspend`、`unsuspend`、`reset` |
+  | `id` | Review time (Unix milliseconds) |
+  | `cid` | Card id (`^id` + suffix) |
+  | `ease` | 1 Again, 2 Hard, 3 Good, 4 Easy; 0 for manual events |
+  | `ivl` / `lastIvl` | This / last interval; positive = days, negative = seconds (learning steps) |
+  | `time` | Milliseconds spent answering |
+  | `type` | State at review time: 0 Learning (including New), 1 Review, 2 Relearning, 3 Filtered (early review: a review card not yet due), 4 Manual |
+  | `op` | Only with `type: 4`: `suspend`, `unsuspend`, `reset` |
 
-  讀取時容忍損壞的行（略過）、未知的 `op`（略過）與未知欄位；同一筆（`id` + `cid` + `ease` + `op`）出現在多個檔案（例如衝突副本）只算一次。
-- **換日時間**：以 Anki 的方式計算「天」：當地時間的換日時間（預設凌晨 4 點）之後才算新的一天。swift-fsrs 以 UTC 午夜換日，所以包裝層把時間平移「時區偏移 − 換日時間」再交給它，結果再平移回來，不修改套件。
-- **重播規則**：所有裝置的紀錄依 `(id, deviceId)` 排序後逐筆套用。評分事件用 swift-fsrs 以目前參數算出新的 stability / difficulty；複習後的狀態由 `ivl` 決定（負數 → Learning 或 Relearning，正數 → Review）；到期日 = `ivl` 天後的換日時間，或 `-ivl` 秒後。`reset` 回到 New，`suspend` / `unsuspend` 只切換暫停旗標。
-- **作答與重播走同一條路徑**：作答時用 swift-fsrs（fuzz 開啟）算出 `ivl` 寫成紀錄，再用重播的同一個函式套用到卡片，所以即時狀態與重播結果不會不一致。
-- **快取**：重播結果放在記憶體，App 啟動時在背景重播一次；本機作答只套用新的一筆，其他裝置的紀錄檔變動時只重播有新紀錄的卡片。量測（M 系列 Mac、release）：10 萬筆紀錄約 1.3 秒，個人量級（數萬筆）在 0.5 秒內，所以先不寫到磁碟；之後若 iPhone 上太慢，再存到 `.easynotes/cache/srs/`（可刪除重建）或改成平行重播。
-- **重播的效能**：swift-fsrs 對複習卡會一次算出四個按鈕，且每個數值都用 `String(format:)` 四捨五入，一筆約 47µs。記憶狀態只看 S、D、經過天數與評分，與卡片狀態無關，所以重播時一律以 learning 狀態交給 swift-fsrs，只算選到的那個評分（約 13µs），結果相同（參考向量測試涵蓋）。
-- **learning steps 由包裝層處理**：swift-fsrs（同 ts-fsrs）在第二步以後按 Hard 會取前兩步的平均，Anki 與 py-fsrs 是重複目前這一步。所以交給 swift-fsrs 的 steps 留空，只用它算記憶狀態與以天計的間隔，steps 依 Anki 的規則自己處理。複習卡的 Hard ≤ Good < Easy 限制照 swift-fsrs（與 Anki 相同，py-fsrs 沒有）。
+  Reading tolerates corrupted lines (skipped), unknown `op` (skipped) and unknown fields; the same entry (`id` + `cid` + `ease` + `op`) appearing in several files (for example conflict copies) counts once.
+- **Rollover time**: "day" is computed the Anki way: a new day starts after the local rollover time (default 4 a.m.). swift-fsrs rolls over at UTC midnight, so the wrapper shifts the time by "time zone offset − rollover time" before handing it over and shifts the result back, without modifying the package.
+- **Replay rules**: all devices' logs are sorted by `(id, deviceId)` and applied one by one. A rating event uses swift-fsrs with the current parameters to compute new stability / difficulty; the state after review is determined by `ivl` (negative → Learning or Relearning, positive → Review); due = the rollover time `ivl` days later, or `-ivl` seconds later. `reset` returns to New and `suspend` / `unsuspend` only toggle the suspended flag.
+- **Answering and replay take the same path**: when answering, swift-fsrs (fuzz on) computes `ivl` which is written as a log entry, and then the same function replay uses applies it to the card, so live state and replay results never disagree.
+- **Cache**: replay results are kept in memory and replayed once in the background at app launch; a local answer applies only the one new entry, and when another device's log file changes only cards with new entries are replayed. Measured (Apple-silicon Mac, release): 100,000 entries take about 1.3 s and personal-scale (tens of thousands) under 0.5 s, so nothing is written to disk yet; if iPhone turns out too slow, store it in `.easynotes/cache/srs/` (deletable and rebuildable) or replay in parallel.
+- **Replay performance**: for review cards swift-fsrs computes all four buttons at once and rounds every value with `String(format:)`, about 47 µs per entry. Memory state depends only on S, D, elapsed days and the rating, not on card state, so replay always hands swift-fsrs a learning state and computes only the chosen rating (about 13 µs) with identical results (covered by the reference vector tests).
+- **Learning steps are handled by the wrapper**: swift-fsrs (like ts-fsrs) averages the previous two steps when Hard is pressed from the second step on, whereas Anki and py-fsrs repeat the current step. So the steps handed to swift-fsrs are left empty, used only to compute memory state and day-based intervals, and steps are handled by Anki's rules ourselves. The review card Hard ≤ Good < Easy constraint follows swift-fsrs (the same as Anki; py-fsrs does not have it).
 
-## 設定
+## Settings
 
-Preset（每個牌組，預設值與 Anki 相同）：
+Preset (per deck, defaults the same as Anki):
 
-| 設定 | 預設 |
+| Setting | Default |
 | --- | --- |
-| 每日新卡上限 | 20 |
-| 每日複習上限 | 200 |
+| New cards per day | 20 |
+| Reviews per day | 200 |
 | Learning steps | 1m 10m |
 | Relearning steps | 10m |
 | Desired retention | 0.90 |
-| 最大間隔 | 36500 天 |
-| FSRS 參數 `w`（21 個） | FSRS-6 預設；可執行優化 |
-| Leech 門檻 / 動作 | 8 次 / 只加標籤（可改為暫停） |
-| 新卡順序 | 依檔案內順序 / 隨機 |
-| 複習排序 | 依到期日 / 依可回想率 |
-| 埋藏 sibling | 新卡、複習卡各一個開關 |
+| Maximum interval | 36500 days |
+| FSRS parameters `w` (21) | FSRS-6 defaults; optimization can be run |
+| Leech threshold / action | 8 / tag only (can be changed to suspend) |
+| New card order | file order / random |
+| Review order | by due date / by retrievability |
+| Bury siblings | One switch each for new and review cards |
 
-全域：新的一天開始時間（預設凌晨 4 點）、按鈕上顯示下次間隔、參數優化提醒。
+Global: start-of-day time (default 4 a.m.), show next interval on buttons, parameter-optimization reminder.
 
-刻意不開放：起始 ease、Hard / Easy 倍率、interval modifier（SM-2 專用，FSRS 不使用）。fuzz 固定開啟（Anki 也不能關）。
+Deliberately not exposed: starting ease, Hard / Easy multipliers, interval modifier (SM-2 only, FSRS does not use them). Fuzz is always on (Anki cannot turn it off either).
 
-**3c 設定檔與資料夾改名**：
+**Config files and folder rename**:
 
-- **設定檔每台裝置各寫一個**：`.easynotes/srs/<deviceId>.config.json`，內容是這台裝置改過的欄位與修改時間。單一 `config.json` 沒有註冊的 `DocumentKind`，兩台裝置都改時會變成衝突副本；改成和複習紀錄一樣各寫各的，就不需要在 Core 加合併的擴充點。讀取時合併所有裝置的檔案，每個欄位取修改時間最新的值（相同時間比 deviceId），等同欄位 LWW。
+- **Each device writes its own config file**: `.easynotes/srs/<deviceId>.config.json`, containing the fields this device changed and their modification times. A single `config.json` has no registered `DocumentKind` and would become a conflict copy when two devices both change it; writing per device like the review logs avoids adding a merge extension point to Core. Reading merges all devices' files, taking for each field the value with the latest modification time (ties broken by deviceId), which is field-level LWW.
 
   ```json
   {"version":1,"fields":[
-    {"k":["presets","p-k3x9a2","name"],"v":"語言","t":1759400000123},
+    {"k":["presets","p-k3x9a2","name"],"v":"Languages","t":1759400000123},
     {"k":["presets","p-k3x9a2","newPerDay"],"v":30,"t":1759400000123},
-    {"k":["decks","日文"],"v":"p-k3x9a2","t":1759400000123},
+    {"k":["decks","Japanese"],"v":"p-k3x9a2","t":1759400000123},
     {"k":["global","rolloverHour"],"v":4,"t":1759400000123}
   ]}
   ```
 
-  | 欄位 key | 值 |
+  | Field key | Value |
   | --- | --- |
-  | `presets/<id>/<欄位>` | preset 的欄位（`name`、`newPerDay`、`reviewsPerDay`、`learningSteps`…）；`deleted: true` = 已刪除 |
-  | `decks/<資料夾路徑>` | preset id；`null` = 繼承上層 |
-  | `global/<欄位>` | `rolloverHour`、`showIntervals`、`optimizeReminder` |
+  | `presets/<id>/<field>` | A preset's field (`name`, `newPerDay`, `reviewsPerDay`, `learningSteps`…); `deleted: true` = deleted |
+  | `decks/<folder path>` | A preset id; `null` = inherit from the parent |
+  | `global/<field>` | `rolloverHour`, `showIntervals`, `optimizeReminder` |
 
-  key 用陣列，因為資料夾路徑含 `/`。內建的「預設」preset id 為 `default`，不能刪除；新增的 preset id 為 `p-` + 6 碼亂數。沒有出現的欄位用 Anki 的預設值。
-- **資料夾改名**：App 內改名或搬移時（`moved`），把舊路徑與其下所有子路徑的 `decks/…` 寫成 `null`、新路徑寫入原本的 preset。Finder、Claude Code 的改名偵測不到，該資料夾回到繼承上層（不會遺失其他設定）。
-- 刪除 preset：使用它的牌組改回繼承上層。
+  The key is an array because folder paths contain `/`. The built-in "Default" preset id is `default` and cannot be deleted; a new preset's id is `p-` + 6 random characters. Fields that do not appear use Anki's defaults.
+- **Folder rename**: on an in-app rename or move (`moved`), the old path and all subpaths under it have their `decks/…` written as `null` and the new path gets the original preset. Renames by Finder or Claude Code are not detected, and that folder goes back to inheriting from its parent (no other settings are lost).
+- Deleting a preset: decks using it go back to inheriting from their parent.
 
-## 每日上限與佇列（3c）
+## Daily limits and queue
 
-規則照 Anki 的 v3 排程器：
+Rules follow Anki's v3 scheduler:
 
-- **每日上限**：今天剩下的新卡數 = 上限 − 今天已學的新卡數（卡片的第一筆評分紀錄在今天）；複習數同理（今天 `type` 為 Review 的評分紀錄）。紀錄依卡片**目前**所在的牌組計算。從某個牌組開始複習時，套用這個牌組與其下各層子牌組的上限（上層牌組的上限不套用，與 Anki 相同）：卡片要同時通過從所選牌組到卡片所在牌組路徑上每一層的剩餘數。牌組列表的數字就是「從這個牌組開始」會拿到的張數，所以母牌組的數字會小於子牌組的總和。
-- **新卡也受複習上限限制**（Anki 23.10 起的預設）：新卡數 ≤ 複習上限扣掉今天已複習與待複習的張數。
-- Learning / Relearning 的卡片不受上限限制。
-- **埋藏 sibling 不另存**：同一筆 note 今天已經複習過任何一張的卡片，當天不出現（新卡與複習卡各依設定）；佇列中同一筆 note 只放一張。由今天的紀錄推得，換日後自動解除，所以不需要 bury 事件。
-- **新卡順序**：依檔案內順序 = 依路徑、行號、卡片 id 後綴；隨機 = 以「卡片 id + 日期」的 hash 排序（同一天內穩定）。**複習排序**：依到期日（早的在前）/ 依可回想率（低的在前）。
-- **出卡順序**：已到期的 learning 卡最優先；其次把新卡平均穿插在複習卡之間；都沒有時，20 分鐘內到期的 learning 卡提前出現（Anki 的 learn ahead limit）。
-- **Leech**：複習卡按 Again 使 lapses 達到門檻時（之後每多門檻的一半次再觸發一次）。動作「只加標籤」不改 md：`leech` 是由 lapses 算出的虛擬標籤，可以在標籤篩選中選它；動作「暫停」另外寫入 `suspend` 事件。
-- **標籤篩選**（Anki 的 filtered deck）：選一個標籤，只複習所在筆記帶有該標籤的卡片，跨所有牌組、不受每日上限限制；先出已到期的，再出新卡，一次最多 100 張。
-- **復原（U）**：從本機紀錄檔刪掉最後一行，再重播那張卡片。只能復原這次複習中、這台裝置寫入的紀錄，而且最後一行必須是它（中途被其他程式追加就不能復原）。紀錄檔只有本機會寫，所以刪掉最後一行同步出去也不會衝突。
-- **到期數 badge**：側邊欄「複習」的數字 = 根牌組（含所有子牌組）的待複習 + learning 張數，已套用上限。
+- **Daily limits**: new cards remaining today = limit − new cards learned today (a card's first rating log is today); reviews likewise (today's rating logs with `type` Review). Logs are counted by the deck the card is **currently** in. When starting a review from a deck, the limits of that deck and each of its descendant decks apply (ancestor decks' limits do not, as in Anki): a card must pass the remaining count at every level on the path from the chosen deck to the card's deck. The numbers in the deck list are the count "starting from this deck" would produce, so a parent's number is smaller than the sum of its children.
+- **New cards are also limited by the review limit** (the default since Anki 23.10): new cards ≤ the review limit minus cards already reviewed and pending review today.
+- Learning / Relearning cards are not limited.
+- **Sibling burying is not stored**: a card whose note had any card reviewed today does not appear that day (new and review cards each per setting); only one card of a note goes into the queue. It is derived from today's logs and lifts automatically after rollover, so no bury event is needed.
+- **New card order**: file order = by path, line number, card id suffix; random = sorted by a hash of "card id + date" (stable within a day). **Review order**: by due date (earliest first) / by retrievability (lowest first).
+- **Show order**: due learning cards first; then new cards are spread evenly among review cards; when none of those exist, learning cards due within 20 minutes appear early (Anki's learn-ahead limit).
+- **Leech**: when pressing Again on a review card makes lapses reach the threshold (and again each half-threshold afterwards). The action "tag only" does not change md: `leech` is a virtual tag computed from lapses that can be chosen in the tag filter; the action "suspend" additionally writes a `suspend` event.
+- **Tag filter** (Anki's filtered deck): pick a tag to review only cards whose note has that tag, across all decks and not limited by daily limits; due cards first, then new cards, at most 100 at a time.
+- **Undo (U)**: deletes the last line from the local log file and replays that card. It can only undo logs written by this device during this review session, and the last line must be it (if another program appended in between, undo is not possible). Only this device writes the log file, so deleting the last line and syncing it out cannot conflict.
+- **Due badge**: the number on the sidebar's "Review" = pending review + learning cards of the root deck (including all child decks), with limits applied.
 
-## 複習介面（3c）
+## Review UI
 
-- 牌組列表（設計稿 `rHTaT`）：資料夾樹，只列出含有卡片的資料夾與其上層；Vault 根目錄的卡片顯示為「未分類」（放在最後）。可展開 / 收合，狀態存在本機。統計區塊（連續天數、retention、到期預測、熱力圖）不在 3c 範圍。
-- 複習畫面（`b2AjRQ`）：卡片文字依「卡片內容：Markdown 與 LaTeX」顯示。顯示正面 → 顯示答案（Space）→ 四鍵（1–4，Space = Good）。卡片顯示來源檔案與行號、所在筆記的標籤、lapses。「編輯筆記」（E）以 `session.open(path, line:)` 開啟筆記；Esc 離開。克漏字：正面把目前這個 `{{}}` 換成 `[…]`、其他 `{{}}` 顯示內容；背面標示答案，Back Extra 接在下方。多行卡片的內容超過畫面時可以捲動。
-- 牌組選項（`AYlad`）：Sheet；preset 選單、preset 欄位、全域設定。「最佳化…」在 3d 前停用。
+- Deck list (design `rHTaT`): a folder tree listing only folders that contain cards and their ancestors; cards in the vault root show as "Uncategorized" (last). Expandable / collapsible, with state stored locally. The statistics block (streak, retention, due forecast, heatmap) is out of scope.
+- Review screen (`b2AjRQ`): card text is shown per "Card content: Markdown and LaTeX". Show front → show answer (Space) → four buttons (1–4, Space = Good). A card shows its source file and line number, its note's tags and lapses. "Edit note" (E) opens the note with `session.open(path, line:)`; Esc leaves. Cloze: the front replaces the current `{{}}` with `[…]` and shows the other `{{}}` contents; the back marks the answer, with Back Extra below. Multi-line card content scrolls when it exceeds the screen.
+- Deck options (`AYlad`): a sheet; preset menu, preset fields, global settings. "Optimize…" is disabled until fsrs-rs is integrated.
 
-## 自訂複習（Custom Study）
+## Custom Study
 
-對照 Anki 的 Custom Study，只做三種：
+Modeled on Anki's Custom Study, with only three options:
 
-| 選項 | 範圍 | 做法 |
+| Option | Scope | How |
 | --- | --- | --- |
-| 增加今天的上限 | 一個牌組 | 新卡、複習各加 N 張，只在今天有效；不另開複習，牌組的數字直接變多 |
-| 複習忘記的卡片 | 一個牌組或所有牌組 | 最近 N 天（含今天）有按過 Again 的卡片 |
-| 提前複習 | 一個牌組或所有牌組 | 複習卡中 N 天內到期的（含已到期） |
+| Increase today's limit | One deck | Add N new and N review cards, valid only today; no separate review is opened and the deck's numbers simply grow |
+| Review forgotten cards | One deck or all decks | Cards that got Again in the last N days (including today) |
+| Review ahead | One deck or all decks | Review cards due within N days (including already due) |
 
-- **增加上限寫進設定檔**，跟著同步：key `["extend", <資料夾路徑>, "new" | "review"]`，值 `{"day": <第幾天>, "n": <張數>}`。`day` 不是今天就不算，所以不必清除；每個牌組最多兩筆，檔案不會越長越大。欄位 LWW，兩台裝置各改新卡、複習也都保留。設定的是「今天總共多加幾張」（再開一次會顯示目前的值），不是累加，重複儲存結果相同。套用方式：計算剩餘數時，這個牌組的上限加上 `n`；與一般上限相同，只在這個牌組位於「從所選牌組到卡片所在牌組」的路徑上時才有作用。「所有牌組」與標籤篩選不能增加上限（「所有牌組」從各最上層牌組計算，沒有單一的牌組可以加）。
-- **忘記的卡、提前複習是臨時篩選**（同標籤篩選）：開始時選定卡片（最多 `filteredLimit` 張），不受每日上限限制、不出新卡；同一行依 preset 埋藏。作答後畢業（回到 Review）的卡片從這次的選擇中移除，避免沒到期的卡片一直重複出現；復原時加回來。
-- **提前複習的紀錄寫 `type: 3`**（Anki revlog 的 Filtered）：複習卡在到期日之前作答時一律如此（只有自訂複習會出現這種卡片）。今天的複習數只算 `type: 1`，所以提前複習不佔用今天的複習上限，與 Anki 相同。記憶狀態照常由 FSRS 依實際經過天數計算，到期日照 `ivl`；Again 一樣算 lapse 並檢查 Leech。
-- **排序**：忘記的卡、提前複習都依 preset 的複習排序。
-- 入口：牌組列表頁首的「自訂複習」按鈕（所有牌組）與牌組列的右鍵選單（iPad 長按，該牌組）；Sheet 中選擇選項與天數 / 張數，顯示會加入幾張卡片。
+- **Extended limits are written into the config file** and sync: key `["extend", <folder path>, "new" | "review"]`, value `{"day": <which day>, "n": <count>}`. A `day` that is not today does not count, so nothing needs clearing; each deck has at most two entries, so the file does not keep growing. Field LWW, so changes to new and to review on two devices are both kept. What is set is "how many extra in total today" (reopening shows the current value), not an increment, so saving repeatedly gives the same result. How it applies: when computing remaining counts, this deck's limit plus `n`; like ordinary limits it takes effect only when this deck lies on the path "from the chosen deck to the card's deck". "All decks" and the tag filter cannot increase limits ("All decks" computes from each top-level deck, with no single deck to add to).
+- **Forgotten cards and review ahead are temporary filters** (like the tag filter): the cards are fixed at start (at most `filteredLimit`), not limited by daily limits, no new cards; siblings on the same line are buried per preset. Cards that graduate (return to Review) after answering are removed from this selection so cards not yet due do not keep reappearing; undo adds them back.
+- **Review-ahead logs are written with `type: 3`** (Anki revlog's Filtered): always so when a review card is answered before its due date (only custom study produces such cards). Today's review count counts only `type: 1`, so review ahead does not use up today's review limit, the same as Anki. Memory state is computed by FSRS from the actual elapsed days as usual, with the due date following `ivl`; Again still counts as a lapse and checks for Leech.
+- **Order**: forgotten cards and review ahead both follow the preset's review order.
+- Entry: the "Custom Study" button at the top of the deck list (all decks) and the deck row's context menu (iPad long press; that deck); the sheet picks the option and days / count and shows how many cards will be added.
 
-## 卡片瀏覽
+## Card browser
 
-對照 Anki 的 Browse：檢視牌組內的所有卡片。
+Modeled on Anki's Browse: view all cards in a deck.
 
-- **入口**：牌組列表頁首的「瀏覽卡片」（所有牌組）、牌組列右鍵選單的「瀏覽卡片…」（該牌組與子牌組）。Sheet 內可以改選牌組。
-- **列表**：正面、背面（克漏字標示同複習畫面；多行內容只顯示前兩行，圖片顯示為檔名）、所在筆記與行號、標籤、狀態（新卡 / 學習中 / 複習 / 已暫停）、到期日、遺忘次數。
-- **篩選**（`CardQuery`）：狀態（全部、新卡、學習中、複習、今天到期、已暫停、Leech）；搜尋比對正反面文字與標籤，`#` 開頭只比對標籤。**排序**：依筆記順序（路徑依 Finder 排序、行號）、依到期日（新卡最後）、依遺忘次數。
-- **動作**（右鍵選單 / 長按）：開啟筆記並捲到該行；暫停 / 恢復；重設為新卡（先確認）。三者都寫成 jsonl 的手動事件（`type: 4`），不改 md；已經是目標狀態的卡片不寫。
-- 只讀記憶體中的重播結果與索引，不另建資料。
+- **Entry**: "Browse Cards" at the top of the deck list (all decks) and "Browse Cards…" in the deck row's context menu (that deck and its children). The deck can be changed inside the sheet.
+- **List**: front, back (cloze marked as in the review screen; multi-line content shows only the first two lines, images shown as file names), source note and line number, tags, state (new / learning / review / suspended), due date, lapses.
+- **Filter** (`CardQuery`): state (all, new, learning, review, due today, suspended, Leech); search matches front and back text and tags, and a `#` prefix matches tags only. **Sort**: by note order (path in Finder order, line number), by due date (new cards last), by lapses.
+- **Actions** (context menu / long press): open the note and scroll to the line; suspend / resume; reset to new (confirmed first). All three are written as jsonl manual events (`type: 4`) and md is not changed; nothing is written for a card already in the target state.
+- Reads only the in-memory replay results and index and builds no data of its own.
 
-## 互通
+## Interoperability
 
-匯出 TSV 給 Anki 匯入；從 Anki 的 `.apkg` 匯入卡片與複習歷史。
+Export TSV for Anki import; import cards and review history from Anki's `.apkg`.
 
-**TSV 匯出（3d）**：
+**TSV export**:
 
-- **依筆記類型拆成三個檔**，放在同一個資料夾匯出：`basic.txt`（`::`）、`basic-and-reversed.txt`（`;;`）、`cloze.txt`（`{{}}`）。不寫筆記類型欄：Anki 內建類型的名稱隨介面語言不同（中文版是「基本型」），寫了對不上就匯入失敗，所以匯入時在 Anki 對話框選類型。
-- **檔頭**：`#separator:tab`、`#html:true`、`#guid column:1`、`#deck column:2`、`#tags column:5`。欄位為 guid、牌組、兩個欄位（Front / Back；克漏字為 Text / Back Extra，單行克漏字的 Back Extra 留空）、標籤，順序與 Anki 內建類型相同。
-- **guid = `^id`**：重複匯入時 Anki 更新原本的筆記，不會重複。還沒有 `^id` 的行不匯出。
-- **牌組**：資料夾 `日文/N2` → `日文::N2`；Vault 根目錄留空，Anki 改用匯入對話框選的牌組。
-- **標籤**：筆記的標籤，空白換成 `_`、`/` 換成 `::`（Anki 的階層）；虛擬標籤 `leech` 不匯出。
-- **內容**：行內 Markdown 轉成 HTML（粗體、斜體、刪除線、螢光、行內程式碼、連結；`[[連結]]` 只留顯示文字），`<`、`&` 跳脫；公式 `$…$` → `\(…\)`、`$$…$$` → `\[…\]`（Anki 內建的 MathJax），公式內只跳脫 `<`、`>`、`&`，克漏字內公式的 `}}` 改成 `} }`（否則 Anki 會提早結束克漏字）；`\$` → `$`。克漏字第 n 個 `{{}}` 轉成 `{{cn::…}}`。含 `"` 的欄位加上引號。多行內容：行與行之間 `<br>`、空行 `<br><br>`、清單 `<ul>` / `<ol>`、程式碼區塊 `<pre><code>`；圖片轉成 `<img src="檔名">`，檔案本身不匯出（要自行放進 Anki 的 `collection.media`）。複習歷史不會帶過去（需要 `.apkg`）。
-- 入口：牌組列表頁首的「匯出給 Anki」（所有牌組）、牌組列右鍵選單（該牌組與子牌組）。
+- **Split into three files by note type**, exported into one folder: `basic.txt` (`::`), `basic-and-reversed.txt` (`;;`), `cloze.txt` (`{{}}`). No note-type column is written: the names of Anki's built-in types vary with the UI language (the Chinese version calls it "基本型"), so writing one would fail to match on import; instead the type is chosen in Anki's import dialog.
+- **Header**: `#separator:tab`, `#html:true`, `#guid column:1`, `#deck column:2`, `#tags column:5`. Columns are guid, deck, two fields (Front / Back; Text / Back Extra for cloze, with a single-line cloze's Back Extra left empty), tags, in the same order as Anki's built-in types.
+- **guid = `^id`**: re-importing makes Anki update the existing notes instead of duplicating. Lines without a `^id` are not exported.
+- **Deck**: folder `Japanese/N2` → `Japanese::N2`; the vault root is left empty and Anki uses the deck chosen in the import dialog instead.
+- **Tags**: the note's tags, with spaces turned into `_` and `/` into `::` (Anki's hierarchy); the virtual tag `leech` is not exported.
+- **Content**: inline Markdown converts to HTML (bold, italic, strikethrough, highlight, inline code, links; `[[link]]` keeps only the display text) with `<` and `&` escaped; math `$…$` → `\(…\)` and `$$…$$` → `\[…\]` (Anki's built-in MathJax), escaping only `<`, `>` and `&` inside math, with the `}}` of a formula inside a cloze changed to `} }` (otherwise Anki ends the cloze early); `\$` → `$`. The nth `{{}}` of a cloze becomes `{{cn::…}}`. Fields containing `"` are quoted. Multi-line content: `<br>` between lines, `<br><br>` for blank lines, lists as `<ul>` / `<ol>`, code blocks as `<pre><code>`; images become `<img src="file name">` and the files themselves are not exported (put them into Anki's `collection.media` yourself). Review history does not carry over (that needs an `.apkg`).
+- Entry: "Export for Anki" at the top of the deck list (all decks) and the deck row's context menu (that deck and its children).
 
-**Anki 匯入（3d）**：
+**Anki import**:
 
-- **入口與流程**：牌組列表頁首的「從 Anki 匯入」→ 選 `.apkg` 或 `.colpkg` → 背景分析（不寫入）→ Sheet 顯示摘要（牌組、筆記檔、卡片、複習紀錄、圖片）與略過的 note 及原因 →「匯入」才寫入。
-- **讀檔**：`.apkg` 是 zip；自己讀 central directory，stored 直接取、deflate 用系統的 Compression（`COMPRESSION_ZLIB` 即 raw deflate），只在需要時讀出單一項目。Anki 2.1.50 起的預設格式用 zstd：`collection.anki21b`、`media`（protobuf `MediaEntries`）與每個媒體檔都是 zstd 壓縮，解壓用 [facebook/zstd](https://github.com/facebook/zstd)（BSD，官方 SwiftPM）。collection 依 `anki21b` → `anki21` → `anki2` 的順序取第一個存在的（新格式中的 `anki2` 只是提示升級的空殼）；舊格式的 `media` 是 JSON。collection 寫到暫存檔、以唯讀開啟系統的 SQLite3，並註冊 Anki 索引使用的 `unicase` collation（沒有它，查詢 `fields` 等資料表會失敗）。schema 18（`notetypes`、`fields`、`templates`、`decks` 資料表，牌組名稱以 `\x1f` 分層）與 schema 11（`col.models`、`col.decks` JSON）都支援。
-- **不可信任的輸入**：解壓後的大小有上限（collection 1 GB、單一媒體檔 200 MB），超過就放棄；zip 內的路徑不使用，只取固定的項目名稱；媒體檔名只取最後一段，且必須出現在 media 清單中。
-- **筆記類型**依結構判斷，不看名稱（名稱隨 Anki 的介面語言不同，中文版的 Basic 叫「基本型」）：克漏字類型（schema 18 的 `notetypes.config` 第 1 欄 `kind = 1`；schema 11 的 `type = 1`）→ `{{}}`，第一欄是 Text、第二欄是 Back Extra；Text 含 `image-occlusion:` 的是 Image Occlusion，略過。一般類型且剛好兩個欄位：一個 template → `::`，兩個 → `;;`。其他類型（三個以上欄位、Option 之類的自訂類型）略過並列出。
-- **牌組與檔案**：牌組 `A::B` → 資料夾 `A/B`。第一個欄位以「`X > Y > Z`」加換行開頭時（麵包屑），`X/Y` 是牌組資料夾下的子資料夾、`Z.md` 是檔名，麵包屑從卡片中去掉；沒有麵包屑的 note 放在牌組資料夾的「Anki 匯入.md」。同一個檔案的 note 依 Anki 的 note id（建立時間）排序，之間空一行。新檔案的 frontmatter `tags` 是檔案內所有 note 標籤的聯集（標籤屬於檔案，所以同一檔案的 note 共用）；Anki 的階層 `a::b` 轉成 `a/b`，不允許的字元換成 `_`。
-- **HTML → Markdown**：`<br>`、`<div>`、`<p>` 換行；`<ul>` / `<ol>` / `<li>` 轉成清單（巢狀依層級縮排）；`<b>`、`<strong>`、`<i>`、`<em>`、`<s>`、`<del>`、`<code>`、`<a href>` 轉成對應語法（樣式跨換行時每行各自成對）；`<pre>` 轉成程式碼區塊；`<img src>` → 獨占一行的 `![[檔名]]`；`[sound:x.mp3]` → `![[x.mp3]]`；MathJax `\(…\)` → `$…$`、`\[…\]` → `$$…$$`，`[$]…[/$]`、`[$$]…[/$$]` 同樣轉換；文字中的 `$` 寫成 `\$`（Anki 的 `$` 一定不是公式）。其他標籤（`<u>`、`<span>`、`<font>`、顏色）去掉、只留文字；HTML entity 解碼；`&nbsp;` 是空白；連續空行合併成一行。
-- **克漏字**：`{{c1::答案::提示}}` → `{{答案}}`（提示去掉）。答案結尾的換行移到克漏字外；行內程式碼中的克漏字改成程式碼在克漏字內（`` `a {{c1::b}}` `` → `` `a `{{`b`}} ``）；只有一行且含克漏字的程式碼區塊改成行內程式碼。答案跨行的 note 無法表示（克漏字必須在同一行），略過並列出。同一個編號出現多次時，EasyNotes 每個 `{{}}` 各一張，該編號的複習歷史複製給每一張。
-- **note 的寫法**：正反面各只有一行時寫成單行 `- 正面 :: 背面`；否則寫成多行 note（見「多行卡片」）：首行是正面的第一行，正面的其餘行接在子行、再接分界行 `::` 與背面。正面第一行是清單、圖片或空白時，首行改用麵包屑的最後一段（沒有時用牌組名稱）。克漏字的 Text 只有一行且沒有 Back Extra 時寫成單行。每筆 note 寫好後用 `CardSyntax` 解析，類型或卡片數與 Anki 不同時略過並列出（例如正面文字含 ` :: `）。
-- **身分與重複匯入**：`^id` 用與 `CardIDFixer` 相同的 hash（檔案路徑 + 首行內容）在匯入時就補上，所以複習紀錄可以直接寫上卡片 id。目標檔案已存在時把 note 加在檔尾；已經有相同內容（不含 `^id`）的 note 時不再寫入，卡片對應到既有的 id。所以重複匯入同一份 `.apkg` 不會產生重複的卡片，Anki 中新增的複習紀錄會補上（讀取時同一筆紀錄只算一次）；在 Anki 改過內容的 note 會變成新的一筆，舊的一筆留著。
-- **複習紀錄**：Anki `revlog` 的 Learning / Review / Relearning / Filtered（`type` 0–3）照原樣寫入這台裝置的 jsonl（`id`、`ease`、`ivl`、`lastIvl`、`time` 相同，`cid` 換成卡片 id）；手動調整與重新排程（`type` 4、5，`ease` 0）沒有對應的事件，略過。Anki 中是新卡但有紀錄的卡片（Forget 過）加一筆 `reset`，暫停中的卡片加一筆 `suspend`，時間都用 Anki 卡片的修改時間（重複匯入時是同一筆）。埋藏與旗標不匯入。重播只看 `ivl`，所以到期日與 Anki 相同；Anki 用 FSRS 且參數相同時記憶狀態也相同。
-- **媒體**：只複製匯入的 note 引用到的檔案，放進 `Attachments/`。同名且內容相同時沿用；同名但內容不同時以 `importAttachment` 取不重複的名稱，並改寫 note 中的引用。
-- **設定不匯入**（preset、每日上限、FSRS 參數）；Anki 的換日時間與 EasyNotes 不同時在摘要中提示。
+- **Entry and flow**: the deck list's "Import from Anki" → choose an `.apkg` or `.colpkg` → analysis in the background (nothing written) → a sheet shows the summary (decks, note files, cards, review logs, images) and skipped notes with reasons → only "Import" writes.
+- **Reading files**: an `.apkg` is a zip; the central directory is read ourselves, stored entries are taken directly, deflate uses the system's Compression (`COMPRESSION_ZLIB` is raw deflate), and a single entry is read out only when needed. The default format since Anki 2.1.50 uses zstd: `collection.anki21b`, `media` (protobuf `MediaEntries`) and every media file are zstd-compressed, decompressed with [facebook/zstd](https://github.com/facebook/zstd) (BSD, official SwiftPM). The collection takes the first that exists in the order `anki21b` → `anki21` → `anki2` (in the new format `anki2` is just an empty shell prompting an upgrade); the legacy `media` is JSON. The collection is written to a temporary file and opened read-only with the system SQLite3, registering the `unicase` collation that Anki's indexes use (without it queries on tables such as `fields` fail). Both schema 18 (`notetypes`, `fields`, `templates`, `decks` tables, deck names layered by `\x1f`) and schema 11 (`col.models`, `col.decks` JSON) are supported.
+- **Untrusted input**: decompressed size has limits (collection 1 GB, a single media file 200 MB) and it gives up beyond them; paths inside the zip are not used and only fixed entry names are taken; a media file name takes only the last segment and must appear in the media list.
+- **Note type** is decided by structure, not by name (names vary with Anki's UI language; the Chinese version's Basic is called "基本型"): a cloze type (schema 18 `notetypes.config` column 1 `kind = 1`; schema 11 `type = 1`) → `{{}}`, with the first field Text and the second Back Extra; one whose Text contains `image-occlusion:` is Image Occlusion and is skipped. A normal type with exactly two fields: one template → `::`, two → `;;`. Other types (three or more fields, custom types like Option) are skipped and listed.
+- **Decks and files**: deck `A::B` → folder `A/B`. When the first field begins with "`X > Y > Z`" plus a newline (a breadcrumb), `X/Y` is a subfolder under the deck folder and `Z.md` is the file name, and the breadcrumb is removed from the card; notes without a breadcrumb go to the deck folder's "Anki Import.md". Notes of the same file are sorted by Anki's note id (creation time) with a blank line between them. A new file's frontmatter `tags` is the union of all the file's notes' tags (tags belong to the file, so notes of one file share them); Anki's hierarchy `a::b` becomes `a/b` and disallowed characters become `_`.
+- **HTML → Markdown**: `<br>`, `<div>`, `<p>` break lines; `<ul>` / `<ol>` / `<li>` become lists (nested by level indentation); `<b>`, `<strong>`, `<i>`, `<em>`, `<s>`, `<del>`, `<code>`, `<a href>` become the corresponding syntax (a style spanning line breaks is paired per line); `<pre>` becomes a code block; `<img src>` → `![[file name]]` alone on a line; `[sound:x.mp3]` → `![[x.mp3]]`; MathJax `\(…\)` → `$…$` and `\[…\]` → `$$…$$`, with `[$]…[/$]` and `[$$]…[/$$]` converted likewise; a `$` in text is written `\$` (Anki's `$` is never math). Other tags (`<u>`, `<span>`, `<font>`, colors) are stripped leaving only text; HTML entities are decoded; `&nbsp;` is a space; consecutive blank lines are merged into one.
+- **Cloze**: `{{c1::answer::hint}}` → `{{answer}}` (the hint is dropped). A trailing newline in the answer moves outside the cloze; a cloze inside inline code becomes code inside the cloze (`` `a {{c1::b}}` `` → `` `a `{{`b`}} ``); a code block with a single line containing a cloze becomes inline code. A note whose answer spans lines cannot be expressed (a cloze must be on one line) and is skipped and listed. When one number appears several times, EasyNotes makes one card per `{{}}` and copies that number's review history to each.
+- **How a note is written**: with one line each on front and back it is written as a single-line `- front :: back`; otherwise as a multi-line note (see "Multi-line cards"): the first line is the front's first line, the rest of the front follows as child lines, then the divider `::` and the back. When the front's first line is a list, an image or blank, the first line uses the breadcrumb's last segment (the deck name if none). A cloze whose Text has one line and no Back Extra is written single-line. Each written note is parsed with `CardSyntax`, and when the type or card count differs from Anki's it is skipped and listed (for example front text containing ` :: `).
+- **Identity and re-import**: `^id` uses the same hash as `CardIDFixer` (file path + first-line content) and is added at import time, so review logs can write the card id directly. When the target file exists the note is appended at the end; a note with identical content (excluding `^id`) is not written again and the card maps to the existing id. So re-importing the same `.apkg` produces no duplicate cards, and review logs newly added in Anki are filled in (the same entry counts once when read); a note whose content was changed in Anki becomes a new note and the old one stays.
+- **Review logs**: Anki `revlog` entries of Learning / Review / Relearning / Filtered (`type` 0–3) are written as is into this device's jsonl (`id`, `ease`, `ivl`, `lastIvl`, `time` unchanged, `cid` replaced by the card id); manual adjustments and rescheduling (`type` 4, 5, `ease` 0) have no corresponding event and are skipped. A card that is new in Anki but has logs (was Forgotten) gets one `reset`, and a suspended card gets one `suspend`, both timed with the Anki card's modification time (the same entry on re-import). Burying and flags are not imported. Replay looks only at `ivl`, so due dates match Anki; with FSRS in Anki and the same parameters the memory state matches too.
+- **Media**: only files referenced by imported notes are copied, into `Attachments/`. A same-named file with identical content is reused; a same-named file with different content gets a unique name through `importAttachment` and the reference in the note is rewritten.
+- **Settings are not imported** (presets, daily limits, FSRS parameters); when Anki's rollover time differs from EasyNotes's, the summary says so.

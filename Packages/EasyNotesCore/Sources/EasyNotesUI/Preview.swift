@@ -1,13 +1,13 @@
 import Foundation
 import SwiftUI
 
-/// 列表卡片縮圖的資料。由外掛在背景從檔案內容產生，依內容 hash 快取，所以只放可序列化的值。
-/// `image` 不進 JSON：快取另存成同名的 `.png`，JSON 只記錄有沒有圖。
+/// Data of a list card thumbnail. Produced by plugins in the background from file content and cached by content hash, so it holds only serializable values.
+/// `image` does not go into JSON: the cache stores it as a `.png` of the same name and the JSON records only whether there is an image.
 public struct DocumentPreview: Codable, Hashable, Sendable {
     public var title: String?
-    /// 標題之後的前幾行（已去掉語法）
+    /// The first few lines after the title (syntax removed)
     public var lines: [String]
-    /// 圖形類外掛（白板）畫好的縮圖 PNG；也用於 `![[x]]` 嵌入（`embed://`）
+    /// A thumbnail PNG drawn by a graphical plugin (whiteboard); also used by `![[x]]` embeds (`embed://`)
     public var image: Data?
 
     public init(title: String? = nil, lines: [String] = [], image: Data? = nil) {
@@ -20,7 +20,7 @@ public struct DocumentPreview: Codable, Hashable, Sendable {
         case title, lines, hasImage
     }
 
-    /// 快取 JSON 中是否有對應的 PNG（`image` 本身由 `PreviewCache` 另外讀寫）
+    /// Whether the cached JSON has a matching PNG (`image` itself is read and written separately by `PreviewCache`)
     public private(set) var hasImage = false
 
     public init(from decoder: any Decoder) throws {
@@ -48,13 +48,13 @@ public struct DocumentPreview: Codable, Hashable, Sendable {
     }
 }
 
-/// 外掛以 `addPreview(for:_:)` 註冊的縮圖。原生渲染，不開 WebView。
-/// `makePreview` 在背景執行緒呼叫，結果會被快取；`view` 在主執行緒把快取的資料畫成縮圖。
+/// A thumbnail a plugin registers with `addPreview(for:_:)`. Rendered natively, no WebView.
+/// `makePreview` is called on a background thread and its result is cached; `view` draws the cached data as a thumbnail on the main thread.
 public protocol DocumentPreviewProvider: Sendable {
-    /// 產生方式改變時遞增，舊快取就不再使用
+    /// Increment when the way of producing changes, so old caches are no longer used
     var version: Int { get }
     func makePreview(_ data: Data) -> DocumentPreview
-    /// `scale`：Desktop 卡片 1、Mobile Pin Card 約 0.7
+    /// `scale`: 1 for Desktop cards, about 0.7 for Mobile Pin Cards
     @MainActor func view(_ preview: DocumentPreview, scale: CGFloat) -> AnyView
 }
 
@@ -62,9 +62,9 @@ public extension DocumentPreviewProvider {
     var version: Int { 1 }
 }
 
-/// 預覽快取：記憶體 → `<directory>/<kind>-v<version>/<hash>.json`（+ `<hash>.png`）→ 重新產生。
-/// 檔案未變（hash 相同）就不重算；快取資料夾可以整個刪掉，之後會重新產生出相同的結果。
-/// 記憶體只保留 JSON 的部分；PNG 另有依大小限制的快取，列表捲過上千個檔案也不會把圖都留在記憶體。
+/// Preview cache: memory → `<directory>/<kind>-v<version>/<hash>.json` (+ `<hash>.png`) → regenerate.
+/// An unchanged file (same hash) is not recomputed; the cache folder may be deleted entirely and later regenerates identical results.
+/// Memory keeps only the JSON part; PNGs have a separate size-limited cache, so scrolling a list past thousands of files does not keep every image in memory.
 public actor PreviewCache {
     private let directory: URL
     private var memory: [String: DocumentPreview] = [:]
@@ -72,14 +72,14 @@ public actor PreviewCache {
     private let memoryLimit: Int
     private let images = NSCache<NSString, NSData>()
 
-    /// 通常是 `<vault>/.easynotes/cache/preview`（cache 不參與同步）
+    /// Usually `<vault>/.easynotes/cache/preview` (cache does not take part in sync)
     public init(directory: URL, memoryLimit: Int = 2000, imageMemoryLimit: Int = 32 << 20) {
         self.directory = directory
         self.memoryLimit = memoryLimit
         images.totalCostLimit = imageMemoryLimit
     }
 
-    /// `load` 只在快取沒有時才呼叫（讀檔）
+    /// `load` is called only when the cache misses (reads the file)
     public func preview(kindID: String, hash: String, provider: any DocumentPreviewProvider,
                         load: @Sendable () throws -> Data) -> DocumentPreview? {
         let folder = "\(kindID)-v\(provider.version)"
@@ -94,12 +94,12 @@ public actor PreviewCache {
                 full.image = image
                 return full
             }
-            // PNG 被刪掉：往下重新產生
+            // The PNG was deleted: regenerate downward
         }
         guard let content = try? load() else { return nil }
         let preview = provider.makePreview(content)
         try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        // 先寫 PNG 再寫 JSON：JSON 說有圖時圖一定在
+        // Write the PNG before the JSON: when the JSON says there is an image it is always there
         if let image = preview.image {
             try? image.write(to: pngURL, options: .atomic)
             images.setObject(image as NSData, forKey: key as NSString, cost: image.count)

@@ -9,16 +9,16 @@ import AppKit
 import UIKit
 #endif
 
-/// 外殼的暫時 UI 狀態（不屬於 Vault）：⌘K、sheet、匯入、重新命名。選單指令與畫面共用同一份
+/// The shell's transient UI state (not part of the vault): ⌘K, sheets, import, rename. Menu commands and views share one copy
 @MainActor @Observable
 final class ShellState {
     var showQuickOpen = false
     var showRecentlyDeleted = false
     var showSettings = false
-    /// 「新功能」視窗（更新後第一次啟動自動出現，或從選單開啟）
+    /// The "What's New" window (appears automatically on the first launch after an update, or from the menu)
     var whatsNew: WhatsNew?
 
-    /// 匯入：選檔視窗允許的類型（來自外掛的 `addImport`）
+    /// Import: the types the file picker allows (from plugins' `addImport`)
     var importTypes: [UTType] = []
     var isImporting = false
 
@@ -36,7 +36,7 @@ final class ShellState {
     }
 }
 
-// MARK: - 在 Finder / 「檔案」App 中顯示
+// MARK: - Reveal in Finder / the Files app
 
 #if os(macOS)
 let revealTitle = L("在 Finder 中顯示")
@@ -44,7 +44,7 @@ let revealTitle = L("在 Finder 中顯示")
 let revealTitle = L("在「檔案」App 中顯示")
 #endif
 
-/// macOS：在 Finder 中選取；iOS：用「檔案」App 開啟所在資料夾
+/// macOS: select in Finder; iOS: open the containing folder with the Files app
 @MainActor
 func reveal(_ url: URL) {
     #if os(macOS)
@@ -60,10 +60,10 @@ func reveal(_ url: URL) {
 }
 
 extension VaultStore {
-    /// Vault 標頭顯示的名稱：Vault 資料夾名稱
+    /// The name shown in the vault header: the vault folder's name
     var vaultName: String { fs.root.lastPathComponent }
 
-    /// 目前位置的標題（麵包屑最後一段、頁面標題）
+    /// Title of the current location (last breadcrumb segment, page title)
     func title(for route: Route) -> String {
         switch route {
         case .all: L("所有文件")
@@ -88,7 +88,7 @@ extension VaultStore {
         }
     }
 
-    /// 麵包屑：資料夾 / … / 檔名；非 Vault 路徑的頁面只有標題
+    /// Breadcrumb: folder / … / file name; pages that are not vault paths have only a title
     func breadcrumb(for route: Route) -> [String] {
         switch route {
         case .file(let path), .folder(let path):

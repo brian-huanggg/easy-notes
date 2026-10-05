@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// 每一行一筆 record，key = 行號
+/// One record per line, key = line number
 private struct LineContributor: IndexContributor {
     let id = "lines"
     var version = 1
@@ -35,7 +35,7 @@ struct IndexContributorTests {
         #expect(try await index.records("lines").isEmpty)
     }
 
-    /// contributor 的 version 改變 → 索引清空，下一次 sync 全部重建
+    /// The contributor's version changes → the index is cleared and fully rebuilt on the next sync
     @Test func versionChangeRebuildsIndex() async throws {
         defer { try? FileManager.default.removeItem(at: root) }
         try fs.write(Data("一\n".utf8), to: "a.txt")
@@ -52,7 +52,7 @@ struct IndexContributorTests {
         #expect(try await index.records("lines").count == 1)
     }
 
-    /// 顯示文字的語言改變 → 索引清空重建；語言相同則沿用
+    /// The display-text language changes → the index is cleared and rebuilt; the same language is kept
     @Test func languageChangeRebuildsIndex() async throws {
         defer { try? FileManager.default.removeItem(at: root) }
         try fs.write(Data("一\n".utf8), to: "a.txt")

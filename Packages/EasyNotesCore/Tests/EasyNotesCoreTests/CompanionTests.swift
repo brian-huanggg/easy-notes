@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// 伴隨檔的測試類型：`x.note.ann` 是 `x.note` 的旁檔（等同 PDF 外掛的 `.pdf.ink`）
+/// A test type for companions: `x.note.ann` is the sidecar of `x.note` (equivalent to the PDF plugin's `.pdf.ink`)
 enum AnnotationKind: DocumentKind {
     static let id = "annotation"
     static let fileExtensions = ["note.ann"]
@@ -43,7 +43,7 @@ struct CompanionTests {
         #expect(try fs.search("標註").isEmpty)
 
         let index = try VaultIndex(fs: fs)
-        // 伴隨檔照常索引（外部修改才偵測得到），但不出現在列表與搜尋
+        // Companions are indexed as usual (so external edits can be detected) but do not appear in lists or search
         #expect(try await index.sync() == ["生物/講義.note", "生物/講義.note.ann"])
         #expect(try await index.files().map(\.path) == ["生物/講義.note"])
         #expect(try await index.search("講義").map(\.path) == ["生物/講義.note"])
@@ -78,7 +78,7 @@ struct CompanionTests {
         #expect(try fs.read("課程/第一章/講義.note.ann") == Data("標註".utf8))
         #expect(!fs.exists("講義.note") && !fs.exists("講義.note.ann"))
 
-        // 同名、搬進自己或子資料夾都不搬
+        // A same name, moving into itself or a subfolder never moves
         #expect(throws: (any Error).self) { try fs.move("課程/第一章/講義.note", toFolder: "存檔") }
         #expect(throws: (any Error).self) { try fs.move("課程", toFolder: "課程/第一章") }
         #expect(throws: (any Error).self) { try fs.move("課程", toFolder: "課程") }
@@ -97,7 +97,7 @@ struct CompanionTests {
         await ipad.sync()
         let ids = await Set(backend.rows.keys)
 
-        try mac.move("講義.note", "課程/第一章.note") // Finder 只改了主檔
+        try mac.move("講義.note", "課程/第一章.note") // Finder changed only the main file
         await mac.sync()
         #expect(!mac.exists("講義.note.ann"))
         #expect(mac.read("課程/第一章.note.ann") == "標註\n")
@@ -119,7 +119,7 @@ struct CompanionTests {
         await mac.sync()
 
         let deleted = try await mac.engine.recentlyDeleted()
-        #expect(deleted.map(\.path) == ["講義.note"]) // 伴隨檔不列出
+        #expect(deleted.map(\.path) == ["講義.note"]) // Companions are not listed
         #expect(try await mac.engine.restore(deleted[0]) == "講義.note")
         #expect(mac.read("講義.note.ann") == "標註\n")
         await mac.sync()

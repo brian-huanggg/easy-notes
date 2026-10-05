@@ -1,15 +1,15 @@
-// E2E 專用：只在 DEBUG 編譯，Release 即使連結了這個 target 也不會帶進任何程式碼
+// E2E only: compiled only in DEBUG; even if Release links this target no code is brought in
 #if DEBUG
 import EasyNotesCore
 import Foundation
 
-/// 以一個資料夾當遠端的 `SyncBackend`：E2E 測試用，讓 App 與測試程序（另一台「裝置」）不經網路同步。
-/// commit 的語意與 Supabase 的 `commit_file` RPC 相同（版本檢查、同一路徑只能有一個未刪除的檔案）。
+/// A `SyncBackend` that uses a folder as the remote: for E2E tests, letting the app and the test process (another "device") sync without a network.
+/// The commit semantics match Supabase's `commit_file` RPC (version check, one undeleted file per path).
 ///
-/// 資料夾內容：
-/// - `blobs/<hash>`：內容定址，只增不覆寫
-/// - `rows.json`：`files` 資料表的所有列
-/// - `lock`：跨程序的互斥鎖（`flock`），App 與測試程序同時 commit 也不會互相覆蓋
+/// Folder contents:
+/// - `blobs/<hash>`: content-addressed, append-only
+/// - `rows.json`: all rows of the `files` table
+/// - `lock`: a cross-process mutex (`flock`), so the app and the test process committing at the same time cannot overwrite each other
 public struct FolderSyncBackend: SyncBackend {
     public let root: URL
 
@@ -39,7 +39,7 @@ public struct FolderSyncBackend: SyncBackend {
             guard current?.version == request.baseVersion else { return nil }
             if !request.deleted,
                rows.contains(where: { $0.id != request.id && $0.path == request.path && !$0.deleted }) { return nil }
-            // updatedAt 單調遞增：同一毫秒內的多次 commit 也能被 `changes(since:)` 依序取到
+            // updatedAt increases monotonically: several commits within the same millisecond can still be fetched in order by `changes(since:)`
             let last = rows.map(\.updatedAt).max() ?? .distantPast
             let now = max(Date(), last.addingTimeInterval(0.001))
             let version = (current?.version ?? 0) + 1
@@ -64,7 +64,7 @@ public struct FolderSyncBackend: SyncBackend {
             .sorted { $0.updatedAt > $1.updatedAt }
     }
 
-    // MARK: 儲存
+    // MARK: Storage
 
     private struct Row: Codable {
         var id: UUID
@@ -108,10 +108,10 @@ public struct FolderSyncBackend: SyncBackend {
         return try body()
     }
 
-    // MARK: 取代 Realtime
+    // MARK: Replacing Realtime
 
-    /// 遠端資料夾有新的 commit（`rows.json` 被替換）時呼叫 `onChange`；回傳的物件釋放時停止監看。
-    /// 只在 App 前景時使用，與 Supabase Realtime 的連線時機相同。
+    /// Calls `onChange` when the remote folder gets a new commit (`rows.json` is replaced); watching stops when the returned object is released.
+    /// Used only while the app is in the foreground, the same timing as the Supabase Realtime connection.
     public static func watch(_ root: URL, onChange: @escaping @Sendable () -> Void) -> AnyObject? {
         let fd = open(root.path(percentEncoded: false), O_EVTONLY)
         guard fd >= 0 else { return nil }

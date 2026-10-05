@@ -1,10 +1,10 @@
 import Foundation
 
-/// 以行為單位的三方合併（diff3）。不認識檔案類型，只看位元組：
-/// 行尾符號（LF / CRLF）跟著行走，檔尾沒有換行的最後一行也是一行，所以不會改寫使用者的格式。
-/// Markdown 與 CSV 這類以行為單位的格式在 `DocumentKind.merge` 中呼叫它。
+/// Line-based three-way merge (diff3). Knows no file types, only bytes:
+/// line endings (LF / CRLF) travel with their lines, and a final line with no trailing newline is also a line, so the user's format is never rewritten.
+/// Line-based formats such as Markdown and CSV call it from `DocumentKind.merge`.
 public enum Diff3 {
-    /// 非重疊的修改自動合併；兩邊改了同一段且結果不同時回傳 nil（由同步層產生衝突副本）
+    /// Non-overlapping edits merge automatically; when both sides changed the same hunk with different results it returns nil (the sync layer creates a conflict copy)
     public static func merge(base: Data, local: Data, remote: Data) -> Data? {
         if local == remote { return local }
         if local == base { return remote }
@@ -13,14 +13,14 @@ public enum Diff3 {
         return merged.map { Data($0.joined()) }
     }
 
-    /// 經典 diff3：以「base 中兩邊都沒動的行」為同步點，切出不穩定區塊逐一判斷。
-    /// 兩邊改了同一段且結果不同時交給 `resolve`（base、local、remote 的該段）；它回傳 nil 代表衝突。
-    /// 外掛用它在自己的單位內做更細的合併（例如 Sheets 逐儲存格），Core 仍不認識檔案類型。
+    /// Classic diff3: uses "lines of base that neither side touched" as sync points and cuts out unstable hunks to judge one by one.
+    /// When both sides changed the same hunk with different results it hands over to `resolve` (that hunk's base, local, remote); nil means conflict.
+    /// Plugins use it to merge more finely within their own unit (for example Sheets per cell); Core still knows no file types.
     public static func merge<Line: Hashable>(
         base: [Line], local: [Line], remote: [Line],
         resolve: (_ base: ArraySlice<Line>, _ local: ArraySlice<Line>, _ remote: ArraySlice<Line>) -> [Line]? = { _, _, _ in nil }
     ) -> [Line]? {
-        // 病態輸入（兩邊都幾乎整份重寫的超大檔案）的 diff 是平方成本，會卡住同步：超過上限就當衝突，由同步層留衝突副本
+        // The diff of pathological input (huge files where both sides rewrote almost everything) is quadratic and would hang sync: above the cap it counts as a conflict and the sync layer leaves a conflict copy
         guard diffCost(base, local) <= maxDiffCost, diffCost(base, remote) <= maxDiffCost else { return nil }
         let toLocal = matching(from: base, to: local)
         let toRemote = matching(from: base, to: remote)
@@ -32,7 +32,7 @@ public enum Diff3 {
                 i += 1; a += 1; b += 1
                 continue
             }
-            // 下一個兩邊都保留的 base 行；沒有就延伸到結尾
+            // The next base line both sides kept; extend to the end if none
             var j = i
             while j < base.count, toLocal[j] == nil || toRemote[j] == nil { j += 1 }
             let aEnd = j < base.count ? toLocal[j]! : local.count
@@ -52,12 +52,12 @@ public enum Diff3 {
         return result
     }
 
-    /// Myers diff 的成本約為 (兩邊行數) × (不同的行數)；超過這個值就當衝突。
-    /// 約 4 億次運算：release 不到 1 秒，debug 十幾秒。一般的編輯（小改、各處分散的修改、貼上幾千行）遠低於它
+    /// The cost of Myers diff is about (lines on both sides) × (differing lines); above this value it counts as a conflict.
+    /// About 400 million operations: under 1 s in release, over ten seconds in debug. Ordinary edits (small changes, scattered changes, pasting a few thousand lines) are far below it
     static let maxDiffCost = 400_000_000
 
-    /// 去掉相同的開頭與結尾後，以「兩邊對不上的行數」估計 diff 距離，回傳估計的成本。
-    /// 只增減（一邊的中間部分是空的）成本為 0；超大且幾乎整份重寫的檔案才會超過上限
+    /// After removing the identical prefix and suffix, estimates the diff distance from "the number of lines that do not match on either side" and returns the estimated cost.
+    /// Pure insertions and deletions (the middle of one side is empty) cost 0; only huge files rewritten almost entirely exceed the cap
     static func diffCost<Line: Hashable>(_ a: [Line], _ b: [Line]) -> Int {
         var head = 0
         while head < a.count, head < b.count, a[head] == b[head] { head += 1 }
@@ -76,7 +76,7 @@ public enum Diff3 {
         return overflow ? Int.max : cost
     }
 
-    /// base 每一行對應到另一邊的行號（LCS，Myers diff）；被刪除或改掉的行為 nil
+    /// For each line of base, the line number on the other side (LCS, Myers diff); nil for deleted or changed lines
     static func matching<Line: Hashable>(from base: [Line], to other: [Line]) -> [Int?] {
         let diff = other.difference(from: base)
         var removed = Set<Int>(), inserted = Set<Int>()
@@ -96,7 +96,7 @@ public enum Diff3 {
         return result
     }
 
-    /// 依 `\n` 切行並保留行尾，`lines(x).joined() == x`
+    /// Splits lines on `\n` and keeps line endings, so `lines(x).joined() == x`
     static func lines(_ data: Data) -> [Data] {
         var result: [Data] = []
         var start = data.startIndex

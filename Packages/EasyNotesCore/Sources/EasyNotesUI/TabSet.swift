@@ -1,7 +1,7 @@
 import Foundation
 
-/// 分頁清單（類似瀏覽器）：只放每個分頁的狀態，不持有編輯器，所以背景分頁幾乎不佔記憶體。
-/// 永遠至少有一個分頁；`State` 由外殼決定（App 用位置 + 上一頁 / 下一頁歷史）
+/// The tab list (like a browser): holds only each tab's state and no editor, so background tabs take almost no memory.
+/// There is always at least one tab; `State` is decided by the shell (the app uses location + back / forward history)
 public struct TabSet<State> {
     public struct Tab: Identifiable {
         public let id: UUID
@@ -17,7 +17,7 @@ public struct TabSet<State> {
         activeID = tab.id
     }
 
-    /// 還原：`states` 為空時等同只有一個 `fallback`；`active` 超出範圍時取最後一個
+    /// Restore: empty `states` is equivalent to a single `fallback`; an out-of-range `active` takes the last one
     public init(restoring states: [State], active: Int, fallback: State) {
         tabs = states.map { Tab(id: UUID(), state: $0) }
         if tabs.isEmpty { tabs = [Tab(id: UUID(), state: fallback)] }
@@ -31,7 +31,7 @@ public struct TabSet<State> {
         set { tabs[activeIndex].state = newValue }
     }
 
-    /// 在目前分頁右邊新增並切過去
+    /// Adds to the right of the current tab and switches to it
     @discardableResult
     public mutating func open(_ state: State) -> UUID {
         let tab = Tab(id: UUID(), state: state)
@@ -44,13 +44,13 @@ public struct TabSet<State> {
         if tabs.contains(where: { $0.id == id }) { activeID = id }
     }
 
-    /// 依順序切換（⌃Tab）；到尾端回到開頭
+    /// Switches in order (⌃Tab); wraps from the end to the start
     public mutating func activate(offset: Int) {
         let count = tabs.count
         activeID = tabs[((activeIndex + offset) % count + count) % count].id
     }
 
-    /// 關閉分頁：關的是目前分頁時切到右邊（沒有就左邊）；最後一個分頁關掉後換成 `blank`
+    /// Closes a tab: closing the current tab switches to the right (the left if none); after the last tab is closed it is replaced by `blank`
     public mutating func close(_ id: UUID, blank: @autoclosure () -> State) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         tabs.remove(at: index)
@@ -63,7 +63,7 @@ public struct TabSet<State> {
         }
     }
 
-    /// 關閉其他分頁
+    /// Closes the other tabs
     public mutating func closeOthers(keeping id: UUID) {
         guard let tab = tabs.first(where: { $0.id == id }) else { return }
         tabs = [tab]
@@ -76,7 +76,7 @@ public struct TabSet<State> {
         tabs.insert(tab, at: min(max(index, 0), tabs.count))
     }
 
-    /// 更新每個分頁的狀態（改名、搬移）
+    /// Updates each tab's state (rename, move)
     public mutating func update(_ change: (inout State) -> Void) {
         for index in tabs.indices { change(&tabs[index].state) }
     }

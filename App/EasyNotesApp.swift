@@ -11,7 +11,7 @@ import SwiftUI
 import UIKit
 #endif
 
-/// 編譯期組裝的外掛，依序註冊。第一個是預設類型（`[[連結]]` 找不到時建立）。
+/// Plugins assembled at compile time, registered in order. The first is the default kind (created when a `[[link]]` is not found).
 private let plugins: [any EasyNotesPlugin.Type] = [
     MarkdownPlugin.self,
     WhiteboardPlugin.self,
@@ -53,7 +53,7 @@ struct EasyNotesApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await store.scanLocalChanges() } // 在「檔案」App 改過的檔案
+                Task { await store.scanLocalChanges() } // Files changed in the Files app
                 sync.scenePhaseChanged(active: true)
             } else {
                 Task {
@@ -118,7 +118,7 @@ struct EasyNotesApp: App {
     }
 }
 
-/// 外掛註冊的頂層選單。SwiftUI 的 Commands 不能用 ForEach，所以預留固定數量的位置。
+/// Top-level menus registered by plugins. SwiftUI Commands cannot use ForEach, so a fixed number of slots is reserved.
 private struct PluginMenus: Commands {
     let menus: [PluginRegistry.Menu]
 

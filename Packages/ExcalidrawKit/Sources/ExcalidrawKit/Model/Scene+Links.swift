@@ -1,7 +1,7 @@
 import Foundation
 
 extension ExcalidrawScene {
-    /// 元素 `link` 中的 `[[筆記]]`（不含別名），已刪除的元素不算
+    /// The `[[note]]` in an element's `link` (without alias); deleted elements do not count
     public var noteLinks: [String] {
         var seen = Set<String>(), result: [String] = []
         for el in liveElements {
@@ -11,8 +11,8 @@ extension ExcalidrawScene {
         return result
     }
 
-    /// 筆記改名：更新 `link` 的 `[[舊名]]`（保留別名、不分大小寫）與 `customData.easynotes.file`
-    /// （筆記卡片記錄的路徑，只換檔名、保留資料夾與副檔名）。沒有要改的回傳 false。
+    /// Note rename: updates `[[old name]]` in `link` (keeping alias, case-insensitive) and `customData.easynotes.file`
+    /// (the path a note card records; only the file name is replaced, keeping folder and extension). Returns false when there is nothing to change.
     @discardableResult
     public mutating func renameLinks(from oldName: String, to newName: String) -> Bool {
         var changed = false
@@ -31,7 +31,7 @@ extension ExcalidrawScene {
                 }
             }
             changed = true
-            // 卡片的標題文字跟著改名（使用者改過標題就不動）
+            // A card's title text follows the rename (left alone if the user changed the title)
             if link != nil, let title = liveElements.first(where: { $0.containerId == el.id && $0.type == .text }),
                title.text.caseInsensitiveCompare(oldName) == .orderedSame {
                 setText(title.id, to: newName)
@@ -40,29 +40,29 @@ extension ExcalidrawScene {
         return changed
     }
 
-    /// 筆記卡片：`customData.easynotes.file` 記錄的 Vault 路徑；不是卡片回傳 nil
+    /// A note card: the vault path recorded in `customData.easynotes.file`; nil if not a card
     public func noteCardPath(_ id: String) -> String? {
         guard let el = element(id), !el.isDeleted else { return nil }
         return Self.cardFile(in: el.customData)
     }
 
-    /// 在 `box` 插入筆記卡片（rectangle + `link: [[筆記名]]` + `customData.easynotes.file`），
-    /// 標題是綁在矩形內的文字，excalidraw.com 顯示為帶連結的框。回傳卡片 id
+    /// Inserts a note card in `box` (rectangle + `link: [[note name]]` + `customData.easynotes.file`),
+    /// with the title as text bound inside the rectangle, shown as a box with a link on excalidraw.com. Returns the card id
     @discardableResult
     public mutating func insertNoteCard(path: String, in box: CGRect) -> String {
         let name = (((path as NSString).lastPathComponent) as NSString).deletingPathExtension
         var card = Element.rectangle(x: box.minX, y: box.minY, width: box.width, height: box.height)
         card.raw["backgroundColor"] = "#ffffff"
         card.link = "[[\(name)]]"
-        // fit：卡片依內容自動調整後的高度；之後使用者手動改了高度（≠ fit）就不再自動調整
+        // fit: the height after the card auto-fit to its content; once the user changes the height by hand (≠ fit) it is never auto-adjusted again
         card.raw["customData"] = [Self.customKey: ["file": path, "fit": box.height]]
         insert(card)
         addBoundText(name, to: card.id)
         return card.id
     }
 
-    /// 卡片高度跟著內容：高度還等於上次自動調整的結果（`fit`，沒有記錄視為自動）才調整，
-    /// 使用者手動改過高度就不動。標題文字重新置中、綁定的箭頭重算。有改變回傳 true
+    /// The card height follows content: adjusts only while the height still equals the last auto-fit result (`fit`; no record counts as auto),
+    /// and leaves it alone once the user has changed the height by hand. Title text is re-centered and bound arrows recomputed. Returns true when changed
     @discardableResult
     public mutating func fitNoteCard(_ id: String, toHeight height: Double) -> Bool {
         guard let el = element(id), !el.isDeleted, noteCardPath(id) != nil else { return false }

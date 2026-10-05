@@ -1,9 +1,9 @@
 import SwiftUI
 
-// 白板與 PDF 共用的工具列（GoodNotes 式，見 architecture/ui.md「手寫工具列」）：
-// 上方一排（工具置中、右側是動作）+ 下面浮著的 Undo / Redo 與手寫選項膠囊
+// Toolbar shared by whiteboard and PDF (GoodNotes style, see "Ink toolbar" in architecture/ui.md):
+// a top row (tools centered, actions on the right) + the floating Undo / Redo and ink options capsule below
 
-/// 上方一排：`tools` 置中（放不下時可橫向捲動），`actions` 靠右；導覽列下方獨立一排
+/// The top row: `tools` centered (horizontally scrollable when they do not fit), `actions` at the right; its own row below the navigation bar
 public struct EditorToolbar<Tools: View, Actions: View>: View {
     private let tools: Tools
     private let actions: Actions
@@ -31,7 +31,7 @@ public struct EditorToolbar<Tools: View, Actions: View>: View {
     }
 }
 
-/// 第一個子 view 盡量置中、第二個靠右；兩者會重疊時，中間那個往左移（再不夠就縮到剩下的寬度）
+/// The first child is centered as far as possible and the second at the right; when the two would overlap, the middle one shifts left (and then shrinks to the remaining width)
 private struct CenterTrailingLayout: Layout {
     var spacing: CGFloat = 8
 
@@ -57,7 +57,7 @@ private struct CenterTrailingLayout: Layout {
     }
 }
 
-/// 工具列的圖示按鈕（選取中加底色）
+/// An icon button of the toolbar (a background when selected)
 public struct ToolbarIconButton: View {
     let title: String
     let systemImage: String
@@ -94,7 +94,7 @@ public struct ToolbarSeparator: View {
     }
 }
 
-/// 畫筆、螢光筆、橡皮擦、套索：選了就進入手寫模式；再按一次已選的工具收起 / 叫回選項膠囊
+/// Pen, highlighter, eraser, lasso: choosing one enters ink mode; pressing the selected tool again collapses / restores the options capsule
 public struct InkToolButtons: View {
     @Binding var inking: Bool
     private let settings = InkSettings.shared
@@ -113,7 +113,7 @@ public struct InkToolButtons: View {
     }
 }
 
-/// 工具列下方的浮動列：左邊 Undo / Redo，中間是手寫選項膠囊（手寫模式且選項顯示時）。空白處不攔觸控
+/// The floating row below the toolbar: Undo / Redo at the left, the ink options capsule in the middle (when in ink mode and options are shown). Empty space lets touches through
 public struct EditorFloatingRow: View {
     let inking: Bool
     let undo: UndoRedoPill
@@ -140,7 +140,7 @@ public struct EditorFloatingRow: View {
     }
 }
 
-/// 第一個子 view 盡量置中、第二個靠左（與 `CenterTrailingLayout` 對稱）
+/// The first child is centered as far as possible and the second at the left (symmetric with `CenterTrailingLayout`)
 private struct CenterLeadingLayout: Layout {
     var spacing: CGFloat = 8
 
@@ -166,7 +166,7 @@ private struct CenterLeadingLayout: Layout {
     }
 }
 
-/// Undo / Redo 膠囊。`manager` 只用來顯示能不能復原；按下時呼叫 `undo` / `redo`（宿主可先結束文字編輯）
+/// The Undo / Redo capsule. `manager` is used only to show whether undo is possible; pressing calls `undo` / `redo` (the host may end text editing first)
 public struct UndoRedoPill: View {
     let manager: () -> UndoManager?
     let undo: () -> Void
@@ -198,7 +198,7 @@ public struct UndoRedoPill: View {
         .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08)))
         .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
         .onAppear(perform: refresh)
-        // 不能聽 NSUndoManagerCheckpoint：canUndo / canRedo 本身會發出它，形成無限迴圈
+        // Must not listen to NSUndoManagerCheckpoint: canUndo / canRedo themselves emit it, forming an infinite loop
         .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidCloseUndoGroup)) { _ in refresh() }
         .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidUndoChange)) { _ in refresh() }
         .onReceive(NotificationCenter.default.publisher(for: .NSUndoManagerDidRedoChange)) { _ in refresh() }
@@ -214,12 +214,12 @@ public struct UndoRedoPill: View {
     }
 }
 
-/// 手寫選項膠囊：畫筆種類 | 粗細 | 顏色（螢光筆沒有種類；橡皮擦是整筆 / 部分 + 粗細）
+/// The ink options capsule: pen kind | width | color (a highlighter has no kind; an eraser is whole / partial + width)
 struct InkOptionsBar: View {
     private let settings = InkSettings.shared
 
     var body: some View {
-        // 放得下就是剛好的寬度（置中），放不下才橫向捲動
+        // Exactly the needed width (centered) when it fits, horizontal scrolling only when it does not
         ViewThatFits(in: .horizontal) {
             content
             ScrollView(.horizontal, showsIndicators: false) { content }
@@ -285,7 +285,7 @@ struct InkOptionsBar: View {
         .accessibilityAddTraits(active ? .isSelected : [])
     }
 
-    /// 三段粗細：越粗的線越粗
+    /// Three widths: thicker means a thicker line
     private func widths(for tool: InkTool) -> some View {
         ForEach(InkState.widthScales.indices, id: \.self) { level in
             option(L("粗細 \(level + 1)"), active: settings.state.widthLevel(for: tool) == level) {
@@ -337,7 +337,7 @@ struct InkOptionsBar: View {
     }
 }
 
-/// 「+」：系統顏色選擇器。拖曳中會連續送值，短時間內的連續變更取代上一次加的顏色，不會一次加很多個
+/// "+": the system color picker. It sends values continuously while dragging, so consecutive changes in a short time replace the color added last time instead of adding many
 private struct AddColorButton: View {
     let tool: InkTool
     @State private var picked = Color.black
@@ -345,7 +345,7 @@ private struct AddColorButton: View {
 
     var body: some View {
         ZStack {
-            // 系統的顏色井接收點按；外觀換成虛線圓 + 加號
+            // The system color well accepts taps; its appearance is replaced by a dashed circle + plus sign
             ColorPicker(L("加入顏色"), selection: $picked, supportsOpacity: false)
                 .labelsHidden()
                 .opacity(0.02)
@@ -375,7 +375,7 @@ enum InkColor {
         return "#" + parts.joined()
     }
 
-    /// 打勾用黑色還是白色
+    /// Whether the checkmark is black or white
     static func isLight(_ hex: String) -> Bool {
         let (r, g, b) = rgb(hex)
         return 0.299 * r + 0.587 * g + 0.114 * b > 0.6
@@ -395,7 +395,7 @@ extension Color {
     }
 }
 
-// MARK: 名稱與圖示
+// MARK: Names and icons
 
 extension InkTool {
     public var title: String {

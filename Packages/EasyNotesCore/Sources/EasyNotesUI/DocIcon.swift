@@ -1,14 +1,14 @@
 import SwiftUI
 
-/// 文件 icon（frontmatter `icon`）：Emoji 或 SF Symbol。
-/// 檔案裡存成字串：Emoji 原樣（`icon: 🗺`），SF Symbol 加前綴（`icon: sf:map`）；Core 只存不解讀。
+/// Document icon (frontmatter `icon`): an emoji or an SF Symbol.
+/// Stored in the file as a string: emoji as is (`icon: 🗺`), SF Symbols with a prefix (`icon: sf:map`); Core only stores it and never interprets it.
 public enum DocIcon: Hashable, Sendable {
     case emoji(String)
     case symbol(String)
 
     static let symbolPrefix = "sf:"
 
-    /// 空字串 → nil；`sf:` 但系統沒有這個 symbol（例如外部工具寫錯名稱）→ nil，由呼叫端顯示類型的預設圖示
+    /// Empty string → nil; `sf:` but the system has no such symbol (for example an external tool misspelled the name) → nil, and the caller shows the type's default icon
     @MainActor
     public init?(_ raw: String?) {
         guard let raw = raw?.trimmingCharacters(in: .whitespaces), !raw.isEmpty else { return nil }
@@ -21,7 +21,7 @@ public enum DocIcon: Hashable, Sendable {
         }
     }
 
-    /// 寫回 frontmatter 的字串
+    /// The string written back to frontmatter
     public var frontmatterValue: String {
         switch self {
         case .emoji(let emoji): emoji
@@ -48,8 +48,8 @@ public enum DocIcon: Hashable, Sendable {
     }
 }
 
-/// 圖示選單的內建清單。Apple 沒有列出所有 SF Symbols 的公開 API，所以內建常用的一組；
-/// 搜尋框也接受直接輸入完整名稱。
+/// The built-in list of the icon menu. Apple has no public API listing all SF Symbols, so a common set is built in;
+/// the search box also accepts a full name typed in.
 public enum DocIconCatalog {
     public struct Group: Identifiable, Sendable {
         public var id: String { title }
@@ -93,7 +93,7 @@ public enum DocIconCatalog {
     public static let emojis: [String] = Array("📝📌💡📚🗺🎯🧭🧠🔬🧪📊📈🗂📁🏷✅🚀🌱🔥⭐️🎨🧩💬🛠🎓🍀☕️🌙📅⏰💰🏠✈️🎵📷❤️").map(String.init)
 }
 
-/// 文件 icon 選單：分段控制「圖示 | 表情符號」。`choose(nil)` = 移除圖示
+/// Document icon menu: a segmented control "Icons | Emoji". `choose(nil)` = remove the icon
 public struct DocIconPicker: View {
     enum Tab: Hashable { case symbol, emoji }
 
@@ -155,7 +155,7 @@ public struct DocIconPicker: View {
         #endif
     }
 
-    // MARK: 圖示
+    // MARK: Icons
 
     private var symbolTab: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -186,7 +186,7 @@ public struct DocIconPicker: View {
         }
     }
 
-    /// 依名稱過濾；輸入的是完整且存在的名稱、但不在清單裡時，另外列在最前面
+    /// Filters by name; when the input is a full, existing name that is not in the list, it is listed first separately
     private var filteredGroups: [DocIconCatalog.Group] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let all = DocIconCatalog.symbolGroups.map { group in
@@ -201,7 +201,7 @@ public struct DocIconPicker: View {
         return groups
     }
 
-    // MARK: 表情符號
+    // MARK: Emoji
 
     private var emojiTab: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -209,7 +209,7 @@ public struct DocIconPicker: View {
                 TextField(L("輸入一個表情符號"), text: $emojiText)
                     .textFieldStyle(.roundedBorder)
                     .onChange(of: emojiText) { _, value in
-                        // 只保留最後一個字（emoji 可能由多個 Unicode 組成，以字元計）
+                        // Keep only the last character (an emoji may consist of several Unicode scalars, counted by character)
                         if value.count > 1, let last = value.last { emojiText = String(last) }
                         if let ch = emojiText.first { selection = .emoji(String(ch)) }
                     }
@@ -225,7 +225,7 @@ public struct DocIconPicker: View {
         }
     }
 
-    // MARK: 網格
+    // MARK: Grid
 
     private func grid<Label: View>(_ items: [String], @ViewBuilder label: @escaping (String) -> Label,
                                    select: @escaping (String) -> DocIcon) -> some View {

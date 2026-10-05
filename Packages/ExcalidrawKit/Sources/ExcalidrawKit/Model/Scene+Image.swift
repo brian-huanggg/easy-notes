@@ -5,19 +5,19 @@ import ImageIO
 import UniformTypeIdentifiers
 
 extension ExcalidrawScene {
-    /// 內嵌圖片的最長邊（像素）
+    /// The longest side (pixels) of an embedded image
     public static let maxImagePixels = 2048
 
-    /// 插入圖片：ImageIO 縮到最長邊 2048px、轉 JPEG（有透明度的圖保留 PNG，避免透明處變黑），
-    /// 以 `dataURL` 寫入 `files`。`fileId` 由內容 hash 決定，同一張圖不會重複內嵌。
-    /// 元素顯示尺寸不超過 `maxDisplay`（點）。回傳元素 id；資料不是圖片回傳 nil。
+    /// Inserts an image: ImageIO scales to a longest side of 2048 px and converts to JPEG (images with transparency stay PNG so transparent areas do not turn black),
+    /// written into `files` as `dataURL`. `fileId` is decided by the content hash, so one image is never embedded twice.
+    /// The element's display size does not exceed `maxDisplay` (points). Returns the element id; returns nil when the data is not an image.
     @discardableResult
     public mutating func insertImage(_ data: Data, at origin: CGPoint, maxDisplay: Double = 400) -> String? {
         guard let encoded = Self.downscale(data) else { return nil }
         return insertImage(encoded, maxDisplay: maxDisplay) { _ in origin }
     }
 
-    /// 插入已縮圖的圖片（編輯器在背景執行 `downscale`），中心放在 `center`
+    /// Inserts an already thumbnailed image (the editor runs `downscale` in the background), centered at `center`
     @discardableResult
     public mutating func insertImage(_ encoded: EncodedImage, center: CGPoint, maxDisplay: Double) -> String {
         insertImage(encoded, maxDisplay: maxDisplay) { CGPoint(x: center.x - $0.width / 2, y: center.y - $0.height / 2) }
@@ -46,7 +46,7 @@ extension ExcalidrawScene {
         return el.id
     }
 
-    /// 解出 `files[fileId].dataURL` 的圖片資料
+    /// Decodes the image data of `files[fileId].dataURL`
     public func imageData(fileId: String) -> Data? {
         guard let file = (raw["files"] as? [String: Any])?[fileId] as? [String: Any],
               let url = file["dataURL"] as? String, let comma = url.firstIndex(of: ",")
@@ -65,12 +65,12 @@ extension ExcalidrawScene {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true, // 套用 EXIF 方向
+            kCGImageSourceCreateThumbnailWithTransform: true, // Apply the EXIF orientation
             kCGImageSourceThumbnailMaxPixelSize: maxImagePixels,
         ]
         guard var image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
 
-        // 縮圖 API 不會放大，但原圖小於上限時也要確認取得的是完整尺寸
+        // The thumbnail API never enlarges, but even when the original is under the cap we must confirm the full size was obtained
         let hasAlpha: Bool
         switch image.alphaInfo {
         case .none, .noneSkipFirst, .noneSkipLast: hasAlpha = false
@@ -88,7 +88,7 @@ extension ExcalidrawScene {
                             width: image.width, height: image.height)
     }
 
-    /// 轉成 sRGB 不含 alpha 的點陣，JPEG 編碼器對 CMYK、灰階等來源比較穩
+    /// Converts to an sRGB bitmap without alpha; the JPEG encoder is steadier with CMYK, grayscale and similar sources
     private static func flatten(_ image: CGImage) -> CGImage? {
         guard let space = CGColorSpace(name: CGColorSpace.sRGB),
               let ctx = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,

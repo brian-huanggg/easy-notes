@@ -1,18 +1,18 @@
 import Foundation
 
-/// E2E（XCUITest）的啟動參數；只在 DEBUG 生效，Release 一律是正常行為。
-/// 參數名稱在 `LaunchKey`（UITestContract.swift，與測試 target 共用）。
+/// Launch arguments for E2E (XCUITest); effective only in DEBUG, Release always behaves normally.
+/// Argument names are in `LaunchKey` (UITestContract.swift, shared with the test target).
 enum TestHooks {
     enum Sync: Equatable {
-        /// 正常：Supabase（Sign in with Apple）
+        /// Normal: Supabase (Sign in with Apple)
         case supabase
-        /// 不同步、不碰網路
+        /// No sync, no network
         case off
-        /// 以資料夾當遠端（`FolderSyncBackend`），測試程序扮演另一台裝置
+        /// Uses a folder as the remote (`FolderSyncBackend`), with the test process playing another device
         case folder(URL)
     }
 
-    /// 測試指定的 Vault（每個測試一個暫存資料夾）
+    /// The vault chosen by the test (one temporary folder per test)
     static var vaultRoot: URL? {
         #if DEBUG
         UserDefaults.standard.string(forKey: LaunchKey.vaultRoot).map { URL(filePath: $0, directoryHint: .isDirectory) }
@@ -31,7 +31,7 @@ enum TestHooks {
         return .supabase
     }
 
-    /// UI 測試中：關閉動畫，等待條件更穩定
+    /// In a UI test: animations off, so waiting for conditions is more stable
     static var isUITest: Bool {
         #if DEBUG
         UserDefaults.standard.bool(forKey: LaunchKey.uiTest)

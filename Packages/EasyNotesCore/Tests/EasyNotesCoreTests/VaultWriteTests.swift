@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import EasyNotesCore
 
-/// App 存檔：外部工具（Claude Code）剛寫入、檔案監看還沒通知時，不覆蓋外部的修改
+/// App saves: when an external tool (Claude Code) just wrote and file watching has not notified yet, the external change is not overwritten
 struct VaultWriteTests {
     let fs: VaultFS
 
@@ -23,7 +23,7 @@ struct VaultWriteTests {
     }
 
     @Test func externalEditIsMergedNotOverwritten() throws {
-        try fs.write(Data("一\n\n二（Claude）\n".utf8), to: "a.note") // 外部工具已寫入
+        try fs.write(Data("一\n\n二（Claude）\n".utf8), to: "a.note") // The external tool has already written
         let result = try fs.write(Data("一（App）\n\n二\n".utf8), to: "a.note",
                                   expecting: Data("一\n\n二\n".utf8), deviceName: "Mac")
         #expect(text("a.note") == "一（App）\n\n二（Claude）\n")

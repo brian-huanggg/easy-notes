@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 「新功能」視窗：依 Changelog 的章節列出該版的項目
+/// The "What's New" window: lists the version's items by Changelog section
 struct WhatsNewView: View {
     let notes: WhatsNew
     @Environment(\.dismiss) private var dismiss
@@ -43,7 +43,7 @@ struct WhatsNewView: View {
         #endif
     }
 
-    /// 項目是 Markdown 行內語法（`程式碼`、**粗體**、連結）
+    /// Items use Markdown inline syntax (`code`, **bold**, links)
     private static func attributed(_ text: String) -> AttributedString {
         (try? AttributedString(markdown: text, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(text)

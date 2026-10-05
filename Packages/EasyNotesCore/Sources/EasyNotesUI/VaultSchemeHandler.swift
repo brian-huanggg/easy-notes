@@ -3,14 +3,14 @@ import Foundation
 import UniformTypeIdentifiers
 import WebKit
 
-/// `vault://<Vault 內相對路徑>`：讓 WebView 讀取 Vault 內的圖片（封面、嵌入圖片）。
-/// 只允許 Vault 內路徑；讀檔在背景進行，不擋主執行緒。
+/// `vault://<relative path inside the vault>`: lets the WebView read images in the vault (cover, embedded images).
+/// Only vault paths are allowed; reads run in the background and never block the main thread.
 @MainActor
 final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
     nonisolated static let scheme = "vault"
 
     var read: (@Sendable (String) async -> Data?)?
-    /// 已被 WebView 取消的請求（回應前要檢查，對已停止的 task 回應會丟例外）
+    /// Requests the WebView has cancelled (check before responding; responding to a stopped task throws)
     private var stopped = Set<ObjectIdentifier>()
 
     func webView(_ webView: WKWebView, start task: any WKURLSchemeTask) {
@@ -21,7 +21,7 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
         let id = ObjectIdentifier(task)
         Task {
             var data = await read(path)
-            // 舊版的附件在 `附件/`：`Attachments/` 找不到時改找舊資料夾（只寫檔名的 `![[x.png]]` 因此不會失效）
+            // Older attachments are in `附件/`: when not found in `Attachments/` the old folder is tried (so name-only `![[x.png]]` does not break)
             if data == nil, let legacy = Attachments.legacyPath(for: path) { data = await read(legacy) }
             guard !stopped.contains(id) else { return }
             if let data {
@@ -39,7 +39,7 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
         stopped.insert(ObjectIdentifier(task))
     }
 
-    /// `vault://Attachments/a.jpg` 或 `vault:///Attachments/a.jpg` → `Attachments/a.jpg`；拒絕 `..` 與絕對路徑
+    /// `vault://Attachments/a.jpg` or `vault:///Attachments/a.jpg` → `Attachments/a.jpg`; rejects `..` and absolute paths
     nonisolated static func path(of url: URL) -> String? {
         guard var raw = url.absoluteString.dropFirst(scheme.count + 1).removingPercentEncoding else { return nil }
         while raw.hasPrefix("/") { raw.removeFirst() }
@@ -50,9 +50,9 @@ final class VaultSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
-/// `embed:///<Vault 內相對路徑（每段 percent-encode）>?h=<內容 hash>`：`![[x.excalidraw]]` 等嵌入預覽的 PNG（`DocumentPreview.image`）。
-/// 圖由外掛在背景畫好、依 hash 快取；WebView 自己載入，不經 Bridge。`h` 只用來讓內容改變時 URL 跟著變、
-/// WebView 重新載入，這裡不讀它。檔案沒有註冊預覽或沒有圖時回 404（`<img>` 觸發 error）。
+/// `embed:///<relative path inside the vault (each segment percent-encoded)>?h=<content hash>`: the PNG (`DocumentPreview.image`) of embedded previews such as `![[x.excalidraw]]`.
+/// The image is drawn by the plugin in the background and cached by hash; the WebView loads it itself without the Bridge. `h` only makes the URL change when content changes so
+/// the WebView reloads; it is not read here. Answers 404 when the file has no registered preview or no image (the `<img>` fires error).
 @MainActor
 final class EmbedSchemeHandler: NSObject, WKURLSchemeHandler {
     nonisolated static let scheme = "embed"
@@ -85,7 +85,7 @@ final class EmbedSchemeHandler: NSObject, WKURLSchemeHandler {
         stopped.insert(ObjectIdentifier(task))
     }
 
-    /// 與 `vault://` 相同的規則：拒絕 `..` 與絕對路徑，去掉 query
+    /// The same rules as `vault://`: rejects `..` and absolute paths and drops the query
     nonisolated static func path(of url: URL) -> String? {
         guard url.scheme == scheme else { return nil }
         let rewritten = VaultSchemeHandler.scheme + url.absoluteString.dropFirst(scheme.count)
@@ -93,8 +93,8 @@ final class EmbedSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
-/// `symbol:///<SF Symbol 名稱>`：讓 WebView 顯示 SF Symbol（例如文件 icon `sf:map`）。
-/// 回傳黑色單色 PNG，網頁端當 CSS mask 用，顏色由 CSS 決定；名稱不存在時回傳 `doc.text`。
+/// `symbol:///<SF Symbol name>`: lets the WebView show an SF Symbol (for example the document icon `sf:map`).
+/// Returns a black monochrome PNG that the web side uses as a CSS mask, with the color decided by CSS; returns `doc.text` when the name does not exist.
 @MainActor
 final class SymbolSchemeHandler: NSObject, WKURLSchemeHandler {
     nonisolated static let scheme = "symbol"
@@ -108,7 +108,7 @@ final class SymbolSchemeHandler: NSObject, WKURLSchemeHandler {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        // CSS mask 以 CORS 模式載入，頁面是 file://，沒有這個 header 時 WebKit 會丟掉圖片（icon 變成空白）
+        // A CSS mask loads in CORS mode and the page is file://, so without this header WebKit drops the image (the icon goes blank)
         let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: "HTTP/1.1", headerFields: [
             "Content-Type": "image/png",
             "Content-Length": String(data.count),

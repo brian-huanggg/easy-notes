@@ -1,19 +1,19 @@
 import CoreGraphics
 import Foundation
 
-/// 「停住變直線」的幾何與判定（平台無關，可單元測試；iOS 的觸控處理在 `StraightLineAssist`）。
-/// 見 architecture/ui.md「手寫工具列」
+/// The geometry and detection of "hold to straighten" (platform-independent, unit-testable; iOS touch handling is in `StraightLineAssist`).
+/// See "Ink toolbar" in architecture/ui.md
 public enum StraightLine {
-    /// 筆尖停住多久才變直線（秒）
+    /// How long the pen tip must hold still before it becomes a straight line (seconds)
     public static let holdDuration: TimeInterval = 0.5
-    /// 停住時允許的晃動（螢幕點）
+    /// The wobble allowed while holding (screen points)
     public static let holdTolerance: CGFloat = 3
-    /// 筆畫至少要這麼長（螢幕點）才會變直線：點一下停住不算
+    /// A stroke must be at least this long (screen points) to become a straight line: a tap-and-hold does not count
     public static let minimumLength: CGFloat = 12
-    /// 接近水平、垂直或 45° 時吸附的角度（度）
+    /// The angle (degrees) at which it snaps when near horizontal, vertical or 45°
     public static let snapDegrees: CGFloat = 3
 
-    /// 終點：角度接近 45° 的倍數時吸附到那個方向（長度不變）
+    /// The end point: when the angle is near a multiple of 45° it snaps to that direction (length unchanged)
     public static func snapped(from start: CGPoint, to end: CGPoint) -> CGPoint {
         let dx = end.x - start.x, dy = end.y - start.y
         let length = hypot(dx, dy)
@@ -25,7 +25,7 @@ public enum StraightLine {
         return CGPoint(x: start.x + cos(nearest) * length, y: start.y + sin(nearest) * length)
     }
 
-    /// 沿線取點（含兩端），相鄰兩點距離不超過 `spacing`
+    /// Points along the line (including both ends), with adjacent points no more than `spacing` apart
     public static func samples(from start: CGPoint, to end: CGPoint, spacing: CGFloat) -> [CGPoint] {
         let length = hypot(end.x - start.x, end.y - start.y)
         let count = max(Int((length / max(spacing, 0.01)).rounded(.up)), 1)
@@ -36,9 +36,9 @@ public enum StraightLine {
     }
 }
 
-/// 判斷筆尖是否停住：移動超過容差就重新計時；累計長度夠才算數。座標是螢幕點
+/// Decides whether the pen tip is holding: moving beyond the tolerance restarts the timer; the accumulated length must be enough to count. Coordinates are screen points
 public struct HoldDetector: Sendable {
-    /// 這個位置開始停住（移動超過容差就換成新的位置）
+    /// The position where holding started (moving beyond the tolerance replaces it with the new position)
     public private(set) var anchor: CGPoint = .zero
     public private(set) var anchorTime: TimeInterval = 0
     public private(set) var length: CGFloat = 0
@@ -53,7 +53,7 @@ public struct HoldDetector: Sendable {
         length = 0
     }
 
-    /// 回傳 true = 停住的計時重新開始（宿主要重排計時器）
+    /// Returns true = the hold timer restarted (the host must reschedule its timer)
     @discardableResult
     public mutating func move(to p: CGPoint, time: TimeInterval) -> Bool {
         length += hypot(p.x - last.x, p.y - last.y)
@@ -64,7 +64,7 @@ public struct HoldDetector: Sendable {
         return true
     }
 
-    /// 到 `time` 為止是否已停住夠久，且筆畫夠長
+    /// Whether it has held long enough up to `time` and the stroke is long enough
     public func isHolding(at time: TimeInterval) -> Bool {
         length >= StraightLine.minimumLength && time - anchorTime >= StraightLine.holdDuration - 0.001
     }

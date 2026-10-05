@@ -1,22 +1,22 @@
 import Foundation
 
-/// 外殼的目前位置：側邊欄選取、內容區顯示、上一頁 / 下一頁的歷史都用它
+/// The shell's current location: sidebar selection, content area and back / forward history all use it
 enum Route: Hashable, Codable {
     case all
     case recents
     case pinned
-    /// Vault 內的資料夾（Spaces = 第一層資料夾）
+    /// A folder inside the vault (Spaces = first-level folders)
     case folder(String)
     case tag(String)
     case file(String)
-    /// 外掛以 `addPanel` 註冊的側邊欄項目
+    /// A sidebar item registered by a plugin with `addPanel`
     case panel(String)
 
     var filePath: String? {
         if case .file(let path) = self { path } else { nil }
     }
 
-    /// 改名或搬移 `from` 後，指向它（或其下）的位置改為 `to`
+    /// After renaming or moving `from`, a location pointing at it (or below it) becomes `to`
     func moved(from: String, to: String) -> Route {
         func rewrite(_ path: String) -> String? {
             if path == from { return to }
@@ -30,7 +30,7 @@ enum Route: Hashable, Codable {
         }
     }
 
-    /// 是否指向 `path`（或其下）
+    /// Whether this points at `path` (or below it)
     func points(into path: String) -> Bool {
         switch self {
         case .file(let p), .folder(let p): p == path || p.hasPrefix(path + "/")

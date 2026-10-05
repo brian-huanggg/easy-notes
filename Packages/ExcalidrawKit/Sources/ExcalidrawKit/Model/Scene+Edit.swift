@@ -1,10 +1,10 @@
 import CoreGraphics
 import Foundation
 
-/// 場景的型別化編輯 API。底層仍是原始 JSON 字典；每個會修改元素的操作都走
-/// `SceneEditor.update`，所以 `version` / `versionNonce` / `updated` 的遞增只有一條路徑。
+/// The scene's typed editing API. The underlying value is still raw JSON dictionaries; every operation that modifies elements goes through
+/// `SceneEditor.update`, so there is only one path that increments `version` / `versionNonce` / `updated`.
 extension ExcalidrawScene {
-    /// 包含已刪除（墓碑）的所有元素，依渲染順序（有 `index` 就依它，否則依陣列順序）
+    /// All elements including deleted (tombstone) ones, in render order (by `index` if present, otherwise array order)
     public var orderedElements: [Element] {
         SceneEditor.sorted(elements.map(Element.init(raw:)))
     }
@@ -21,12 +21,12 @@ extension ExcalidrawScene {
         liveElements.filter { $0.frameId == id }
     }
 
-    /// 插入元素。`position` 是完整順序中的位置（nil = 最上層）；有 `index` 的場景會產生插在兩者之間的 index。
+    /// Inserts an element. `position` is the position in the full order (nil = top); a scene with `index` generates an index inserted between the two.
     public mutating func insert(_ element: Element, at position: Int? = nil) {
         edit { $0.insert(element, at: position) }
     }
 
-    /// 修改單一元素；內容有變才遞增 `version`、重抽 `versionNonce`、更新 `updated`。回傳是否有變。
+    /// Modifies a single element; increments `version`, redraws `versionNonce` and updates `updated` only when content changed. Returns whether it changed.
     @discardableResult
     public mutating func mutate(_ id: String, _ body: (inout Element) -> Void) -> Bool {
         edit { $0.update(id, body) }
@@ -40,7 +40,7 @@ extension ExcalidrawScene {
         edit { $0.move(ids, dx: dx, dy: dy) }
     }
 
-    /// 縮放到 `rect`（未旋轉的外框）；`original` = 開始縮放時的元素，拖曳中每一幀都從它計算
+    /// Scales to `rect` (the unrotated bounding box); `original` = the element when scaling began, from which every frame during the drag is computed
     public mutating func resize(_ id: String, to rect: CGRect, from original: Element? = nil) {
         edit { $0.resize(id, to: rect, from: original) }
     }
@@ -68,12 +68,12 @@ extension ExcalidrawScene {
         edit { $0.unbind(arrow, end) }
     }
 
-    /// 形狀移動、縮放之後呼叫：綁在 `movedIDs` 上的箭頭重算端點
+    /// Called after shapes move or resize: arrows bound to `movedIDs` recompute their endpoints
     public mutating func rebindArrows(movedIDs: Set<String>) {
         edit { $0.rebindArrows(movedIDs: movedIDs) }
     }
 
-    /// 載入編輯區、修改、寫回；沒有被碰到的元素維持原本的字典
+    /// Loads the editing area, modifies, writes back; elements not touched keep their original dictionaries
     mutating func edit<T>(_ body: (inout SceneEditor) -> T) -> T {
         var editor = SceneEditor(elements.map(Element.init(raw:)))
         let result = body(&editor)

@@ -43,7 +43,7 @@ struct InkStateTests {
         #expect(state.customColors(for: .pen) == ["#abcdef"])
         #expect(state.penColor == "#abcdef")
         #expect(state.customColors(for: .highlighter).isEmpty)
-        // 預設色不重複加入，只選取
+        // Default colors are not added twice, only selected
         state.addColor("#1971c2", for: .pen)
         #expect(state.customColors(for: .pen) == ["#abcdef"])
         #expect(state.penColor == "#1971c2")
@@ -53,7 +53,7 @@ struct InkStateTests {
         #expect(!state.customColors(for: .pen).contains("#abcdef"))
     }
 
-    /// 顏色選擇器拖曳中連續送值：取代上一次加的，不會一直加
+    /// The color picker sends values continuously while dragging: replaces the one added last time instead of adding endlessly
     @Test func addColorReplacingLast() {
         var state = InkState()
         state.addColor("#111111", for: .highlighter)
@@ -61,7 +61,7 @@ struct InkStateTests {
         state.addColor("#333333", for: .highlighter, replacingLast: true)
         #expect(state.customColors(for: .highlighter) == ["#333333"])
         #expect(state.highlighterColor == "#333333")
-        // 目前選的不是上一次加的（使用者改選了預設色）：不取代
+        // The current selection is not the one added last time (the user picked a preset instead): not replaced
         state.setColor("#69db7c", for: .highlighter)
         state.addColor("#444444", for: .highlighter, replacingLast: true)
         #expect(state.customColors(for: .highlighter) == ["#333333", "#444444"])
@@ -132,7 +132,7 @@ struct StraightLineTests {
         #expect(abs(v.x) < 1e-9)
         let d = StraightLine.snapped(from: o, to: CGPoint(x: 50, y: 52))
         #expect(abs(d.x - d.y) < 1e-9)
-        // 10° 不吸附
+        // 10° does not snap
         let free = CGPoint(x: 100, y: 100 * tan(10 * CGFloat.pi / 180))
         #expect(StraightLine.snapped(from: o, to: free) == free)
     }
@@ -148,16 +148,16 @@ struct StraightLineTests {
     @Test func holdNeedsLengthAndStillness() {
         var d = HoldDetector()
         d.begin(at: .zero, time: 0)
-        // 點一下停住：長度不夠
+        // Tap-and-hold: not long enough
         #expect(!d.isHolding(at: 1))
         for i in 1...10 { d.move(to: CGPoint(x: Double(i) * 3, y: 0), time: Double(i) * 0.01) }
         #expect(d.length >= StraightLine.minimumLength)
         #expect(!d.isHolding(at: 0.3))
-        // 小幅晃動不重新計時
+        // A small wobble does not restart the timer
         let jitterRestarts = d.move(to: CGPoint(x: 31, y: 1), time: 0.4)
         #expect(!jitterRestarts)
         #expect(d.isHolding(at: 0.6))
-        // 移動超過容差：重新計時
+        // Moving beyond the tolerance: restarts the timer
         let moveRestarts = d.move(to: CGPoint(x: 40, y: 0), time: 0.65)
         #expect(moveRestarts)
         #expect(!d.isHolding(at: 1.0))

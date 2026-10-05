@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// App 的外觀偏好：跟隨系統、淺色、深色。以 `@AppStorage("appTheme")` 儲存，不寫進 Vault。
+/// The app's appearance preference: follow system, light, dark. Stored with `@AppStorage("appTheme")` and never written to the vault.
 public enum AppTheme: String, CaseIterable, Identifiable, Sendable {
     case light, dark, system
 
@@ -8,7 +8,7 @@ public enum AppTheme: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    /// `nil` 代表跟隨系統
+    /// `nil` means follow system
     public var colorScheme: ColorScheme? {
         switch self {
         case .system: nil
@@ -33,8 +33,8 @@ public enum AppTheme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// 同步平台層的 appearance：`ColorToken.color`（平台動態色）與 WebView 的
-    /// `prefers-color-scheme` 看的是 UIKit / AppKit 的 appearance，不會跟著 SwiftUI 的 `preferredColorScheme`。
+    /// Syncs the platform-level appearance: `ColorToken.color` (platform dynamic colors) and the WebView's
+    /// `prefers-color-scheme` look at the UIKit / AppKit appearance, which does not follow SwiftUI's `preferredColorScheme`.
     @MainActor
     public func applyPlatformAppearance() {
         #if os(macOS)
@@ -59,7 +59,7 @@ public enum AppTheme: String, CaseIterable, Identifiable, Sendable {
 }
 
 public extension View {
-    /// 套用外觀偏好，並在偏好改變時同步平台 appearance
+    /// Applies the appearance preference and syncs the platform appearance when the preference changes
     func appTheme(_ theme: AppTheme) -> some View {
         preferredColorScheme(theme.colorScheme)
             .onAppear { theme.applyPlatformAppearance() }

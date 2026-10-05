@@ -2,39 +2,39 @@ import EasyNotesCore
 import Foundation
 import SwiftUI
 
-/// 外掛存取 Vault 的唯一入口，由 App 實作。外掛不 import App，也不直接碰網路。
+/// The only entry for plugins to reach the vault, implemented by the app. Plugins do not import the app and never touch the network directly.
 @MainActor
 public protocol DocumentSession: AnyObject {
     func readData(_ path: String) -> Data
-    /// 寫入在背景進行，寫完更新索引與同步佇列
+    /// Writes happen in the background; after writing the index and sync queue are updated
     func write(_ data: Data, to path: String)
-    /// `[[連結]]`：找到就開啟，找不到就建立
+    /// `[[link]]`: opens it if found, otherwise creates it
     func openLink(_ target: String)
-    /// 在側邊欄顯示搜尋結果，例如點擊 #標籤
+    /// Shows search results in the sidebar, for example when clicking a #tag
     func search(_ query: String)
-    /// 最後修改時間（文件頭的「N 分鐘前編輯」）
+    /// Last modification time (the header's "edited N minutes ago")
     func modified(_ path: String) -> Date?
-    /// 把 Vault 外的檔案（例如封面圖片）複製到 Vault 的附件資料夾，回傳 Vault 內路徑；
-    /// 已在 Vault 內的檔案直接回傳它的路徑
+    /// Copies a file from outside the vault (for example a cover image) into the vault's attachments folder and returns the vault path;
+    /// a file already inside the vault returns its path as is
     func importAttachment(_ url: URL) async -> String?
-    /// 背景讀取 Vault 內的檔案，給 WebView 的 `vault://` 圖片使用；不在主執行緒做 I/O
+    /// Reads a file in the vault in the background, for the WebView's `vault://` images; no I/O on the main thread
     var resourceReader: @Sendable (_ path: String) async -> Data? { get }
-    /// 背景取得檔案預覽的圖（`DocumentPreview.image`，依內容 hash 快取），給 WebView 的 `embed://` 使用；
-    /// 沒有註冊預覽或沒有圖時回傳 nil
+    /// Gets a file preview's image in the background (`DocumentPreview.image`, cached by content hash), for the WebView's `embed://`;
+    /// returns nil when no preview is registered or there is no image
     var embedImageReader: @Sendable (_ path: String) async -> Data? { get }
-    /// 背景取得檔案的預覽資料（`DocumentPreview`，依內容 hash 快取），給白板的筆記卡片；沒有註冊預覽時回傳 nil
+    /// Gets a file's preview data in the background (`DocumentPreview`, cached by content hash), for whiteboard note cards; returns nil when no preview is registered
     var previewReader: @Sendable (_ path: String) async -> DocumentPreview? { get }
-    /// 外掛讀寫自己的 `.easynotes/<name>/`（例如 Flashcards 的複習紀錄）
+    /// A plugin reads and writes its own `.easynotes/<name>/` (for example Flashcards' review logs)
     var vault: VaultFS { get }
-    /// 索引（records、檔案標籤）；建立失敗時為 nil
+    /// The index (records, file tags); nil if creation failed
     var index: VaultIndex? { get }
-    /// 開啟檔案並捲到第 `line` 行（從 0 起算），例如複習時的「編輯筆記」
+    /// Opens a file and scrolls to line `line` (0-based), for example review's "Edit note"
     func open(_ path: String, line: Int?)
-    /// 在主內容旁的側邊面板開啟檔案（白板的筆記卡片）；不支援側邊面板的宿主改成一般開啟
+    /// Opens a file in the side panel next to the main content (a whiteboard's note card); a host without a side panel opens it normally
     func openBeside(_ path: String)
-    /// 外掛寫了 `addSyncedMetaFolder` 註冊的資料夾內的檔案：排程上傳
+    /// A plugin wrote a file inside a folder registered with `addSyncedMetaFolder`: schedule an upload
     func metaChanged()
-    /// 外掛自己在 Vault 內搬移了檔案（例如 PDF 認領孤兒旁檔）：通知同步層保留 file id，並更新索引
+    /// A plugin moved a file inside the vault itself (for example a PDF adopting an orphan sidecar): notifies the sync layer to keep the file id and updates the index
     func fileMoved(from: String, to: String)
 }
 
@@ -50,25 +50,25 @@ extension DocumentSession {
     }
 }
 
-/// App 透過它通知外掛：常駐的編輯器（例如共用的 WebView），以及不是編輯器、但需要知道 Vault 變動的外掛
-/// （Flashcards）。預設實作都不做事，外掛只覆寫需要的。
+/// The app notifies plugins through it: resident editors (for example the shared WebView), and plugins that are not editors but need to know about vault changes
+/// (Flashcards). Default implementations do nothing and plugins override only what they need.
 @MainActor
 public protocol EditorController: AnyObject {
-    /// App 建立 DocumentSession 後呼叫一次
+    /// Called once after the app creates the DocumentSession
     func attach(_ session: any DocumentSession)
-    /// 把尚未寫回的變更送出；改名、刪除、進入背景前呼叫
+    /// Sends changes not yet written back; called before rename, delete and going to the background
     func flush() async
-    /// 檔案被外部工具或同步修改
+    /// A file was changed by an external tool or sync
     func externalChange(path: String, data: Data)
-    /// 檔案被改名或刪除，丟掉保留的編輯狀態
+    /// A file was renamed or deleted: drop the retained editing state
     func close(path: String)
-    /// `[[` 自動完成的候選清單與連結卡片的資料
+    /// Candidates for `[[` autocomplete and data for link cards
     func linkTargetsChanged(_ targets: [LinkTarget])
-    /// 索引更新之後：App 內編輯、外部修改、同步下載（含 `.easynotes/` 下同步的檔案）
+    /// After the index updates: in-app edits, external changes, sync downloads (including synced files under `.easynotes/`)
     func vaultChanged(_ paths: Set<String>)
-    /// App 內改名或搬移（檔案或資料夾）；同步造成的搬移不通知
+    /// In-app rename or move (file or folder); moves caused by sync are not notified
     func moved(from: String, to: String)
-    /// `DocumentSession.open(_:line:)`：開啟後捲到該行
+    /// `DocumentSession.open(_:line:)`: scrolls to the line after opening
     func reveal(path: String, line: Int)
 }
 
@@ -83,18 +83,18 @@ extension EditorController {
     public func reveal(path: String, line: Int) {}
 }
 
-/// `[[連結]]` 的目標：名稱（不含副檔名）與連結卡片顯示的類型、摘要、時間。
-/// 類型的圖示與顏色由 App 從 PluginRegistry 取得，編輯器不認識其他外掛。
+/// The target of a `[[link]]`: the name (without extension) and the type, summary and time a link card shows.
+/// The type's icon and color are obtained by the app from PluginRegistry, so the editor knows no other plugin.
 public struct LinkTarget: Hashable, Sendable {
     public let name: String
     public let path: String
-    /// Registry 中該類型的 SF Symbol
+    /// The type's SF Symbol in the Registry
     public let symbol: String
     public let tint: KindTint
-    /// 外掛提供的一行摘要（「320 個字」「24 列」）
+    /// A one-line summary from the plugin ("320 words", "24 rows")
     public let summary: String?
     public let modified: Date
-    /// 內容 hash：`![[x]]` 嵌入的 `embed:///…?h=<hash>`，內容改變時 URL 跟著變、WebView 重新載入
+    /// Content hash: the `embed:///…?h=<hash>` of an `![[x]]` embed; when content changes the URL changes and the WebView reloads
     public let hash: String?
 
     public init(name: String, path: String, symbol: String, tint: KindTint, summary: String?, modified: Date,

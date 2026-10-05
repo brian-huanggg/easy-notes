@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// 卡片縮圖的外框：圓角、邊框、底色。內容由外掛的預覽提供（Markdown 標題 + 前幾行、白板、PDF 首頁…）
+/// The frame of a card thumbnail: corner radius, border, background. Content comes from plugin previews (Markdown title + first lines, whiteboard, PDF first page…)
 public struct PreviewFrame<Content: View>: View {
     let height: CGFloat
     let fill: ColorToken
-    /// 滑鼠移過：邊框加深並浮起
+    /// Mouse over: the border darkens and the card lifts
     let isHighlighted: Bool
     let content: Content
 
@@ -29,12 +29,12 @@ public struct PreviewFrame<Content: View>: View {
     }
 }
 
-/// 沒有真實預覽時的佔位：一條標題 + 幾條灰色文字行（設計稿 Doc Card 的 Preview Lines）
+/// Placeholder when there is no real preview: a title bar + several gray text lines (the design's Doc Card Preview Lines)
 public struct SkeletonPreview: View {
     let lines: [CGFloat]
     let scale: CGFloat
 
-    /// `lines`：每行相對寬度（0…1）。`scale`：Desktop 卡片 1、Mobile Pin Card 約 0.7
+    /// `lines`: relative width of each line (0…1). `scale`: 1 for Desktop cards, about 0.7 for Mobile Pin Cards
     public init(lines: [CGFloat] = [0.84, 0.78, 0.72, 0.81, 0.58], scale: CGFloat = 1) {
         self.lines = lines
         self.scale = scale
@@ -56,7 +56,7 @@ public struct SkeletonPreview: View {
     }
 }
 
-/// 卡片左下角的半透明標記（「Pinned」）
+/// A translucent badge at the lower left of a card ("Pinned")
 public struct PreviewBadge: View {
     let title: String
     let symbol: String?
@@ -78,12 +78,12 @@ public struct PreviewBadge: View {
     }
 }
 
-/// 設計稿 `C/Doc Card`（Desktop 網格）與 `C/M Pin Card`（Mobile 釘選列）：縮圖 + 類型圖示 + 標題 + 一行摘要
+/// Design `C/Doc Card` (Desktop grid) and `C/M Pin Card` (Mobile pinned row): thumbnail + type icon + title + one-line summary
 public struct DocCard<Preview: View>: View {
     public enum Size: Sendable {
-        /// Desktop：縮圖高 154
+        /// Desktop: thumbnail height 154
         case regular
-        /// Mobile 釘選：寬 158、縮圖高 102
+        /// Mobile pinned: width 158, thumbnail height 102
         case compact
     }
 
@@ -148,7 +148,7 @@ public extension DocCard where Preview == SkeletonPreview {
     }
 }
 
-/// 類型圖塊：soft 底 + 邊框 + 類型顏色的圖示（Mobile Doc Row、連結卡片）
+/// Type tile: soft background + border + an icon in the type color (Mobile Doc Row, link card)
 public struct KindTile: View {
     let symbol: String
     let tint: KindTint
@@ -171,12 +171,12 @@ public struct KindTile: View {
     }
 }
 
-/// 設計稿 `C/M Doc Row`：類型圖塊 + 標題 + 摘要 + chevron。也用於編輯器內的連結卡片（`style: .card`）
+/// Design `C/M Doc Row`: type tile + title + summary + chevron. Also used for link cards inside the editor (`style: .card`)
 public struct DocRow: View {
     public enum Style: Sendable {
-        /// Mobile 列表：圖塊 44、標題 15
+        /// Mobile list: tile 44, title 15
         case list
-        /// `[[連結]]` 卡片：panel 底、邊框、圖塊 32
+        /// `[[link]]` card: panel background, border, tile 32
         case card
     }
 
@@ -224,7 +224,7 @@ public struct DocRow: View {
                     .strokeBorder(hovering ? Palette.borderStrong : Palette.border)
             }
         }
-        // 列表樣式沒有左右內距：hover 底色往外延伸
+        // The list style has no horizontal padding: the hover background extends outward
         .hoverBackground(cornerRadius: Metrics.radiusMedium, outset: 8, isActive: !card)
         .contentShape(Rectangle())
         .modifier(Hovering(isHovering: $hovering))
