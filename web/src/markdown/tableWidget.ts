@@ -6,9 +6,10 @@
 // 事件處理一律在事件發生時從文件重新讀表格（posAtDOM），不保存可能過期的模型。
 // block decoration 不能由 ViewPlugin 提供，所以用 StateField。
 import { syntaxTree } from "@codemirror/language";
+import { openSearchPanel } from "@codemirror/search";
 import { EditorSelection, EditorState, Extension, Range, StateField, Text } from "@codemirror/state";
 import { Decoration, DecorationSet, EditorView, WidgetType } from "@codemirror/view";
-import { editingRange, setEditorFocus } from "./editorFocus";
+import { editingRange, revealChanged } from "./editorFocus";
 import { t } from "../shared/i18n";
 import { el, onPress } from "./bridge";
 import { lines as textLines } from "./lineBreak";
@@ -101,6 +102,17 @@ function placeCaret(node: HTMLElement, selectAll: boolean) {
 const ICON_MORE = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>';
 const ICON_PLUS = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
 
+const ICON_GRIP = '<svg viewBox="0 0 10 16" width="8" height="13" fill="currentColor"><circle cx="2.5" cy="3" r="1.4"/><circle cx="7.5" cy="3" r="1.4"/><circle cx="2.5" cy="8" r="1.4"/><circle cx="7.5" cy="8" r="1.4"/><circle cx="2.5" cy="13" r="1.4"/><circle cx="7.5" cy="13" r="1.4"/></svg>';
+
+function handle(className: string, title: string, row: number, col: number): HTMLElement {
+  const node = el("span", "cm-table-handle " + className);
+  node.innerHTML = ICON_GRIP;
+  node.title = title;
+  node.dataset.row = String(row);
+  node.dataset.col = String(col);
+  return node;
+}
+
 function shape(model: TableModel): string {
   return `${model.header.length}x${model.rows.length}`;
 }
@@ -163,6 +175,9 @@ function renderGrid(wrap: HTMLElement, model: TableModel) {
       more.dataset.row = String(r);
       more.dataset.col = String(c);
       td.append(cell, more);
+      // 拖曳把手：欄在標題列上方，列在每列第一格左側（標題列固定在最上面，不能拖）
+      if (r === 0) td.append(handle("cm-table-col-handle", t("拖曳以移動欄"), r, c));
+      else if (c === 0) td.append(handle("cm-table-row-handle", t("拖曳以移動列"), r, c));
       tr.append(td);
     });
     table.append(tr);
@@ -319,6 +334,81 @@ function openMenu(view: EditorView, wrap: HTMLElement, anchor: HTMLElement) {
   menu.style.left = `${Math.max(0, Math.min(at.left - box.left, box.width - menu.offsetWidth))}px`;
 }
 
+// MARK: 拖曳列欄
+
+// 拖曳中的位置 → 放下後的索引（items 是各列 / 各欄的範圍，依序排列）
+export function dropIndex(starts: number[], ends: number[], from: number, pointer: number): number {
+  // 指標越過哪幾個中線：插入點（0…n），再換算成移除原位置後的索引
+  let gap = 0;
+  for (let i = 0; i < starts.length; i++) if (pointer > (starts[i] + ends[i]) / 2) gap = i + 1;
+  return gap > from ? gap - 1 : gap;
+}
+
+const DRAG_THRESHOLD = 4;
+
+// 按住把手拖曳：顯示插入線，放開時移動列欄；沒拖動就是點一下，開啟該格的「⋯」選單
+function startDrag(view: EditorView, wrap: HTMLElement, grip: HTMLElement, e: PointerEvent) {
+  const isRow = grip.classList.contains("cm-table-row-handle");
+  const [r, c] = coords(grip);
+  const table = wrap.querySelector("table")!;
+  const items: HTMLElement[] = isRow
+    ? Array.from(table.rows).slice(1)
+    : Array.from(table.rows[0]?.cells ?? []);
+  const from = isRow ? r - 1 : c;
+  if (from < 0 || from >= items.length) return;
+  e.preventDefault();
+  closeMenu(wrap);
+  grip.setPointerCapture?.(e.pointerId);
+  const startX = e.clientX;
+  const startY = e.clientY;
+  let dragging = false;
+  let to = from;
+  const line = el("div", "cm-table-drop " + (isRow ? "is-row" : "is-col"));
+  const marked = () => (isRow ? [items[from]] : Array.from(table.rows, (row) => row.cells[from]).filter(Boolean));
+
+  const onMove = (ev: PointerEvent) => {
+    if (!dragging) {
+      if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD) return;
+      dragging = true;
+      wrap.classList.add("is-dragging");
+      for (const node of marked()) node.classList.add("cm-table-dragged");
+      wrap.append(line);
+    }
+    ev.preventDefault();
+    const rects = items.map((node) => node.getBoundingClientRect());
+    const starts = rects.map((b) => (isRow ? b.top : b.left));
+    const ends = rects.map((b) => (isRow ? b.bottom : b.right));
+    to = dropIndex(starts, ends, from, isRow ? ev.clientY : ev.clientX);
+    // 插入線：畫在目標位置的邊界上
+    const box = wrap.getBoundingClientRect();
+    const tableBox = table.getBoundingClientRect();
+    const edge = to < from ? starts[to] : ends[to];
+    if (isRow) {
+      line.style.cssText = `top:${edge - box.top - 1}px;left:${tableBox.left - box.left}px;width:${tableBox.width}px`;
+    } else {
+      line.style.cssText = `left:${edge - box.left - 1}px;top:${tableBox.top - box.top}px;height:${tableBox.height}px`;
+    }
+  };
+  const finish = (ev: PointerEvent) => {
+    grip.removeEventListener("pointermove", onMove);
+    grip.removeEventListener("pointerup", finish);
+    grip.removeEventListener("pointercancel", finish);
+    line.remove();
+    wrap.classList.remove("is-dragging");
+    for (const node of marked()) node.classList.remove("cm-table-dragged");
+    if (!dragging) {
+      if (ev.type === "pointerup") openMenu(view, wrap, grip);
+      return;
+    }
+    if (ev.type !== "pointerup" || to === from) return;
+    if (isRow) restructure(view, wrap, (m) => moveRow(m, from, to));
+    else restructure(view, wrap, (m) => moveColumn(m, from, to));
+  };
+  grip.addEventListener("pointermove", onMove);
+  grip.addEventListener("pointerup", finish);
+  grip.addEventListener("pointercancel", finish);
+}
+
 // MARK: Widget
 
 class TableWidget extends WidgetType {
@@ -347,7 +437,12 @@ class TableWidget extends WidgetType {
 
     onPress(addRow, () => restructure(view, wrap, (m) => insertRow(m, m.rows.length), (m) => [m.rows.length, 0]));
     onPress(addCol, () => restructure(view, wrap, (m) => insertColumn(m, m.header.length), (m) => [0, m.header.length - 1]));
+    wrap.addEventListener("pointerdown", (e) => {
+      const grip = (e.target as HTMLElement).closest(".cm-table-handle") as HTMLElement | null;
+      if (grip && e.button === 0) startDrag(view, wrap, grip, e);
+    });
     wrap.addEventListener("mousedown", (e) => {
+      if ((e.target as HTMLElement).closest(".cm-table-handle")) return e.preventDefault();
       const more = (e.target as HTMLElement).closest(".cm-table-more") as HTMLElement | null;
       if (more) {
         e.preventDefault();
@@ -384,6 +479,13 @@ class TableWidget extends WidgetType {
       // 組字中的 Enter、方向鍵是輸入法在選字
       if (!cell || e.isComposing || e.keyCode === 229) return;
       const handled = () => (e.preventDefault(), e.stopPropagation());
+      // 格子裡的按鍵不經過 CodeMirror 的 keymap，⌘F 在這裡開搜尋列
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "f") {
+        handled();
+        cell.blur();
+        openSearchPanel(view);
+        return;
+      }
       if (e.key === "Tab") {
         handled();
         move(view, wrap, cell, 0, e.shiftKey ? -1 : 1, !e.shiftKey);
@@ -424,7 +526,7 @@ function build(state: EditorState): DecorationSet {
 const tableField = StateField.define<DecorationSet>({
   create: build,
   update(value, tr) {
-    if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState) || tr.effects.some((e) => e.is(mathLoaded) || e.is(setEditorFocus))) return build(tr.state);
+    if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState) || revealChanged(tr) || tr.effects.some((e) => e.is(mathLoaded))) return build(tr.state);
     return value;
   },
   provide: (f) => EditorView.decorations.from(f),
