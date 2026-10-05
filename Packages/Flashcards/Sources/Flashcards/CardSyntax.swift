@@ -46,7 +46,7 @@ public struct CardNote: Equatable, Codable, Sendable {
 /// 卡片語法（Vault 的 Markdown 方言）。web/src/markdown/cards.ts 的語法標示依同一套規則實作。
 ///
 /// - 一行一筆 note；`::`、`;;` 前後要有空白；有 `{{}}` 的行一律是克漏字
-/// - 程式碼區塊、行內程式碼與 frontmatter 內不解析
+/// - 程式碼區塊、行內程式碼與 frontmatter 內不解析；公式（`$…$`、`$$…$$`）內的 `::`、`;;`、`{{}}` 不算
 /// - 行首的清單、待辦、標題、引言標記不算在正面文字內
 /// - 行尾的 `^id` 是 note 的身分（沿用 Obsidian 的 block id 語法）
 public enum CardSyntax {
@@ -102,7 +102,6 @@ public enum CardSyntax {
     // Regex 不是 Sendable，不能放在 static let
     private static var blockID: Regex<(Substring, Substring)> { /\s\^([A-Za-z0-9-]+)\s*$/ }
     private static var linePrefix: Regex<Substring> { /^\s*(?:>\s?)*\s*(?:#{1,6}\s+|(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?)?/ }
-    private static var clozePattern: Regex<(Substring, Substring)> { /\{\{([^{}\n]+?)\}\}/ }
 
     static func parseLine(_ line: String, index: Int) -> ParsedLine? {
         var body = line[...]
@@ -119,19 +118,21 @@ public enum CardSyntax {
         let prefixEnd = content.prefixMatch(of: linePrefix)?.range.upperBound ?? content.startIndex
         let text = content[prefixEnd...]
         let code = codeSpans(in: text)
-        let outsideCode = { (range: Range<Substring.Index>) in
-            !code.contains { $0.overlaps(range) }
+        let math = mathSpans(in: text, code: code)
+        let protected = code + math.map(\.range)
+        let outsideProtected = { (range: Range<Substring.Index>) in
+            !protected.contains { $0.overlaps(range) }
         }
 
-        let clozes = text.matches(of: clozePattern).filter { outsideCode($0.range) }
+        let clozes = clozeMatches(in: text, code: code, math: math)
         if !clozes.isEmpty {
-            let answers = clozes.map { String($0.1).trimmingCharacters(in: .whitespaces) }
+            let answers = clozes.map { String($0.answer).trimmingCharacters(in: .whitespaces) }
             guard answers.allSatisfy({ !$0.isEmpty }) else { return nil }
             let note = CardNote(id: id, type: .cloze, line: index, front: String(text), back: "", clozes: answers)
             return ParsedLine(note: note, content: content, idRange: idRange)
         }
 
-        guard let separator = separators(in: text).first(where: { outsideCode($0.range) }) else { return nil }
+        guard let separator = separators(in: text).first(where: { outsideProtected($0.range) }) else { return nil }
         let front = text[..<separator.range.lowerBound].trimmingCharacters(in: .whitespaces)
         let back = text[separator.range.upperBound...].trimmingCharacters(in: .whitespaces)
         guard !front.isEmpty, !back.isEmpty else { return nil }
@@ -140,15 +141,14 @@ public enum CardSyntax {
     }
 
     /// 克漏字的一行切成片段：一般文字與第幾個 `{{}}`（從 0 起算，內容不含括號）。
-    /// 與 `parseLine` 相同，行內程式碼中的 `{{}}` 不算
+    /// 與 `parseLine` 相同，行內程式碼與公式中的 `{{}}` 不算
     public static func clozeSegments(_ text: String) -> [(text: String, cloze: Int?)] {
-        let code = codeSpans(in: text[...])
         var result: [(String, Int?)] = []
         var last = text.startIndex
         var index = 0
-        for match in text.matches(of: clozePattern) where !code.contains(where: { $0.overlaps(match.range) }) {
+        for match in clozeMatches(in: text[...]) {
             if last < match.range.lowerBound { result.append((String(text[last..<match.range.lowerBound]), nil)) }
-            result.append((String(match.1).trimmingCharacters(in: .whitespaces), index))
+            result.append((String(match.answer).trimmingCharacters(in: .whitespaces), index))
             index += 1
             last = match.range.upperBound
         }
@@ -160,6 +160,132 @@ public enum CardSyntax {
     private static func separators(in text: Substring) -> [(range: Range<Substring.Index>, type: CardType)] {
         // Swift Regex 不支援 lookbehind：前面的空白算在比對內，範圍只取分隔符本身
         text.matches(of: /\s(::|;;)(?=\s)/).map { ($0.1.startIndex..<$0.1.endIndex, $0.1 == "::" ? .forward : .bidirectional) }
+    }
+
+    /// 克漏字 `{{答案}}`：答案至少一個字元、不含換行；`{{`、`}}` 在程式碼與公式之外；
+    /// 答案中的 `{`、`}` 只能出現在公式裡（`{{$\frac{a}{b}$}}`），不能跨進程式碼
+    static func clozeMatches(in text: Substring) -> [(range: Range<Substring.Index>, answer: Substring)] {
+        let code = codeSpans(in: text)
+        return clozeMatches(in: text, code: code, math: mathSpans(in: text, code: code))
+    }
+
+    private static func clozeMatches(in text: Substring, code: [Range<Substring.Index>],
+                                     math: [MathSpan]) -> [(range: Range<Substring.Index>, answer: Substring)] {
+        let protected = code + math.map(\.range)
+        var result: [(Range<Substring.Index>, Substring)] = []
+        var i = text.startIndex
+        while i < text.endIndex {
+            if let span = protected.first(where: { $0.contains(i) }) {
+                i = span.upperBound
+                continue
+            }
+            guard text[i...].hasPrefix("{{") else {
+                i = text.index(after: i)
+                continue
+            }
+            let start = text.index(i, offsetBy: 2)
+            var j = start
+            var end: Substring.Index?
+            while j < text.endIndex {
+                if let span = math.first(where: { $0.range.lowerBound == j }) {
+                    j = span.range.upperBound
+                    continue
+                }
+                let char = text[j]
+                if code.contains(where: { $0.contains(j) }) || char == "\n" || char == "{" { break }
+                if char == "}" {
+                    let next = text.index(after: j)
+                    if j > start, next < text.endIndex, text[next] == "}" { end = j }
+                    break
+                }
+                j = text.index(after: j)
+            }
+            guard let end else {
+                i = text.index(after: i)
+                continue
+            }
+            let upper = text.index(end, offsetBy: 2)
+            result.append((i..<upper, text[start..<end]))
+            i = upper
+        }
+        return result
+    }
+
+    /// 公式：`range` 含 `$`；`display` = `$$…$$`
+    struct MathSpan: Equatable {
+        var range: Range<Substring.Index>
+        var display: Bool
+        /// 不含 `$` 的 LaTeX
+        var content: Range<Substring.Index>
+    }
+
+    /// 公式的範圍（同 Obsidian / Pandoc）：開頭的 `$` 後面不能是空白，結尾的 `$` 前面不能是空白、後面不能是數字；
+    /// `$$…$$` 優先；`\` 後面的字元不當作分隔符；不在行內程式碼中，也不跨進程式碼
+    static func mathSpans(in text: Substring, code: [Range<Substring.Index>]) -> [MathSpan] {
+        var spans: [MathSpan] = []
+        var i = text.startIndex
+        while i < text.endIndex {
+            if let span = code.first(where: { $0.contains(i) }) {
+                i = span.upperBound
+                continue
+            }
+            let char = text[i]
+            if char == "\\" {
+                i = text.index(i, offsetBy: 2, limitedBy: text.endIndex) ?? text.endIndex
+                continue
+            }
+            guard char == "$" else {
+                i = text.index(after: i)
+                continue
+            }
+            // 公式不能跨進程式碼：結尾只找到下一段程式碼之前
+            let limit = code.map(\.lowerBound).filter { $0 > i }.min() ?? text.endIndex
+            let next = text.index(after: i)
+            if next < limit, text[next] == "$" {
+                let open = text.index(after: next)
+                if let close = closingDollar(in: text, from: open, limit: limit, display: true),
+                   !text[open..<close].allSatisfy(\.isWhitespace) {
+                    let end = text.index(close, offsetBy: 2)
+                    spans.append(MathSpan(range: i..<end, display: true, content: open..<close))
+                    i = end
+                } else {
+                    i = open
+                }
+                continue
+            }
+            if next < limit, !text[next].isWhitespace,
+               let close = closingDollar(in: text, from: next, limit: limit, display: false) {
+                let end = text.index(after: close)
+                spans.append(MathSpan(range: i..<end, display: false, content: next..<close))
+                i = end
+                continue
+            }
+            i = next
+        }
+        return spans
+    }
+
+    private static func closingDollar(in text: Substring, from start: Substring.Index, limit: Substring.Index,
+                                      display: Bool) -> Substring.Index? {
+        var j = start
+        while j < limit {
+            let char = text[j]
+            if char == "\\" {
+                j = text.index(j, offsetBy: 2, limitedBy: limit) ?? limit
+                continue
+            }
+            if char == "$" {
+                let next = text.index(after: j)
+                if display {
+                    if next < limit, text[next] == "$" { return j }
+                } else if j > start, !text[text.index(before: j)].isWhitespace,
+                          next == text.endIndex || !("0"..."9").contains(text[next]) {
+                    return j
+                }
+            }
+            j = text.index(after: j)
+        }
+        return nil
     }
 
     /// 行內程式碼的範圍：成對且長度相同的反引號
