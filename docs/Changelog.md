@@ -2,7 +2,7 @@
 
 本專案的重要變更都記錄在這裡。格式依 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/)，版本號依 [Semantic Versioning](https://semver.org/lang/zh-TW/)。
 
-## [Unreleased]
+## [1.2.0] - 2026-10-05
 
 ### Added
 
