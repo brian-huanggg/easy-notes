@@ -16,7 +16,7 @@
 | 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證）；3d 從 Anki 匯入 `.apkg`（卡片、圖片、複習紀錄）實作完成（單元測試與真實資料比對通過、macOS 與 iOS Simulator 建置通過；實機尚未驗證）；3h 多行卡片與圖片實作完成（`swift test`、web 測試與 Chromium e2e 通過、App 建置成功；實機尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
-| 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
+| 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾；6e 工具列、編輯列、狀態列第一批完成（Chromium e2e 通過，WebKit 實機尚未驗證），對齊 / 換行、剪貼簿按鈕未開始 | [sheets.md](./architecture/sheets.md) |
 | 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
@@ -624,6 +624,19 @@
 - [x] `addVaultGuide`：CSV 慣例
 - [ ] 驗證：macOS 與 iOS 建置、`swift test`（`SheetPreviewTests`）、列表縮圖與 `![[x.csv]]` 嵌入在淺色 / 深色模式的樣子、「新表格」與「匯入 CSV…」、新 Vault 的 `CLAUDE.md` 含表格一節
   - 這個環境沒有 Swift 工具鏈也沒有 CoreGraphics，`SheetPreview` 未編譯、PNG 未實際畫過；`embed://` 與 Markdown 的嵌入沿用白板的機制，沒有改動。
+
+### 6e 工具列、編輯列、狀態列
+
+目標：像 Excel 的上方工具列與編輯列，但只做 CSV 存得下的功能（不做字型、顏色、框線、合併儲存格、公式）。設計見 [sheets.md](./architecture/sheets.md)「工具列、編輯列與狀態列」。
+
+- [x] 工具列：復原 / 重做、插入 / 刪除列欄、依此欄排序並寫入、凍結首欄、第一列是標題（切換鈕）；按下不失去選取、唯讀時停用（`web/test/sheet.e2e.mjs`）
+- [x] 編輯列（名稱方塊 + fx）：顯示完整內容（含換行）；Enter 寫入、⇧Enter 換行、Esc 放棄、失焦寫回原本的儲存格；可以復原；有焦點時外部變動不蓋掉；組字中的 Enter 不寫入；貼上不會貼到表格（同上）
+- [x] 狀態列：列數 · 欄數；選取兩格以上時顯示平均、計數、加總（`web/test/sheetStats.test.ts`、同上）
+- [ ] 驗證：Mac 與 iPad 實機（WKWebView）：SF Symbol icon 顯示、fx 輸入注音、iPad 點工具列不失去選取、深色模式
+  - 只在 macOS 的 Chromium（Playwright）驗證，`(cd Packages/KindSheet && swift build)` 通過；App 未重新建置，實機尚未驗證。
+- [ ] 對齊（靠左 / 置中 / 靠右）與自動換行：以整欄為單位存進 `.csv.meta.json`，合併規則同欄寬
+- [ ] 剪下 / 複製 / 貼上按鈕（先確認 WKWebView 的剪貼簿 API 在 Mac / iPad 可用）
+- [ ] 篩選按鈕（開關欄位標頭的篩選）
 
 驗收測試：
 
