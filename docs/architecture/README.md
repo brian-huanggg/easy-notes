@@ -16,6 +16,7 @@
 | 表格 | [sheets.md](./sheets.md) |
 | 卡片與複習 | [flashcards.md](./flashcards.md) |
 | 多語言、字串寫法、不翻譯的字串 | [translation.md](./translation.md) |
+| 威脅模型、信任邊界、安全不變條件（WebView / Bridge、同步、檔案解析、簽署） | [security.md](./security.md) |
 
 EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化）。核心只負責檔案、同步、索引與外掛註冊；Markdown、白板、PDF 手寫、CSV、Flashcards 都是編譯期外掛。所有資料都是開放格式的真實檔案，透過 Supabase 在 iOS、iPadOS、macOS 間同步，Claude Code 可以直接讀寫。
 

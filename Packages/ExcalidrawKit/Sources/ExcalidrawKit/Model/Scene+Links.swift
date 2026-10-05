@@ -96,10 +96,10 @@ extension ExcalidrawScene {
         return name.isEmpty ? nil : name
     }
 
-    private static let linkRegex = try! NSRegularExpression(pattern: #"^\s*!?\[\[([^\]\n|]+)(?:\|[^\]\n]*)?\]\]\s*$"#)
+    private static let linkRegex = try! NSRegularExpression(pattern: #"^\s*!?\[\[([^\[\]\n|]+)(?:\|[^\[\]\n]*)?\]\]\s*$"#)
 
     private static func renamed(link: String, from oldName: String, to newName: String) -> String? {
-        let pattern = #"^(\s*!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\]\n]*)?\]\]\s*)$"#
+        let pattern = #"^(\s*!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\[\]\n]*)?\]\]\s*)$"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
               regex.firstMatch(in: link, range: NSRange(link.startIndex..., in: link)) != nil
         else { return nil }

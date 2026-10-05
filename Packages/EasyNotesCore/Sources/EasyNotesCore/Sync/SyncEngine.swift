@@ -20,7 +20,17 @@ public actor SyncEngine {
 
     public enum RestoreError: Error, LocalizedError {
         case changedOnServer
-        public var errorDescription: String? { L("這個檔案在其他裝置上有新的變更，請同步後再試") }
+        case unsafePath
+        public var errorDescription: String? {
+            switch self {
+            case .changedOnServer: L("這個檔案在其他裝置上有新的變更，請同步後再試")
+            case .unsafePath: L("遠端的檔案路徑不安全，已拒絕還原")
+            }
+        }
+    }
+    /// 下載的內容與其 SHA-256 不符：雲端內容被竄改或傳輸損毀，不套用也不快取
+    public struct HashMismatchError: Error, LocalizedError {
+        public var errorDescription: String? { L("下載的內容與雜湊不符，已拒絕套用") }
     }
     public struct Status: Sendable, Equatable {
         public var isSyncing = false
@@ -157,6 +167,7 @@ public actor SyncEngine {
     }
 
     private func restoreFile(_ file: RemoteFile, to original: String) async throws -> String {
+        guard VaultFS.isSafe(path: file.path), VaultFS.isSafe(path: original) else { throw RestoreError.unsafePath }
         let data = try await content(hash: file.hash)
         var path = original
         if FileManager.default.fileExists(atPath: fs.url(for: path).path(percentEncoded: false)) {
@@ -278,7 +289,11 @@ public actor SyncEngine {
     private func pull() async throws {
         let cursor = state[meta: "cursor"].flatMap(Double.init).map { Date(timeIntervalSince1970: $0) }
         for row in try await backend.changes(since: cursor) {
-            try await apply(row)
+            if VaultFS.isSafe(path: row.path) {
+                try await apply(row)
+            } else {
+                Self.log.error("skip remote file with unsafe path \(row.id.uuidString, privacy: .public)")
+            }
             if row.updatedAt > cursor ?? .distantPast {
                 state[meta: "cursor"] = String(row.updatedAt.timeIntervalSince1970)
             }
@@ -498,7 +513,9 @@ public actor SyncEngine {
            let data = try? fs.read(r.path), Self.sha256(data) == hash {
             return data
         }
-        return try await backend.download(hash: hash)
+        let data = try await backend.download(hash: hash)
+        guard Self.sha256(data) == hash else { throw HashMismatchError() }
+        return data
     }
 
     private func cacheBase(_ data: Data, hash: String) throws {

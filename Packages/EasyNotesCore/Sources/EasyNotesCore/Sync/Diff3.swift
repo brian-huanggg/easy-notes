@@ -20,6 +20,8 @@ public enum Diff3 {
         base: [Line], local: [Line], remote: [Line],
         resolve: (_ base: ArraySlice<Line>, _ local: ArraySlice<Line>, _ remote: ArraySlice<Line>) -> [Line]? = { _, _, _ in nil }
     ) -> [Line]? {
+        // 病態輸入（兩邊都幾乎整份重寫的超大檔案）的 diff 是平方成本，會卡住同步：超過上限就當衝突，由同步層留衝突副本
+        guard diffCost(base, local) <= maxDiffCost, diffCost(base, remote) <= maxDiffCost else { return nil }
         let toLocal = matching(from: base, to: local)
         let toRemote = matching(from: base, to: remote)
         var result: [Line] = []
@@ -48,6 +50,30 @@ public enum Diff3 {
             i = j; a = aEnd; b = bEnd
         }
         return result
+    }
+
+    /// Myers diff 的成本約為 (兩邊行數) × (不同的行數)；超過這個值就當衝突。
+    /// 約 4 億次運算：release 不到 1 秒，debug 十幾秒。一般的編輯（小改、各處分散的修改、貼上幾千行）遠低於它
+    static let maxDiffCost = 400_000_000
+
+    /// 去掉相同的開頭與結尾後，以「兩邊對不上的行數」估計 diff 距離，回傳估計的成本。
+    /// 只增減（一邊的中間部分是空的）成本為 0；超大且幾乎整份重寫的檔案才會超過上限
+    static func diffCost<Line: Hashable>(_ a: [Line], _ b: [Line]) -> Int {
+        var head = 0
+        while head < a.count, head < b.count, a[head] == b[head] { head += 1 }
+        var tail = 0
+        while tail < a.count - head, tail < b.count - head, a[a.count - 1 - tail] == b[b.count - 1 - tail] { tail += 1 }
+        let middleA = a[head..<(a.count - tail)], middleB = b[head..<(b.count - tail)]
+        if middleA.isEmpty || middleB.isEmpty { return 0 }
+        var remaining: [Line: Int] = [:]
+        for line in middleA { remaining[line, default: 0] += 1 }
+        var unmatchedB = 0
+        for line in middleB {
+            if let n = remaining[line], n > 0 { remaining[line] = n - 1 } else { unmatchedB += 1 }
+        }
+        let distance = remaining.values.reduce(0, +) + unmatchedB
+        let (cost, overflow) = (middleA.count + middleB.count).multipliedReportingOverflow(by: distance)
+        return overflow ? Int.max : cost
     }
 
     /// base 每一行對應到另一邊的行號（LCS，Myers diff）；被刪除或改掉的行為 nil

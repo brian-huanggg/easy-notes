@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "zh-Hant",
   "strings" : {
+    "下載的內容與雜湊不符，已拒絕套用" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The downloaded content does not match its hash and was rejected."
+          }
+        }
+      }
+    },
+    "遠端的檔案路徑不安全，已拒絕還原" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The remote file path is unsafe, so the restore was rejected."
+          }
+        }
+      }
+    },
     "這個檔案在其他裝置上有新的變更，請同步後再試" : {
       "localizations" : {
         "en" : {

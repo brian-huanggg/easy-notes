@@ -129,3 +129,53 @@ struct MarkdownPreviewTests {
         #expect(preview.lines.count == MarkdownPreview.maxLines)
     }
 }
+
+/// Bridge 的 `changed` 不能讓 JS 指定任意寫入路徑（security.md 不變條件 1、3）
+struct MarkdownBridgeSecurityTests {
+    @Test @MainActor func changedOnlyAcceptsLoadedSafePaths() {
+        let loaded: Set<String> = ["筆記/a.md", "../evil.md", "/etc/passwd"]
+        #expect(MarkdownEditor.acceptsChange(id: "筆記/a.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "筆記/b.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "../evil.md", loaded: loaded))
+        #expect(!MarkdownEditor.acceptsChange(id: "/etc/passwd", loaded: loaded))
+    }
+}
+
+struct MarkdownFuzzTests {
+    static let seeds = [
+        "---\ncreated: 2026-10-01\nicon: sf:map\ncover: Attachments/a.png\n---\n# 標題\n參考 [[葉綠體]] 與 [[細胞|細胞結構]] #生物 #a/b\n![[圖.excalidraw]]\n",
+        "# T\n```swift\nlet a = [[x]]\n```\n- [ ] 任務\n- [x] 完成\n> 引用 ^id\n\n{{c1::克漏字}}::答案\n",
+        "---\n---\n---\n", "[[", "[[[[]]]]", "# " + String(repeating: "#", count: 50),
+    ].map { Data($0.utf8) }
+
+    @Test func indexAndMergeSurviveAnyBytes() {
+        let seeds = Self.seeds
+        var n = 0
+        let slow = Fuzz.run(seeds: Self.seeds, rounds: 300) { data in
+            n += 1
+            _ = MarkdownKind.index(data, fileName: "a.md")
+            let other = Self.seeds[n % Self.seeds.count]
+            _ = MarkdownKind.merge(base: Self.seeds[(n + 1) % Self.seeds.count], local: data, remote: other)
+            _ = MarkdownKind.merge(base: nil, local: data, remote: other)
+            _ = MarkdownKind.renameLinks(in: data, from: "葉綠體", to: "新/名\n稱")
+        }
+        #expect(slow.isEmpty, "\(slow)")
+    }
+
+    /// 病態輸入：極長的一行、十萬個 `[[`、十萬層引用
+    @Test func pathologicalInputsFinishQuickly() {
+        let big: [Data] = [
+            Data(String(repeating: "[[", count: 100_000).utf8),
+            Data(String(repeating: "> ", count: 100_000).utf8),
+            Data(String(repeating: "a", count: 5_000_000).utf8),
+            Data((String(repeating: "#tag ", count: 200_000)).utf8),
+            Data(String(repeating: "- [ ] x\n", count: 200_000).utf8),
+        ]
+        for data in big {
+            let start = ContinuousClock.now
+            _ = MarkdownKind.index(data, fileName: "a.md")
+            let seconds = Double((ContinuousClock.now - start).components.seconds)
+            #expect(seconds < 5, "\(data.count) bytes took \(seconds)s")
+        }
+    }
+}

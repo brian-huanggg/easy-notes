@@ -54,7 +54,14 @@ public struct SheetDocument: Sendable {
         case readOnly
         case unknownRow(Int)
         case duplicateRow(Int)
+        /// 欄位或 row id 超出範圍（來自 Bridge 的值不可信：負數、過大都拒絕，而不是崩潰或配置巨大陣列）
+        case outOfRange
     }
+
+    /// 單一列的欄數上限（Excel 的上限是 16,384）；超過的欄位索引一律拒絕
+    public static let maxColumns = 16_384
+    /// JS 的整數只有 53 位元；row id 超過就拒絕（`id + 1` 也不會溢位）
+    static let maxRowID = 1 << 53
 
     public private(set) var records: [Record]
     public private(set) var style: Style
@@ -118,6 +125,7 @@ public struct SheetDocument: Sendable {
     /// 改一個儲存格；超出該列欄數時只補到這一欄
     public mutating func setCell(row id: Int, column: Int, to value: String) throws(EditError) {
         try requireEditable()
+        guard (0..<Self.maxColumns).contains(column) else { throw .outOfRange }
         guard let i = index(ofRow: id) else { throw .unknownRow(id) }
         var fields = records[i].fields
         if column >= fields.count {
@@ -135,8 +143,10 @@ public struct SheetDocument: Sendable {
     public mutating func insertRows(_ values: [[String]], at index: Int, ids: [Int]? = nil) throws(EditError) -> [Int] {
         try requireEditable()
         guard !values.isEmpty else { return [] }
+        guard index >= 0, values.allSatisfy({ $0.count <= Self.maxColumns }) else { throw .outOfRange }
         if let ids {
             precondition(ids.count == values.count, "ids 與列數不同")
+            guard ids.allSatisfy({ abs($0) <= Self.maxRowID }) else { throw .outOfRange }
             let existing = Set(records.map(\.id))
             var seen = Set<Int>()
             if let dup = ids.first(where: { existing.contains($0) || !seen.insert($0).inserted }) { throw .duplicateRow(dup) }
@@ -230,6 +240,7 @@ public struct SheetDocument: Sendable {
     public mutating func insertColumn(at column: Int) throws(EditError) {
         try requireEditable()
         let width = columnCount
+        guard (0...min(width, Self.maxColumns - 1)).contains(column) else { throw .outOfRange }
         for i in records.indices where !isBlank(records[i])
             && (records[i].fields.count > column || records[i].fields.count == width) {
             var fields = records[i].fields
@@ -241,6 +252,7 @@ public struct SheetDocument: Sendable {
     /// 刪掉唯一一欄的列變成空白行
     public mutating func deleteColumn(at column: Int) throws(EditError) {
         try requireEditable()
+        guard column >= 0 else { throw .outOfRange }
         for i in records.indices where records[i].fields.count > column && !isBlank(records[i]) {
             var fields = records[i].fields
             fields.remove(at: column)

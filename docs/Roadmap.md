@@ -17,6 +17,7 @@
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
+| 資安審查 | 第一輪靜態檢查完成，7 項缺口已修 5 項（同步路徑與 hash 驗證、Release 不可檢查、Bridge 寫入路徑、連結標題建檔）；動態測試、模糊測試、工具掃描未開始 | [security.md](./architecture/security.md) |
 | E2E 測試 | smoke / sync / perf 在 macOS 通過；iPad 模擬器、GitHub Actions 尚未執行 | [README](./architecture/README.md)「測試」 |
 | i18n 多語言（English (US)） | i0 基礎建設完成（已合併進 main；逐畫面比對尚未驗證）；i1 隨 Phase 5、6 進行；i2 英文翻譯在 Phase 6 之後 | [translation.md](./architecture/translation.md) |
 
@@ -649,6 +650,33 @@
 - [ ] 切換語言後索引重建，列表摘要的語言正確
 - [ ] 兩台不同語言的裝置同步同一個 Vault：不會因語言產生衝突副本
 - [ ] English 介面下注音輸入正常（iPad、Mac）
+
+## 資安審查
+
+設計與不變條件見 [security.md](./architecture/security.md)。以下是第一輪對 repo 的靜態檢查結果（讀程式與設定，尚未做動態測試、模糊測試與工具掃描）；每項修好並驗證後才勾。
+
+**已確認的缺口**
+
+- [x] 遠端路徑未驗證 → `VaultFS.isSafe(path:)`；`pull` 跳過不安全的列、`restore` 拒絕（單元測試通過；symlink 離開 Vault 的情況尚未處理，Bridge 與 `vault://` 以外的入口尚未逐一檢查）
+- [x] 下載的 blob 未驗證 hash → `content(hash:)` 比對 SHA-256，不符丟 `HashMismatchError`、不套用不快取（單元測試通過；尚未對真實 Supabase 驗證）
+- [x] `WebEditorHost` 的 `isInspectable` 只在 DEBUG 開啟（尚未以 Release 建置驗證）
+- [x] WebView 導覽與 CSP：`WebEditorHost` 的 navigation delegate 只放行編輯器頁面本身，點擊的 http(s) / mailto 交給系統開啟，其餘取消；兩個頁面加上 CSP（`script-src 'self'`、`img-src vault: embed: symbol: data:`、`connect-src 'none'`、`default-src 'none'`）。單元測試通過；以真實 WKWebView 探測：頁面腳本照常執行、`vault:` / `embed:` / `symbol:`（含 CSS mask）圖片放行，遠端圖片、`file:` 圖片、`fetch`、inline 腳本被擋；macOS E2E smoke 21 項通過。尚未驗證：實機注音輸入與 iOS、`npm run build` 後的頁面（CSP 在 HTML，不受影響）
+- [ ] macOS 未啟用 Hardened Runtime（不影響個人使用；給他人安裝前必須處理）
+
+**待驗證**
+
+- [x] Bridge 各 `type` 的欄位驗證：`KindMarkdown` 的 `changed` 原本直接用 JS 給的 `id` 當寫入路徑，現在只接受該編輯器載入過且 `isSafe` 的路徑，`VaultStore.write` 也再擋一次；`KindSheet` 的 `edit` / `meta` 以 Codable 解碼且 `apply` 失敗時以模型重載，沒有路徑欄位（單元測試通過；未做超大訊息的壓力測試）
+- [x] 連結標題建檔：`[[../../x]]` 點擊後 `Vault.create` 會把標題當檔名，可建到 Vault 外 → `VaultFS.safeFileName`（單元測試通過）
+- [ ] 外部 URL：JS 端沒有建立 `<a>` 或呼叫 `window.open`，目前點 md 的 `http(s)` 連結不會開啟任何東西（產品行為，不是漏洞）；之後要支援時走導覽委派的 `openExternally`。`openLink` 只做檔名比對，已確認安全
+- [ ] 日誌：DEBUG 以外不印筆記內容；`print` 與 `os_log` 全數檢視
+- [ ] Keychain：確認 supabase-swift 預設的 session 儲存位置與 accessibility
+- [x] 跨使用者 RLS 實測：`RLSAttackTests` 對本地 Supabase 驗證直接 insert / update / delete `files`（含假冒 `user_id`）、blob upsert 與刪除、`..` 繞進別人資料夾、匿名讀 Storage 與公開網址、維護函式 `purge_deleted_files` 不可呼叫、`commit_file` 只用 `auth.uid()`（13 項整合測試通過；只驗證本地，雲端專案的設定尚未核對）
+- [ ] Storage 上傳大小限制與配額：本地 `file_size_limit = 50MiB`；雲端專案的實際限制、配額與是否開放註冊（本地 `enable_signup = true`、密碼最短 6 字、無信箱驗證）尚未在 Dashboard 核對；`commit_file` 也不驗證 `p_path` 與 `p_size`（客戶端已擋，伺服器端 CHECK 是縱深防禦，需要新 migration 與 `supabase db push`，尚未做）
+- [x] 解析器模糊測試：每個套件的 `FuzzSupport.swift`（固定種子的突變與純隨機輸入，崩潰會讓測試程序結束、超過時限視為卡死）加上病態輸入。涵蓋 Diff3、Markdown index / merge / renameLinks、CSV / TSV 文件與合併、`SheetMeta`、Sheet Bridge ops、Excalidraw、`.pdf.ink`、PDF index、卡片語法、複習紀錄。發現並修掉：Sheet ops 的負數 / 極大欄位與 row id 會崩潰（6 種）、Diff3 對兩邊都重寫的大檔是平方成本（8,000 行 10 秒）→ 超過成本上限當衝突、`[[` 正則（Swift 與 JS 共 16 處）對 `[[[[…` 是平方成本（4 萬字元 22 秒）→ 目標與別名排除 `[`。Excalidraw / PDF 旁檔 / 複習紀錄沒有發現問題（單元測試通過；僅在 macOS debug 建置、固定種子跑 數百至數千輪，沒有長時間覆蓋式模糊測試，也沒有針對 PDFKit 與 CoreGraphics 的 crash 做系統性測試；Anki 匯入尚未實作所以未測）
+- [ ] 依賴審計：`npm audit` 無已知漏洞（已跑）；SPM 套件的已知漏洞尚未檢查（本機沒有 osv-scanner）
+- [ ] 機密掃描：以 grep 掃過工作樹與歷史（私鑰、JWT、`service_role`、雲端金鑰格式），沒有發現；`.env*` 與憑證檔從未進過版控。尚未用 gitleaks 全面掃描，也沒掃 App bundle
+- [ ] 建置產物檢查：`codesign -dvvv --entitlements -`、`otool -L`、App bundle 內沒有多餘檔案
+- [ ] 加進 CI：依賴審計、機密掃描、Semgrep
 
 ## E2E 測試
 

@@ -22,7 +22,7 @@ public enum MarkdownKind: DocumentKind {
         return IndexEntry(
             title: heading ?? fallback,
             plainText: body,
-            links: matches(of: #"\[\[([^\]\n|]+)(?:\|[^\]\n]*)?\]\]"#, in: body),
+            links: matches(of: #"\[\[([^\[\]\n|]+)(?:\|[^\[\]\n]*)?\]\]"#, in: body),
             tags: unique(frontmatter.list("tags") + matches(of: #"(?<![\p{L}\p{N}_#&/])#([\p{L}\p{N}_/-]+)"#, in: body)),
             icon: frontmatter.scalar("icon"),
             pinned: frontmatter.bool("pinned"),
@@ -44,7 +44,7 @@ public enum MarkdownKind: DocumentKind {
 
     /// 筆記改名時更新 `[[舊名]]` / `[[舊名|別名]]` / `![[舊名]]`，保留別名，不分大小寫
     public static func renameLinks(in text: String, from oldName: String, to newName: String) -> String {
-        let pattern = #"(!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\]\n]*)?\]\])"#
+        let pattern = #"(!?\[\[)"# + NSRegularExpression.escapedPattern(for: oldName) + #"((?:\|[^\[\]\n]*)?\]\])"#
         guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return text }
         let template = "$1" + NSRegularExpression.escapedTemplate(for: newName) + "$2"
         return regex.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..., in: text), withTemplate: template)

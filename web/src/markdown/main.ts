@@ -45,7 +45,7 @@ const highlight = HighlightStyle.define([
 let linkTargets: string[] = [];
 
 function wikilinkCompletion(ctx: CompletionContext): CompletionResult | null {
-  const before = ctx.matchBefore(/\[\[[^\]|\n]*/);
+  const before = ctx.matchBefore(/\[\[[^\[\]|\n]*/);
   if (!before) return null;
   const from = before.from + 2;
   const query = ctx.state.sliceDoc(from, ctx.pos).toLowerCase();
