@@ -6,10 +6,13 @@
 // 打字的熱路徑不跨 Bridge：edit 只在儲存格編輯結束時送出。Undo 在 JS 端以 op 堆疊實作，
 // 復原也是一般的 edit（Swift 不區分）。排序與篩選只影響畫面；「依此欄排序並寫入」才送 order。
 // 顯示設定（欄寬、凍結欄、標題列）在 JS 改，整份以 meta 送出，Swift 寫進 `.csv.meta.json`。
+// 工具列、編輯列（fx）與狀態列也在這個 WebView 裡（toolbar.ts），選取狀態不跨 Bridge。
 import type { BeforeRangeSaveDataDetails, BeforeSaveDataDetails, ColumnRegular } from "@revolist/revogrid";
 import { defineCustomElement } from "@revolist/revogrid/standalone/revo-grid.js";
-import { locale } from "../shared/i18n";
+import { locale, t } from "../shared/i18n";
 import { Meta, Op, post, postEdit, postMeta } from "./bridge";
+import { columnName, formatNumber, stats } from "./stats";
+import { buildFormulaBar, buildStatusBar, buildToolbar } from "./toolbar";
 
 defineCustomElement();
 
@@ -103,13 +106,6 @@ function makeRow(id: number, cells: string[]): Row {
   return row;
 }
 
-/** A, B, …, Z, AA, AB… */
-function columnName(i: number): string {
-  let name = "";
-  for (let n = i + 1; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
-  return name;
-}
-
 function columns(): ColumnRegular[] {
   return Array.from({ length: width }, (_, i) => ({
     prop: i,
@@ -157,6 +153,8 @@ async function selectedRowIds(): Promise<number[]> {
 }
 
 async function restoreFocus(ref: CellRef | null) {
+  // 編輯列有焦點時不搶焦點（setCellsFocus 會讓輸入框失焦而提早寫入）；離開編輯列時再對回選取
+  if (formula.editing) return;
   if (!ref || !byId.has(ref.id) || ref.col >= width) return;
   const pinned = ref.col < meta.frozenColumns;
   const colType = pinned ? "colPinStart" : "rgCol";
@@ -227,6 +225,7 @@ async function run(ops: Op[]) {
   render();
   postEdit(ops);
   await restoreFocus(ref);
+  refreshChrome();
 }
 
 async function perform(entry: Entry) {
@@ -279,6 +278,7 @@ grid.addEventListener("afteredit", () => {
   undoStack.push({ forward, backward });
   redoStack = [];
   postEdit(forward);
+  refreshChrome();
   // 編輯中有外部變動：換成新內容後再疊上剛才的修改（Swift 端也是這個順序）
   if (deferredRemote !== null) void applyDeferredRemote(forward);
 });
@@ -312,6 +312,7 @@ async function applyDeferredRemote(ops: Op[]) {
   ops.forEach(applyLocal);
   render();
   await restoreFocus(ref);
+  refreshChrome();
 }
 
 // MARK: 指令（Swift 的「表格」選單）
@@ -382,6 +383,7 @@ async function rerender(change: () => void) {
   change();
   render();
   await restoreFocus(ref);
+  refreshChrome();
 }
 
 /** 凍結首欄；已經凍結（不論幾欄）就取消 */
@@ -410,16 +412,21 @@ const commands: Record<string, () => Promise<void>> = {
   redo,
 };
 
-/** 儲存格編輯器（RevoGrid 的 input / textarea）是否開著；開著時 ⌘Z 交給輸入框 */
-function isEditingCell(): boolean {
+/** 焦點在輸入框（儲存格編輯器或編輯列）；這時 ⌘Z 交給輸入框 */
+function isTyping(): boolean {
   const active = document.activeElement;
   return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+}
+
+/** 儲存格編輯器（RevoGrid 的 input / textarea）是否開著；開著時外部變動延後套用 */
+function isEditingCell(): boolean {
+  return isTyping() && grid.contains(document.activeElement);
 }
 
 document.addEventListener(
   "keydown",
   (e) => {
-    if (!(e.metaKey || e.ctrlKey) || e.altKey || isEditingCell()) return;
+    if (!(e.metaKey || e.ctrlKey) || e.altKey || isTyping()) return;
     const key = e.key.toLowerCase();
     if (key === "z" || key === "y") {
       e.preventDefault();
@@ -429,6 +436,125 @@ document.addEventListener(
   },
   true,
 );
+
+// MARK: 工具列、編輯列、狀態列
+
+const updateToolbar = buildToolbar(document.getElementById("toolbar")!, (command) => void commands[command]?.());
+
+/** 編輯列寫入的對象：取得焦點時的儲存格（之後選取改變也寫回原本那一格） */
+let formulaTarget: CellRef | null = null;
+
+const formula = buildFormulaBar(document.getElementById("formula")!, {
+  begin() {
+    formulaTarget = current;
+  },
+  /** 同步送出 edit（不等 RevoGrid），flush 時 blur 觸發的寫入才趕得上 Swift 存檔 */
+  commit(value) {
+    const target = formulaTarget;
+    const row = target ? byId.get(target.id) : undefined;
+    if (!target || !row || readOnly) return;
+    const old = cell(row, target.col);
+    if (old === value) return;
+    const forward: Op[] = [{ op: "set", row: target.id, col: target.col, value }];
+    const backward: Op[] = [{ op: "set", row: target.id, col: target.col, value: old }];
+    applyLocal(forward[0]);
+    undoStack.push({ forward, backward });
+    redoStack = [];
+    postEdit(forward);
+    void grid.refresh("all").then(refreshChrome);
+  },
+  leave() {
+    grid.focus();
+    void restoreFocus(formulaTarget);
+  },
+});
+
+const updateStatus = buildStatusBar(document.getElementById("status")!);
+
+/** 目前選取的儲存格（工具列與編輯列用）；`label` 是名稱方塊的文字 */
+let current: (CellRef & { label: string }) | null = null;
+
+/** 選取範圍內的值；只有一格或沒有範圍時為 null */
+async function selectionValues(): Promise<string[] | null> {
+  const range = await grid.getSelectedRange();
+  if (!range || (range.x === range.x1 && range.y === range.y1)) return null;
+  const offset = range.colType === "colPinStart" ? 0 : meta.frozenColumns;
+  const [x0, x1] = [Math.min(range.x, range.x1) + offset, Math.max(range.x, range.x1) + offset];
+  let picked: Row[];
+  if (range.rowType === "rowPinStart") {
+    picked = meta.headerRow && rows[0] ? [rows[0]] : [];
+  } else {
+    const visible = (await grid.getVisibleSource("rgRow")) as Row[];
+    picked = visible.slice(Math.min(range.y, range.y1), Math.max(range.y, range.y1) + 1);
+  }
+  const values: string[] = [];
+  for (const row of picked) for (let col = x0; col <= x1; col++) values.push(cell(row, col));
+  return values;
+}
+
+let chromeScheduled = false;
+
+/** 選取或內容改變後更新工具列、編輯列與狀態列；同一幀內只做一次 */
+function refreshChrome() {
+  if (chromeScheduled) return;
+  chromeScheduled = true;
+  requestAnimationFrame(async () => {
+    chromeScheduled = false;
+    const focus = await grid.getFocused();
+    const id = focus?.model?.__id;
+    if (typeof id === "number" && focus?.column !== undefined && byId.has(id)) {
+      const col = Number(focus.column.prop);
+      // 列號與列標頭相同：標題列是第 1 列，其餘依畫面上的位置（排序、篩選後也是）
+      const header = meta.headerRow ? 1 : 0;
+      const label = `${columnName(col)}${focus.rowType === "rowPinStart" ? 1 : focus.cell.y + 1 + header}`;
+      current = { id, col, label };
+    } else {
+      current = null;
+    }
+    formula.show(current?.label ?? "", current ? cell(byId.get(current.id)!, current.col) : null);
+    updateToolbar({
+      readOnly,
+      canUndo: undoStack.length > 0,
+      canRedo: redoStack.length > 0,
+      hasCell: current !== null,
+      frozen: meta.frozenColumns > 0,
+      headerRow: meta.headerRow,
+    });
+    const dataRows = Math.max(0, rows.length - (meta.headerRow ? 1 : 0));
+    const summary = [t("{n} 列", { n: dataRows }), t("{n} 欄", { n: width })].join(" · ");
+    const values = await selectionValues();
+    const selection: string[] = [];
+    if (values) {
+      const s = stats(values);
+      if (s.numbers > 0) {
+        selection.push(t("平均：{value}", { value: formatNumber(s.average, locale) }));
+        selection.push(t("計數：{n}", { n: s.count }));
+        selection.push(t("加總：{value}", { value: formatNumber(s.sum, locale) }));
+      } else {
+        selection.push(t("計數：{n}", { n: s.count }));
+      }
+    }
+    updateStatus(summary, selection);
+  });
+}
+
+// 點工具列、編輯列、狀態列時 RevoGrid 會當成點在表格外而清掉選取；指令與編輯列都要以選取的儲存格為對象
+let pointerInChrome = false;
+for (const id of ["toolbar", "formula", "status"]) {
+  document.getElementById(id)!.addEventListener("pointerdown", () => {
+    pointerInChrome = true;
+    setTimeout(() => (pointerInChrome = false), 500);
+  });
+}
+grid.addEventListener("beforefocuslost", (e) => {
+  if (pointerInChrome) e.preventDefault();
+});
+
+grid.addEventListener("afterfocus", refreshChrome);
+// 拖曳或 ⇧方向鍵改變範圍時 RevoGrid 沒有對外的事件，滑鼠放開與按鍵後再讀一次
+grid.addEventListener("mouseup", refreshChrome);
+grid.addEventListener("keyup", refreshChrome);
+grid.addEventListener("aftersourceset", refreshChrome);
 
 // MARK: Swift → JS
 
@@ -443,6 +569,7 @@ const api = {
     pending = [];
     deferredRemote = null;
     render();
+    refreshChrome();
   },
 
   /** 外部修改或同步：換成新內容，保留目前選取的儲存格（依 row id）與 Undo */
@@ -455,6 +582,7 @@ const api = {
     loadRows(JSON.parse(json));
     render();
     await restoreFocus(ref);
+    refreshChrome();
   },
 
   /** 顯示設定旁檔被外部修改或同步合併 */
@@ -466,9 +594,9 @@ const api = {
     await commands[command]?.();
   },
 
-  /** 改名、刪除、進背景前：結束編輯中的儲存格，讓它的 edit 先送出 */
+  /** 改名、刪除、進背景前：結束編輯中的儲存格或編輯列，讓它的 edit 先送出 */
   flush() {
-    if (isEditingCell()) (document.activeElement as HTMLElement).blur();
+    if (isTyping()) (document.activeElement as HTMLElement).blur();
   },
 
   focus() {

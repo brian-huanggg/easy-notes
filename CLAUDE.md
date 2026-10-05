@@ -30,6 +30,7 @@
 (cd web && npm test)                        # Web 端單元測試（Node，不需要瀏覽器）
 (cd web && node test/ime.e2e.mjs)           # 注音組字 e2e（Chromium 模擬輸入法，需要 playwright；先 npm run build）
 (cd web && node test/blocks.e2e.mjs)        # 表格、公式、屬性面板 e2e（同上）
+(cd web && node test/sheet.e2e.mjs)         # CSV / TSV 工具列、編輯列、狀態列 e2e（同上）
 xcodegen generate                           # 修改 project.yml 後
 (cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
 ./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
