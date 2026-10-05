@@ -2013,6 +2013,246 @@
           }
         }
       }
+    },
+    "%lld 筆已經匯入過，不重複寫入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld already imported; won't be written again"
+          }
+        }
+      }
+    },
+    "%lld 筆新的卡片筆記（%lld 張卡片），寫入 %lld 個筆記檔、%lld 個資料夾" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld new card notes (%lld cards), written to %lld note files and %lld folders"
+          }
+        }
+      }
+    },
+    "%lld 筆複習紀錄、%lld 個圖片 / 媒體檔" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld review records, %lld images / media files"
+          }
+        }
+      }
+    },
+    "Anki 匯入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anki Import"
+          }
+        }
+      }
+    },
+    "Anki 的換日時間是 %lld 點；到「牌組選項」把「新的一天開始時間」設成相同，每天出卡的時間才會一致。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anki's day rolls over at %lld:00. Set “Next day starts at” in Deck Options to the same hour so cards are scheduled at the same time each day."
+          }
+        }
+      }
+    },
+    "…還有 %lld 筆" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "…and %lld more"
+          }
+        }
+      }
+    },
+    "不支援的筆記類型「%@」" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unsupported note type “%@”"
+          }
+        }
+      }
+    },
+    "克漏字的答案跨行" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cloze answer spans multiple lines"
+          }
+        }
+      }
+    },
+    "分析中…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyzing…"
+          }
+        }
+      }
+    },
+    "匯入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        }
+      }
+    },
+    "匯入 Anki 的 .apkg：牌組、卡片與複習紀錄" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import an Anki .apkg: decks, cards and review history"
+          }
+        }
+      }
+    },
+    "匯入中…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importing…"
+          }
+        }
+      }
+    },
+    "匯入完成" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import complete"
+          }
+        }
+      }
+    },
+    "圖片遮蓋（Image Occlusion）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image Occlusion"
+          }
+        }
+      }
+    },
+    "套件中找不到 %lld 個媒體檔：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld media files not found in the package: %@"
+          }
+        }
+      }
+    },
+    "將會匯入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Will import"
+          }
+        }
+      }
+    },
+    "從 Anki 匯入" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import from Anki"
+          }
+        }
+      }
+    },
+    "沒有內容" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No content"
+          }
+        }
+      }
+    },
+    "無法匯入：%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't import: %@"
+          }
+        }
+      }
+    },
+    "牌組會對應成資料夾，卡片寫成筆記，複習紀錄一併帶過來。選擇檔案後會先顯示摘要，確認後才寫入。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Decks become folders, cards become notes, and review history comes along. After you choose a file, a summary is shown first; nothing is written until you confirm."
+          }
+        }
+      }
+    },
+    "略過 %lld 筆（可以手動改寫成卡片語法）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skipped %lld (you can rewrite them by hand in card syntax)"
+          }
+        }
+      }
+    },
+    "轉換後的語法與 Anki 的卡片不符" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Converted syntax doesn't match the Anki card"
+          }
+        }
+      }
+    },
+    "選擇 Anki 匯出的檔案（.apkg）。在 Anki 的「匯出」選「Anki 牌組套件」並勾選「包含媒體」。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a file exported from Anki (.apkg). In Anki's Export dialog, pick “Anki Deck Package” and tick “Include media”."
+          }
+        }
+      }
+    },
+    "選擇檔案…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose File…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
