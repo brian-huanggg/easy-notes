@@ -18,7 +18,7 @@
 | 多語言、字串寫法、不翻譯的字串 | [translation.md](./translation.md) |
 | 威脅模型、信任邊界、安全不變條件（WebView / Bridge、同步、檔案解析、簽署） | [security.md](./security.md) |
 
-EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化）。核心只負責檔案、同步、索引與外掛註冊；Markdown、白板、PDF 手寫、CSV、Flashcards 都是編譯期外掛。所有資料都是開放格式的真實檔案，透過 Supabase 在 iOS、iPadOS、macOS 間同步，Claude Code 可以直接讀寫。
+EasyNotes 是個人使用的知識庫 App（不上架、不商業化）。核心只負責檔案、同步、索引與外掛註冊；Markdown、白板、PDF 手寫、CSV、Flashcards 都是編譯期外掛。所有資料都是開放格式的真實檔案，透過 Supabase 在 iOS、iPadOS、macOS 間同步，Claude Code 可以直接讀寫。
 
 ## 背景與目標
 
@@ -35,7 +35,7 @@ EasyNotes 是個人使用的知識庫 App（不上架、不公開、不商業化
 | 同步 | Supabase（Auth + Storage + Postgres + Realtime） |
 | 檔案類型 | 以 `.md` 為核心；Whiteboard、PDF 手寫、CSV、Flashcards 為外掛 |
 | 非功能 | App < 100 MB（預估 15–30 MB）、記憶體與耗電有預算、離線可用、同步可靠（見 [core.md](./core.md)「非功能預算」） |
-| 使用範圍 | 個人使用：不上架、不公開、不商業化（授權限制因此寬鬆，但仍優先選 MIT / BSD 套件） |
+| 使用範圍 | 個人使用：不上架、不商業化（授權限制因此寬鬆，但仍優先選 MIT / BSD 套件） |
 | Vault 位置 | macOS：~/Documents/EasyNotes（可見、不開沙盒）；iOS：App 的 Documents（「檔案」App 可見） |
 | 發佈 | iOS / iPadOS：TestFlight（`upload-testflight.sh`）；macOS：DMG（`make-dmg.sh`）加 Sparkle 自動更新（見「發版流程」）。macOS 不開沙盒，所以不能走 TestFlight / Mac App Store；App Store Connect 關閉「iPad App 可在 Mac 上使用」，避免 Mac 裝到 iPad 版（沙盒 Vault、iOS UI） |
 
