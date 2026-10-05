@@ -46,4 +46,17 @@ struct AnkiExportTests {
         #expect(AnkiExport.field("a\tb") == "a b")
         #expect(AnkiExport.tag("期中 考試/第一章") == "期中_考試::第一章")
     }
+
+    @Test func multilineContent() {
+        let text = "問題\n第二行\n\n- 一\n  - 二\n1. 三\n![[a b.png|300]]\n```\nx < y\n  z\n```\n結尾"
+        #expect(AnkiExport.content(text) == "問題<br>第二行<ul><li>一</li><ul><li>二</li></ul></ul><ol><li>三</li></ol>"
+            + "<img src=\"a b.png\"><pre><code>x &lt; y<br>  z</code></pre>結尾")
+    }
+
+    @Test func multilineClozeNumbersAcrossLines() {
+        let note = CardSyntax.parse("- 理論 :: ^c-aaaaaa\n  - {{信任}}\n  - {{親密}}\n  ::\n  補充").first!
+        let row = AnkiExport.row(note, path: "a.md", tags: [])
+        #expect(row[2] == "理論<ul><li>{{c1::信任}}</li><li>{{c2::親密}}</li></ul>")
+        #expect(row[3] == "補充")
+    }
 }

@@ -13,7 +13,7 @@
 | 1.5 模組化重構 | 結構完成；`EditorState` LRU、Release 基準線延後 | [README](./architecture/README.md)「系統架構」、[core.md](./architecture/core.md)「擴充點」 |
 | 2 同步 | 同步引擎與 App 串接完成；登入、衝突副本、整合與耗電驗收尚有未勾 | [core.md](./architecture/core.md)「同步設計」 |
 | 2.5 UI 重構 | 完成；驗收測試尚有未勾；2.5f 表格、公式、屬性面板實作完成（Chromium e2e 通過，WebKit 實機尚未驗證） | [ui.md](./architecture/ui.md)、[markdown.md](./architecture/markdown.md) |
-| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
+| 3 Flashcards | 3a–3c 完成（實機驗證尚有未勾）；3e 自訂複習、3f 卡片瀏覽實作完成（實機尚未驗證）；3d TSV 匯出完成（匯入 Anki 尚未驗證），fsrs-rs 未開始；3g 卡片 Markdown / LaTeX 實作完成（macOS 建置與 `swift test` 通過，Mac 實機看過卡片瀏覽與複習畫面；iPad、深色模式尚未驗證）；3h 多行卡片與圖片實作完成（`swift test`、web 測試與 Chromium e2e 通過、App 建置成功；實機尚未驗證） | [flashcards.md](./architecture/flashcards.md) |
 | 4 Whiteboard | S3、4a–4c 完成（手動驗證尚有未勾）；4d 筆記卡片、預覽內容與側邊面板完成（實機尚未驗證） | [whiteboard.md](./architecture/whiteboard.md) |
 | 5 PDF 手寫與標註 | S4、5a–5d 實作完成；手動驗證尚有未勾（匯入、伴隨檔流程、iPad 便利貼注音、同步合併、多裝置與大檔驗收） | [pdf.md](./architecture/pdf.md) |
 | 6 Sheets | S5、6a–6d 實作完成；macOS / iOS 建置與 `swift test` 通過；實機逐項驗證與驗收測試尚未勾 | [sheets.md](./architecture/sheets.md) |
@@ -347,6 +347,30 @@
 - [ ] 效能：一張卡 10 個公式，翻面與切換卡片沒有明顯延遲（圖片有快取）
 
 尚未驗證：iPad / iPhone、深色模式、公式過寬縮小、無法解析的公式、匯入 Anki、效能（10 個公式的卡片）。
+
+### 3h 多行卡片與圖片
+
+設計見 [flashcards.md](./architecture/flashcards.md)「多行卡片」、「圖片」、「卡片內容」。動機：Anki 資料 110 張中有 94 張是多行、26 張含圖片。
+
+- [x] 解析：清單項目以 ` ::` / ` ;;` 結尾時延伸成多行 note（CommonMark 清單範圍、去掉共同縮排）、分界行、克漏字跨行編號與 Back Extra、子行不另成卡片、`^id` 在首行；`CardNote.endLine`；索引版本 2 —— `swift test` 通過
+- [x] 克漏字可以完整包住行內程式碼（Swift 與 web 同規則）—— `swift test`、`npm test` 通過
+- [x] `CardMarkup` 區塊：段落、清單（分層、待辦）、程式碼區塊、圖片、獨立公式；非圖片的 `![[x]]` 顯示原文 —— `swift test` 通過
+- [x] 圖片：`Attachments.embedPath`（Core）；`ReviewStore.cardImage` 經 `resourceReader` 讀取、舊版 `附件/` 退路、依修改時間快取 —— 建置通過
+- [ ] 複習畫面：多行卡片較小字級、克漏字 Back Extra 接在答案下方、`CardImage`（寬度上限、高度 400pt、讀不到顯示原文）—— App 建置成功；實機尚未驗證
+- [x] 卡片瀏覽：多行內容只顯示前兩行、圖片顯示為檔名（沿用 `lineLimit(2)`）
+- [x] 匯出給 Anki：多行轉 `<br>`、`<ul>` / `<ol>`、`<pre><code>`、`<img src>`，克漏字跨行編號、Back Extra 欄 —— `AnkiExportTests` 通過
+- [x] 編輯器語法標示：首行行尾與分界行的分隔符號、子行的克漏字（到分界行為止），子行中的卡片語法不另外標示（`blockHead`、`blockEnd`）—— `npm test`、`blocks.e2e.mjs` 通過（含子行注音組字）
+- [x] Vault `CLAUDE.md` 的卡片語法補上多行與圖片（只寫入新的 Vault）
+
+驗收測試：
+
+- [x] 單元測試：`MultilineCardTests`、`CardMarkupTests.multilineBlocks`、`AnkiExportTests.multilineContent`、`StudyTests.multilineClozeShowsBackExtra`、web `cardSyntax.test.ts`
+- [x] 轉換試跑：Anki 匯出的 100 筆 note 轉成新語法，正式解析器解析出 97 筆，其中 96 筆的類型與正反面符合預期，全部可補 id；剩下的是原始資料問題（`Vim.md` 一筆反引號範圍錯誤、`Development.md` 克漏字編號對不上），需手動修正
+- [ ] 手動：Mac、iPad、iPhone 複習多行卡片（清單層級、程式碼區塊、長內容捲動）、圖片顯示與深色模式
+- [ ] 手動：編輯器中多行卡片的標示（Mac WebKit、iPad 注音）
+- [ ] 手動：匯出多行卡片後在 Anki 匯入，清單與圖片正確（圖片檔需自行放進 `collection.media`）
+
+尚未驗證：實機畫面、WebKit 語法標示、匯入 Anki。音檔（`![[x.mp3]]`）不在範圍內。
 
 ## Phase 4 — Whiteboard
 

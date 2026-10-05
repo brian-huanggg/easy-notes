@@ -46,4 +46,46 @@ struct CardMarkupTests {
             .math("\\frac{a}{b}", .bold), .text(" 是"), .text("分數", .cloze),
         ])])
     }
+
+    @Test func multilineBlocks() {
+        let text = """
+            第一行 **粗**
+            第二行
+
+            - 項目一
+              - 子項目 $x$
+              續行
+            1. [x] 完成
+            ![[sdt.png|300]]
+            ```
+            ps aux | grep **x**
+            ```
+            結尾 ![[a/b.jpg]] 後面
+            """
+        #expect(CardMarkup.blocks(text) == [
+            .paragraph([.text("第一行 "), .text("粗", .bold), .text("\n第二行")]),
+            .listItem(level: 0, marker: "•", [.text("項目一")]),
+            .listItem(level: 1, marker: "•", [.text("子項目 "), .math("x")]),
+            .listItem(level: 0, marker: nil, [.text("續行")]),
+            .listItem(level: 0, marker: "☑", [.text("完成")]),
+            .image(path: "Attachments/sdt.png", width: 300),
+            .code("ps aux | grep **x**"),
+            .paragraph([.text("結尾")]),
+            .image(path: "a/b.jpg", width: nil),
+            .paragraph([.text("後面")]),
+        ])
+    }
+
+    @Test func clozeAcrossLines() {
+        let segments = [StudyCard.Segment("- 嬰兒期："), StudyCard.Segment("[…]", emphasized: true),
+                        StudyCard.Segment("\n- 成年早期：親密")]
+        #expect(CardMarkup.blocks(segments) == [
+            .listItem(level: 0, marker: "•", [.text("嬰兒期："), .text("[…]", .cloze)]),
+            .listItem(level: 0, marker: "•", [.text("成年早期：親密")]),
+        ])
+    }
+
+    @Test func nonImageEmbedsStayAsText() {
+        #expect(CardMarkup.blocks("![[a.mp3]]") == [.paragraph([.text("![[a.mp3]]")])])
+    }
 }

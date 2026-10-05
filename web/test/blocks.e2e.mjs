@@ -1,4 +1,4 @@
-// 表格、數學公式、屬性面板：在 Chromium 實際點擊、打字、注音組字，檢查寫回的 md。
+// 表格、數學公式、屬性面板、多行卡片的語法標示：在 Chromium 實際點擊、打字、注音組字，檢查寫回的 md。
 // 注音以 DevTools 的 Input.imeSetComposition 模擬（WebKit 的實作不同，實機仍需驗證）。
 // 需要 Playwright（不列為相依套件）：npm i --no-save playwright && npx playwright install chromium
 // 用法：npm run build && node test/blocks.e2e.mjs
@@ -210,6 +210,40 @@ const FRONT = "---\ntitle: 舊標題\ntags:\n  - 讀書\npinned: false\nicon: sf
   await tab.keyboard.type("我");
   const text = await doc();
   check("沒有 frontmatter 時新增屬性", text === "---\n作者: 我\n---\n# 標題\n\n內文\n", JSON.stringify(text));
+  await tab.close();
+}
+
+{
+  // 多行卡片：首行行尾與分界行的分隔符號換成箭頭、子行的克漏字（分界行之前）標示，子行中的卡片語法不另外標示
+  const CARDS = [
+    "- 請說明 SDT :: ^c-a1b2c3",
+    "  - Competence",
+    "  - 子 :: 不是卡片",
+    "",
+    "- Erikson ::",
+    "  - 嬰兒期：{{信任}}",
+    "  ::",
+    "  補充 {{不算}}",
+    "",
+    "- 單行 :: 卡片",
+    "",
+  ].join("\n");
+  const { tab, doc, cdp } = await open(CARDS);
+  await tab.evaluate(() => document.activeElement?.blur());
+  await tab.waitForTimeout(50);
+  const arrows = await tab.locator(".cm-card-sep").allTextContents();
+  check("多行卡片的分隔符號", JSON.stringify(arrows) === JSON.stringify(["→", "→", "→", "→"]), JSON.stringify(arrows));
+  const clozes = await tab.locator(".cm-card-cloze").allTextContents();
+  check("子行的克漏字只標示到分界行", JSON.stringify(clozes) === JSON.stringify(["信任"]), JSON.stringify(clozes));
+  check("首行的 ^id 隱藏", !(await tab.locator(".cm-content").innerText()).includes("^c-a1b2c3"));
+
+  // 在子行中注音組字：組字中與選字後文件都正確
+  await tab.locator(".cm-line", { hasText: "Competence" }).click();
+  await tab.keyboard.press("End");
+  await cdp.send("Input.imeSetComposition", { text: "ㄋㄥˊ", selectionStart: 3, selectionEnd: 3 });
+  await cdp.send("Input.insertText", { text: "能力" });
+  const text = await doc();
+  check("子行注音組字", text === CARDS.replace("Competence", "Competence能力"), JSON.stringify(text));
   await tab.close();
 }
 

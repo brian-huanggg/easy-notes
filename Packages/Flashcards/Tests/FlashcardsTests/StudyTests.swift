@@ -177,6 +177,15 @@ struct StudyTests {
         #expect(cloze.map(\.id) == ["c-2:1", "c-2:2"])
         #expect(cloze[1].front == [.init("粒線體是"), .init(StudyCard.clozeBlank, emphasized: true)])
         #expect(cloze[1].back == [.init("粒線體是"), .init("細胞的發電廠", emphasized: true)])
+        #expect(!cloze[0].multiline)
+    }
+
+    @Test func multilineClozeShowsBackExtra() {
+        let cards = StudyCard.cards(path: "a.md", note: CardNote(
+            id: "c-3", type: .cloze, line: 0, endLine: 2, front: "理論\n- {{信任}}", back: "補充", clozes: ["信任"]))
+        #expect(cards[0].multiline)
+        #expect(cards[0].front == [.init("理論\n- "), .init(StudyCard.clozeBlank, emphasized: true)])
+        #expect(cards[0].back == [.init("理論\n- "), .init("信任", emphasized: true), .init("\n\n補充")])
     }
 
     /// 母牌組上限涵蓋子牌組：日文 new 30，兩個子牌組各 20 → 從日文開始只有 30 張；從子牌組開始各 20 張

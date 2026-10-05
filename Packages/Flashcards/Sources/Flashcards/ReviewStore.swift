@@ -61,6 +61,8 @@ public final class ReviewStore: EditorController {
     @ObservationIgnored private var cardsTask: Task<Void, Never>?
     @ObservationIgnored private var historyTask: Task<Void, Never>?
     @ObservationIgnored private var clockTask: Task<Void, Never>?
+    /// 卡片圖片：路徑 → （修改時間, 圖片）
+    @ObservationIgnored private var images: [String: (modified: Date?, image: PlatformImage)] = [:]
 
     private init() {
         collapsed = Set(UserDefaults.standard.stringArray(forKey: "review.collapsed") ?? [])
@@ -120,6 +122,22 @@ public final class ReviewStore: EditorController {
         let moved = config.movingFolder(from: from, to: to)
         guard moved != config else { return }
         save(moved)
+    }
+
+    /// 卡片中的 `![[x.png]]`：經 `resourceReader` 在背景讀取（`Attachments/` 找不到時改找舊版的 `附件/`），
+    /// 依路徑 + 修改時間快取
+    func cardImage(_ path: String) async -> PlatformImage? {
+        guard let session = vaultSession else { return nil }
+        let legacy = Attachments.legacyPath(for: path)
+        let modified = session.modified(path) ?? legacy.flatMap { session.modified($0) }
+        if let hit = images[path], hit.modified == modified { return hit.image }
+        let reader = session.resourceReader
+        var data = await reader(path)
+        if data == nil, let legacy { data = await reader(legacy) }
+        guard let data, let image = PlatformImage(data: data) else { return nil }
+        if images.count > 100 { images.removeAll() }
+        images[path] = (modified, image)
+        return image
     }
 
     // MARK: 載入

@@ -9,7 +9,7 @@ let markdownKindID = "markdown"
 public struct CardIndexer: IndexContributor {
     public static let contributorID = "cards"
     public let id = CardIndexer.contributorID
-    public let version = 1
+    public let version = 2
 
     public init() {}
 
