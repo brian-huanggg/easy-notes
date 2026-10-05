@@ -201,6 +201,9 @@
 - [ ] iPad 觸控：格子的「⋯」選單、「+」按鈕、屬性的刪除鈕（無 hover 時常駐顯示）尚未實機驗證
 - [ ] KaTeX 在 WKWebView 從 `file://` 載入字型、深色模式顯示尚未實機驗證
 - [ ] 1,000 行、含多個表格與公式的筆記捲動與打字流暢度尚未量測
+- [x] 公式：沒有結尾 `$$` 的區塊顯示原始碼不渲染；`$$` 行尾 Enter 補上結尾；游標在行內公式裡時浮出預覽（`web/test/blocks.e2e.mjs`；WebKit 實機尚未驗證）
+- [x] 表格：拖曳把手移動列與欄、點把手開啟選單（`web/test/blocks.e2e.mjs`，Chromium 滑鼠；iPad 觸控拖曳尚未實機驗證）
+- [x] 在筆記中尋找：⌘F 搜尋列、標示所有結果、第幾個 / 共幾個、結果在表格內時顯示原始碼、搜尋框注音組字（`web/test/blocks.e2e.mjs`；Mac 選單 ⌘F 與系統「尋找」是否衝突、iPad 硬體鍵盤尚未實機驗證）
 
 ## Phase 3 — Flashcards
 
@@ -750,6 +753,8 @@
 - [ ] 注音組字中收到同步或外部修改：變更範圍涵蓋游標時，注音符號（如「ㄓㄨㄥ」）被存進檔案（`applyRemote` 改為組字結束後才套用；Chromium 模擬輸入法的 `web/test/ime.e2e.mjs` 通過，修改前可重現；iPad / Mac 的 WebKit 實機尚未驗證）
 - [ ] 開著筆記時 Claude Code 修改同一篇：停止輸入 300ms 內打的字被外部內容覆蓋；檔案監看通知前存檔會蓋掉外部修改（`applyRemote` 改為 rebase，`web/test/rebase.test.ts` 通過；存檔先比對磁碟，`VaultWriteTests` 尚未在 Mac 執行；實機尚未驗證）
 - [x] CRLF 換行的筆記在 App 內編輯後，整份檔案的換行被改成 LF（CM6 預設統一成 `\n`；改為全部是 CRLF 時保留，`web/test/lineBreak.test.ts`。實機尚未驗證）
+- [x] 打 `$$` 換行後，`$$` 那一行馬上被換成空白的公式區塊，看不到原始碼（沒有結尾的區塊不再渲染，並自動補上結尾；Chromium e2e 通過，實機尚未驗證）
+- [x] 切換筆記時編輯器已有焦點：新筆記的表格、公式不知道有焦點，游標移進去也不顯示原始碼（`setState` 後重設焦點狀態；Chromium e2e 通過）
 - [x] Checklist 的 '[]' 勾選框太小，改成類似 Apple 備忘錄的圓形（自繪圓形 checkbox：1.2em、勾選填滿強調色、加大觸控熱區，待實機確認）
 
 ### Desktop
