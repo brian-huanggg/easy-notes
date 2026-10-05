@@ -725,6 +725,7 @@ final class VaultStore: DocumentSession {
         derivedTask = Task { [index] in
             try? await Task.sleep(for: .milliseconds(200))
             guard !Task.isCancelled, let index else { return }
+            refresh() // `write` 寫入新檔（Anki 匯入、同步）後 FSEvents 不再報變動，檔案樹要在這裡更新
             tags = (try? await index.tags()) ?? []
             files = (try? await index.files()) ?? []
             let targets = linkTargets()
