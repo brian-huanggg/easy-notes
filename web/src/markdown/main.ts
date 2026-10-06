@@ -21,6 +21,7 @@ import { lineBreakExtension, lineBreakOf, lines, normalized } from "./lineBreak"
 import { livePreview } from "./livePreview";
 import { blockMath, inlineMathPreview, mathKeymap, mathLoaded, mathSyntax, onMathReady } from "./math";
 import { rebase } from "./rebase";
+import { pastedImage, toBase64 } from "./pasteImage";
 import { findInNote, openFind } from "./search";
 import { StateCache } from "./stateCache";
 import { focusCell, tableWidgets } from "./tableWidget";
@@ -117,6 +118,14 @@ const extensions = [
       // 等 CodeMirror 從 DOM 讀進選好的字再套用，否則重繪會蓋掉它
       if (pendingRemote) setTimeout(applyPendingRemote, 50);
       return false;
+    },
+    paste(e) {
+      const image = pastedImage(e.clipboardData);
+      if (!image) return false;
+      e.preventDefault();
+      // A one-off user action, not the typing path: the native side saves it to Attachments and inserts `![[…]]`
+      void toBase64(image).then((data) => post({ type: "pasteImage", data }));
+      return true;
     },
     click(e) {
       const tag = (e.target as HTMLElement).closest(".cm-lp-tag") as HTMLElement | null;

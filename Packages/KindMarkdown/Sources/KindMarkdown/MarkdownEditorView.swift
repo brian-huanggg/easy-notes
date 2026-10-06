@@ -1,4 +1,7 @@
 import EasyNotesUI
+#if os(iOS)
+import PhotosUI
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -11,6 +14,9 @@ struct MarkdownEditorView: View {
     @Bindable private var editor = MarkdownEditor.shared
     /// 檔案面板的用途；關閉面板時 picker 可能已先被清掉，所以另外記住
     @State private var importPurpose: MarkdownEditor.Picker?
+    #if os(iOS)
+    @State private var photo: PhotosPickerItem?
+    #endif
 
     var body: some View {
         WebEditorContainer(host: editor.host)
@@ -25,6 +31,9 @@ struct MarkdownEditorView: View {
             }
             .confirmationDialog(L("封面"), isPresented: isPicking { if case .cover = $0 { true } else { false } }) {
                 Button(L("選擇圖片…")) { editor.picker = .coverFile }
+                #if os(iOS)
+                Button(L("照片圖庫")) { editor.picker = .photoLibrary(cover: true) }
+                #endif
                 if MarkdownEditor.clipboardHasImage {
                     Button(L("貼上剪貼簿的圖片")) { Task { await editor.pasteCover() } }
                         .keyboardShortcut("v", modifiers: .command)
@@ -40,8 +49,23 @@ struct MarkdownEditorView: View {
                     if purpose == .image { await editor.insertImage(url) } else { await editor.chooseCover(url) }
                 }
             }
+            #if os(iOS)
+            // The system picker runs out of process: no photo-library permission is requested
+            .photosPicker(isPresented: isPicking { if case .photoLibrary = $0 { true } else { false } },
+                          selection: $photo, matching: .images)
+            .onChange(of: photo) { _, item in
+                guard let item else { return }
+                photo = nil
+                let cover: Bool = { if case .photoLibrary(let cover) = importPurpose { cover } else { false } }()
+                Task {
+                    guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+                    await editor.importImage(data, asCover: cover)
+                }
+            }
+            #endif
             .onChange(of: editor.picker) { _, picker in
                 if picker == .coverFile || picker == .image { importPurpose = picker }
+                if case .photoLibrary = picker { importPurpose = picker }
             }
             .sheet(isPresented: isPicking { if case .icon = $0 { true } else { false } }) {
                 DocIconPicker(current: DocIcon(currentIcon)) { icon in
