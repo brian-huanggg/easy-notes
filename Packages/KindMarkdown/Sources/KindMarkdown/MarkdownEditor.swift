@@ -55,9 +55,12 @@ public final class MarkdownEditor: EditorController {
         host.onReady = { [weak self] in self?.ready() }
         host.onMessage = { [weak self] type, msg in self?.receive(type, msg) }
         #if os(iOS)
-        let bar = Self.makeKeyboardBar(self)
-        keyboardBar = bar
-        host.inputAccessoryView = bar.view
+        host.makeInputAccessory = { [weak self] in
+            guard let self else { return nil }
+            let bar = Self.makeKeyboardBar(self)
+            keyboardBar = bar
+            return bar.view
+        }
         NotificationCenter.default.addObserver(forName: UIApplication.didReceiveMemoryWarningNotification,
                                                object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.trimStates() }
@@ -189,6 +192,11 @@ public final class MarkdownEditor: EditorController {
         self.session = session
         host.readResource = session.resourceReader
         host.readEmbed = session.embedImageReader
+    }
+
+    /// Pre-warms the WebView once the window is up, so opening the first note does not stall
+    public func launched() {
+        host.prewarm()
     }
 
     public func flush() async {

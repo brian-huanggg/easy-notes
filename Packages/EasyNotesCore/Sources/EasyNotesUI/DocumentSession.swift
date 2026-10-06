@@ -56,6 +56,10 @@ extension DocumentSession {
 public protocol EditorController: AnyObject {
     /// Called once after the app creates the DocumentSession
     func attach(_ session: any DocumentSession)
+    /// Called once when the first window appears. Platform views (for example a pre-warmed WebView) must not be created
+    /// before this: `register` and `attach` run inside `App.init`, before UIKit has set up event handling, and a WKWebView
+    /// made there crashes on its first touch on iPadOS 18 (`UIGestureGraphEdge`: "Invalid parameter not satisfying: targetNode")
+    func launched()
     /// Sends changes not yet written back; called before rename, delete and going to the background
     func flush() async
     /// A file was changed by an external tool or sync
@@ -74,6 +78,7 @@ public protocol EditorController: AnyObject {
 
 extension EditorController {
     public func attach(_ session: any DocumentSession) {}
+    public func launched() {}
     public func flush() async {}
     public func externalChange(path: String, data: Data) {}
     public func close(path: String) {}
