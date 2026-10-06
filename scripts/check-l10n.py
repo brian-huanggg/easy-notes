@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""找出沒有經過 L("…") / t("…") 的中文字面值（規則見 docs/architecture/translation.md）。
+"""Finds Chinese literals that do not go through L("…") / t("…") (rules in docs/architecture/translation.md).
 
-  ./scripts/check-l10n.py            列出違規，有違規時結束碼為 1
-  ./scripts/check-l10n.py --summary  依檔案與外層呼叫統計（遷移時用）
-  ./scripts/check-l10n.py --stale    另外列出 catalog / 字典裡程式已經沒用到的 key（不影響結束碼）
+  ./scripts/check-l10n.py            list violations; exit code 1 if there are any
+  ./scripts/check-l10n.py --summary  counts per file and per enclosing call (for migrations)
+  ./scripts/check-l10n.py --stale    also list catalog / dictionary keys the code no longer uses (exit code unaffected)
 
-另外比對翻譯是否齊全：每個 `L("…")` 的 key 要在該模組的 `Localizable.xcstrings` 有英文（state 為 translated），
-web 的 `t("…")` 要在 `web/src/shared/i18n.ts` 的 `en` 字典有對應。
+It also checks that translations are complete: every `L("…")` key needs English in its module's
+`Localizable.xcstrings` (state translated), and every web `t("…")` needs an entry in the `en` dictionary of
+`web/src/shared/i18n.ts`.
 
-刻意不翻譯的字串（路徑、同步協定、檔案內容）在該行行尾或上一行加 `// l10n:fixed`；
-整個檔案都是這類資料時，在檔案前 5 行加 `// l10n:fixed-file`。
-日誌與 `precondition` / `fatalError` 的訊息是給開發者看的，不檢查。
+Strings deliberately left untranslated (paths, sync protocol, file content) get `// l10n:fixed` at the end of the line
+or on the line above; when a whole file is such data, put `// l10n:fixed-file` in its first 5 lines.
+Log messages and `precondition` / `fatalError` messages are for developers and are not checked.
 """
 import collections
 import pathlib
@@ -20,9 +21,9 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CJK = re.compile(r"[㐀-䶿一-鿿　-〿＀-￯]")
 FIXED = "l10n:fixed"
-# 開發者看的訊息，不翻
+# Messages for developers, not translated
 DEV_CALLS = {"print", "debugPrint", "fatalError", "precondition", "preconditionFailure", "assert", "assertionFailure", "NSLog"}
-# Spike 是驗證用的暫時程式（只在 DEBUG 或啟動參數出現），使用者看不到，不翻
+# Spike is temporary validation code (DEBUG or launch arguments only); users never see it, so it is not translated
 DEV_LINE = re.compile(r"\b(" + "|".join(sorted(DEV_CALLS)) + r")\(")
 SKIP_DIRS = {".build", "build", "node_modules", "Tests", "Fixtures", "DerivedData", "dist", "Spike"}
 
@@ -36,7 +37,8 @@ class Literal:
 
 
 def swift_literals(src):
-    """掃出所有字串字面值（含插值裡面巢狀的），略過註解。回傳 (Literal 清單, 行首位移表)。"""
+    """Scan all string literals (including ones nested in interpolations), skipping comments.
+    Returns (list of Literal, line start offsets)."""
     out = []
     n = len(src)
     line_starts = [0] + [m.end() for m in re.finditer(r"\n", src)]
@@ -52,17 +54,17 @@ def swift_literals(src):
         return lo + 1
 
     def caller_before(pos):
-        """字面值之前最近的 `name(`（含 `label:`）：回傳 (呼叫名, 前面的文字)"""
+        """The nearest `name(` (with an optional `label:`) before the literal: returns (call name, preceding text)"""
         head = src[max(0, pos - 80):pos]
         m = re.search(r"([A-Za-z_][A-Za-z0-9_.]*)\s*\(\s*(?:[A-Za-z_]+:\s*)?$", head)
         return (m.group(1) if m else ""), head
 
     def scan_string(i, depth_guard=0):
-        """i 指向開頭的 `"`；回傳結束位置（結尾 `"` 之後），並登記字面值"""
+        """i points at the opening `"`; returns the end position (after the closing `"`) and records the literal"""
         multiline = src.startswith('"""', i)
         hashes = 0
         j = i
-        while j > 0 and src[j - 1] == "#":  # raw string 前綴
+        while j > 0 and src[j - 1] == "#":  # raw string prefix
             hashes += 1
             j -= 1
         quote = '"""' if multiline else '"'
@@ -159,12 +161,12 @@ def check_swift():
                 continue
             if is_fixed(lines, lit.line):
                 continue
-            bad.append((p.relative_to(ROOT), lit.line, lit.caller or "(無)", lit.text))
+            bad.append((p.relative_to(ROOT), lit.line, lit.caller or "(none)", lit.text))
     return bad
 
 
 def strip_ts_comment(line):
-    """去掉行尾的 `//` 註解（字串裡的 `//` 不算）；整行是區塊註解的內容時回傳空字串"""
+    """Strip a trailing `//` comment (`//` inside strings does not count); returns "" for a block-comment line"""
     if line.lstrip().startswith(("*", "/*")):
         return ""
     quote = None
@@ -204,7 +206,7 @@ def check_web():
                     continue
                 if FIXED in line or (no > 1 and FIXED in lines[no - 2]):
                     continue
-                bad.append((p.relative_to(ROOT), no, "(無)", m.group(2)))
+                bad.append((p.relative_to(ROOT), no, "(none)", m.group(2)))
     return bad
 
 
@@ -213,7 +215,7 @@ ESCAPES = {"n": "\n", "t": "\t", '"': '"', "\\": "\\", "'": "'"}
 
 
 def swift_key(text):
-    """程式裡的字面值 → catalog 的比對形式：插值與格式符號都換成 \0"""
+    """A literal in code → the catalog lookup form: interpolations and format specifiers become \0"""
     text = text.replace("\\(…)", "\0")
     return re.sub(r"\\(.)", lambda m: ESCAPES.get(m.group(1), m.group(0)), text)
 
@@ -223,7 +225,7 @@ def catalog_key(key):
 
 
 def english_of(entry):
-    """catalog 條目的英文；有 variations（複數等）時只要每個變體都有值就算有"""
+    """English for a catalog entry; with variations (plurals etc.) it counts when every variant has a value"""
     en = entry.get("localizations", {}).get("en")
     if not en:
         return None
@@ -246,7 +248,7 @@ def english_of(entry):
 
 
 def catalog_root(path):
-    """該 Swift 檔所屬 target 的根目錄（往上找到 Localization.swift 的資料夾）"""
+    """Root of the target the Swift file belongs to (the nearest ancestor folder containing Localization.swift)"""
     for parent in path.parents:
         if (parent / "Localization.swift").exists():
             return parent
@@ -256,7 +258,7 @@ def catalog_root(path):
 
 
 def check_catalogs(stale):
-    """回傳 (缺的清單, 沒用到的清單)"""
+    """Returns (missing list, unused list)"""
     import json
 
     catalogs = {}   # root -> {normalized key: (raw key, entry)}
@@ -284,20 +286,20 @@ def check_catalogs(stale):
             hit = catalogs[root].get(key)
             where = (p.relative_to(ROOT), lit.line)
             if hit is None:
-                missing.append((*where, "catalog 沒有這個 key", lit.text))
+                missing.append((*where, "key missing from catalog", lit.text))
             elif english_of(hit[1]) is None:
-                missing.append((*where, "沒有英文翻譯（或 state 不是 translated）", lit.text))
+                missing.append((*where, "no English translation (or state is not translated)", lit.text))
     unused = []
     if stale:
         for root, entries in catalogs.items():
             for key, (raw, _) in entries.items():
                 if key not in used[root] and CJK.search(key):
-                    unused.append(((root / "Localizable.xcstrings").relative_to(ROOT), 0, "程式沒用到", raw))
+                    unused.append(((root / "Localizable.xcstrings").relative_to(ROOT), 0, "unused in code", raw))
     return missing, unused
 
 
 def web_dictionary():
-    """i18n.ts 的 en 字典：回傳 {key: 英文}"""
+    """The en dictionary in i18n.ts: returns {key: English}"""
     f = ROOT / "web" / "src" / "shared" / "i18n.ts"
     if not f.exists():
         return {}
@@ -327,10 +329,10 @@ def check_web_dictionary(stale):
             for m in call.finditer(strip_ts_comment(line)):
                 used.add(m.group(2))
                 if not dictionary.get(m.group(2)):
-                    missing.append((p.relative_to(ROOT), no, "en 字典沒有這個 key", m.group(2)))
+                    missing.append((p.relative_to(ROOT), no, "key missing from en dictionary", m.group(2)))
     unused = []
     if stale:
-        unused = [(pathlib.Path("web/src/shared/i18n.ts"), 0, "程式沒用到", k) for k in dictionary if k not in used]
+        unused = [(pathlib.Path("web/src/shared/i18n.ts"), 0, "unused in code", k) for k in dictionary if k not in used]
     return missing, unused
 
 
@@ -344,13 +346,13 @@ def main():
     if summary:
         per_file = collections.Counter(str(b[0]) for b in bad)
         per_caller = collections.Counter(b[2] for b in bad)
-        print("== 依檔案 ==")
+        print("== By file ==")
         for k, v in per_file.most_common():
             print(f"{v:4d}  {k}")
-        print("\n== 依外層呼叫 ==")
+        print("\n== By enclosing call ==")
         for k, v in per_caller.most_common():
             print(f"{v:4d}  {k}")
-        print(f"\n合計 {len(bad)}")
+        print(f"\nTotal {len(bad)}")
         return 0
     for path, line, caller, text in bad:
         print(f"{path}:{line}: [{caller}] {text[:70]}")
@@ -359,9 +361,9 @@ def main():
     for path, _, why, text in unused_cat + unused_web:
         print(f"{path}: [{why}] {text[:70]}")
     if bad:
-        print(f"\n{len(bad)} 個中文字面值沒有經過 L(…) / t(…)；刻意不翻譯的加 `// {FIXED}`。", file=sys.stderr)
+        print(f"\n{len(bad)} Chinese literals do not go through L(…) / t(…); mark deliberate ones with `// {FIXED}`.", file=sys.stderr)
     if bad_translation:
-        print(f"\n{len(bad_translation)} 個字串缺英文翻譯；補進對應的 Localizable.xcstrings / i18n.ts。", file=sys.stderr)
+        print(f"\n{len(bad_translation)} strings lack an English translation; add them to Localizable.xcstrings / i18n.ts.", file=sys.stderr)
     return 1 if bad or bad_translation else 0
 
 

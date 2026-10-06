@@ -1,11 +1,11 @@
 #!/bin/bash
-# 建置 iOS / iPadOS Release，上傳到 App Store Connect（TestFlight）。
-# 帳號用 Xcode 已登入的 Apple ID（Xcode → Settings → Accounts）；簽章自動管理。
-# Build 號碼每次自動遞增（時間戳），不需要改 project.yml。
-# web/src 有改動時，先跑 (cd web && pnpm build)。
+# Builds the iOS / iPadOS Release and uploads it to App Store Connect (TestFlight).
+# Uses the Apple ID signed in to Xcode (Xcode → Settings → Accounts); signing is automatic.
+# The build number is a timestamp, so it increases every time without editing project.yml.
+# After changing web/src, run (cd web && pnpm build) first.
 #
-#   ./scripts/upload-testflight.sh            # Archive + 上傳
-#   ./scripts/upload-testflight.sh --export   # 只匯出 build/TestFlight/EasyNotes.ipa，不上傳
+#   ./scripts/upload-testflight.sh            # archive + upload
+#   ./scripts/upload-testflight.sh --export   # only export build/TestFlight/EasyNotes.ipa, no upload
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -63,7 +63,7 @@ xcodebuild -exportArchive \
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print ApplicationProperties:CFBundleShortVersionString" "$ARCHIVE/Info.plist")
 if [[ "$DESTINATION" == upload ]]; then
-  echo "已上傳 $VERSION ($BUILD_NUMBER)；App Store Connect 處理完（約 5–15 分鐘）後 TestFlight 會通知。"
+  echo "Uploaded $VERSION ($BUILD_NUMBER); TestFlight notifies you once App Store Connect finishes processing (about 5–15 minutes)."
 else
   echo "$OUT/EasyNotes.ipa — $VERSION ($BUILD_NUMBER)"
 fi

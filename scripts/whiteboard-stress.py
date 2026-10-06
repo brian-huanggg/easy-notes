@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""產生白板壓力測試檔（Phase 4c 驗收：1,000 個元素的縮放與平移）。
+"""Generates a whiteboard stress-test file (zooming and panning with 1,000 elements).
 
-用法：./scripts/whiteboard-stress.py <元素數> <輸出.excalidraw>
-例如：./scripts/whiteboard-stress.py 1000 ~/Vault/stress-1000.excalidraw
+Usage:   ./scripts/whiteboard-stress.py <element count> <output.excalidraw>
+Example: ./scripts/whiteboard-stress.py 1000 ~/Vault/stress-1000.excalidraw
 
-矩形、橢圓、箭頭、文字隨機分布在 8,000 × 8,000 的範圍；固定種子，每次產生的檔案相同。
+Rectangles, ellipses, arrows and text are scattered over 8,000 × 8,000; the seed is fixed, so the output is identical
+every time.
 """
 import json
 import random
@@ -58,7 +59,7 @@ def main():
     }
     with open(out, "w") as f:
         json.dump(scene, f, ensure_ascii=False)
-    print(f"{out}：{count} 個元素")
+    print(f"{out}: {count} elements")
 
 
 if __name__ == "__main__":

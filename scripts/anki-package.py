@@ -3,13 +3,13 @@
 # requires-python = ">=3.10"
 # dependencies = ["zstandard"]
 # ///
-"""產生 Anki 的 .apkg（從 Anki 匯入的測試用）。
+"""Generates Anki .apkg files (for testing the Anki import).
 
   ./scripts/anki-package.py fixtures
-      → Packages/Flashcards/Tests/FlashcardsTests/Fixtures/anki-modern.apkg（schema 18、zstd、protobuf 媒體清單）
-      → Packages/Flashcards/Tests/FlashcardsTests/Fixtures/anki-legacy.apkg（schema 11、deflate、JSON 媒體清單）
-  ./scripts/anki-package.py pack <collection.anki2> <collection.media 資料夾> <輸出.apkg> [--legacy]
-      → 把現有的 collection（的副本）打包成 .apkg（真實資料的驗證；不修改來源）
+      → Packages/Flashcards/Tests/FlashcardsTests/Fixtures/anki-modern.apkg (schema 18, zstd, protobuf media list)
+      → Packages/Flashcards/Tests/FlashcardsTests/Fixtures/anki-legacy.apkg (schema 11, deflate, JSON media list)
+  ./scripts/anki-package.py pack <collection.anki2> <collection.media folder> <output.apkg> [--legacy]
+      → packs (a copy of) an existing collection into an .apkg (verification with real data; the source is untouched)
 """
 import hashlib, io, json, os, shutil, sqlite3, sys, tempfile, zipfile
 
@@ -61,10 +61,10 @@ CREATE TABLE revlog (id integer PRIMARY KEY, cid integer NOT NULL, usn integer N
   ivl integer NOT NULL, lastIvl integer NOT NULL, factor integer NOT NULL, time integer NOT NULL, type integer NOT NULL);
 """
 
-# ---------- 虛構的測試資料 ----------
-# 牌組 id → 名稱的各層
+# ---------- Fictional test data ----------
+# deck id → name components
 DECKS = {10: ["Lang"], 11: ["Lang", "English"], 12: ["Math"]}
-# 筆記類型 id → (名稱, 克漏字, 欄位, template 數)
+# note type id → (name, is cloze, fields, template count)
 TYPES = {
     1: ("Basic", False, ["Front", "Back"], 1),
     2: ("Basic (and reversed card)", False, ["Front", "Back"], 2),
@@ -72,7 +72,7 @@ TYPES = {
     4: ("Option", False, ["Question", "A", "Answer"], 1),
     5: ("Image Occlusion", True, ["Occlusion", "Image"], 1),
 }
-# note id → (類型, 牌組, 欄位, 標籤)
+# note id → (type, deck, fields, tags)
 NOTES = {
     1001: (1, 11, ["English &gt; Vocab<br><br>apple", "蘋果"], ["vocab"]),
     1002: (2, 10, ["中文", "Chinese"], ["lang::zh"]),
@@ -89,9 +89,9 @@ NOTES = {
 }
 # card id → (note, ord, type, queue)
 CARDS = {
-    2001: (1001, 0, 2, -1),  # 暫停
+    2001: (1001, 0, 2, -1),  # suspended
     2002: (1002, 0, 2, 2),
-    2003: (1002, 1, 0, 0),  # Forget 過：新卡但有紀錄
+    2003: (1002, 1, 0, 0),  # forgotten: a new card with review history
     2004: (1003, 0, 2, 2),
     2005: (1003, 1, 2, 2),
     2006: (1004, 0, 2, 2),
@@ -110,15 +110,15 @@ REVLOG = [
     (T0 + 3 * DAY, 2001, 3, 8, 3, 4000, 1),
     (T0 + 1, 2002, 4, 4, 0, 3000, 0),
     (T0 + 2, 2003, 3, 2, 0, 3000, 0),
-    (T0 + 5 * DAY, 2003, 0, 0, 2, 0, 4),  # Forget（手動，略過；改由 reset 表示）
+    (T0 + 5 * DAY, 2003, 0, 0, 2, 0, 4),  # Forget (manual, skipped; represented as a reset instead)
     (T0 + 3, 2004, 3, 5, 0, 6000, 0),
     (T0 + 4, 2005, 1, -600, 0, 6000, 0),
     (T0 + 5, 2005, 3, 1, -600, 6000, 0),
     (T0 + 6, 2006, 3, 2, 0, 9000, 0),
-    (T0 + 2 * DAY, 2006, 0, 9, 2, 0, 4),  # 設定到期日（手動，略過）
+    (T0 + 2 * DAY, 2006, 0, 9, 2, 0, 4),  # set due date (manual, skipped)
     (T0 + 7, 2012, 3, 3, 0, 2000, 0),
 ]
-MOD = 1_788_900_000  # 卡片修改時間（秒）
+MOD = 1_788_900_000  # card modification time (seconds)
 PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
                     "1f15c4890000000d49444154789c6360000002000100e221bc330000000049454e44ae426082")
 MEDIA = {"rule.png": PNG, "a.mp3": b"ID3fake-audio"}
@@ -131,7 +131,7 @@ def build_18(path):
     db.execute("INSERT INTO col VALUES (1, 1788292800, 0, 0, 18, 0, 0, 0, '', '', '', '', '')")
     db.execute("INSERT INTO config VALUES ('rollover', 0, 0, ?)", (b"6",))
     for tid, (name, cloze, fields, templates) in TYPES.items():
-        # NotetypeConfig：kind（欄位 1）= 1 是克漏字；一般類型不寫這個欄位
+        # NotetypeConfig: kind (field 1) = 1 means cloze; regular types omit the field
         config = b"\x08\x01\x1a\x00" if cloze else b"\x1a\x00"
         db.execute("INSERT INTO notetypes VALUES (?, ?, 0, 0, ?)", (tid, name, config))
         for i, f in enumerate(fields):
@@ -173,7 +173,7 @@ def fill_common(db):
         db.execute("INSERT INTO revlog VALUES (?, ?, 0, ?, ?, ?, 0, ?, ?)", (rid, cid, ease, ivl, last, time, typ))
 
 
-# ---------- 打包 ----------
+# ---------- Packaging ----------
 def varint(n):
     out = bytearray()
     while True:
@@ -190,7 +190,7 @@ def field(number, wire, payload):
 
 
 def pack(collection_path, media, out, legacy):
-    """media：檔名 → bytes"""
+    """media: file name → bytes"""
     z = zstandard.ZstdCompressor()
     names = sorted(media)
     with zipfile.ZipFile(out, "w") as zf:
