@@ -126,4 +126,46 @@ struct CompanionTests {
         #expect(await backend.rows.values.allSatisfy { !$0.deleted })
         #expect(await mac.engine.currentStatus.pending == 0)
     }
+
+    @Test func hardDeleteTakesCompanionAlong() async throws {
+        let backend = FakeBackend()
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("PDF\n", "講義.note")
+        try mac.write("標註\n", "講義.note.ann")
+        try mac.write("別人\n", "其他.note")
+        await mac.sync()
+        await ipad.sync()
+
+        #expect(try await mac.engine.requestPurge("講義.note") == ["講義.note", "講義.note.ann"])
+        try mac.fs.deleteImmediately("講義.note") // Removes the companion too
+        #expect(!mac.exists("講義.note.ann"))
+        await mac.sync()
+        await ipad.sync()
+
+        #expect(try ipad.snapshot() == ["其他.note": "別人\n"])
+        let rows = await backend.rows.values
+        #expect(rows.filter(\.purged).count == 2)
+        #expect(rows.filter { !$0.deleted }.map(\.path) == ["其他.note"])
+        #expect(await backend.blobs.count == 1)
+    }
+
+    @Test func purgingFromRecentlyDeletedTakesCompanionAndNothingElse() async throws {
+        let backend = FakeBackend()
+        let mac = try Device("Mac", backend: backend)
+        try mac.write("PDF\n", "講義.note")
+        try mac.write("標註\n", "講義.note.ann")
+        try mac.write("別人\n", "其他.note")
+        await mac.sync()
+        for path in ["講義.note", "講義.note.ann", "其他.note"] { try mac.delete(path) }
+        await mac.sync()
+
+        let deleted = try await mac.engine.recentlyDeleted()
+        #expect(deleted.map(\.path).sorted() == ["其他.note", "講義.note"])
+        try await mac.engine.purge(try #require(deleted.first { $0.path == "講義.note" }))
+
+        let rows = await backend.rows.values
+        #expect(rows.filter(\.purged).count == 2) // Main file and sidecar
+        #expect(try await mac.engine.recentlyDeleted().map(\.path) == ["其他.note"])
+        #expect(await backend.blobs.count == 1)
+    }
 }

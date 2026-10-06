@@ -60,6 +60,8 @@ enum A11yID {
         static let pin = "menu.pin"
         static let reveal = "menu.reveal"
         static let trash = "menu.trash"
+        static let deleteImmediately = "menu.deleteImmediately"
+        static let confirmDeleteImmediately = "menu.deleteImmediately.confirm"
         static let copyPath = "menu.copyPath"
     }
 

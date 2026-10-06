@@ -97,7 +97,7 @@ vaultFS.deviceID() -> String
 - `ContentFixer` (Core, no UI): a plugin rewrites file content in the background, and the App indexes and syncs the write-back as usual. The App calls it only for **locally produced** changes (in-app edits, external tools), never for content pulled by sync; **open files are not rewritten** until the user leaves them, so text is never inserted during typing or Zhuyin composition and nothing crosses the Bridge. Consecutive changes are coalesced (about 1.5 s) so that when Claude Code moves content both files are written before the decision.
 - `addVaultGuide`: when the vault root has no `CLAUDE.md`, the App creates it from the sections each plugin provides; an existing one is never rewritten (the user may edit it).
 
-**Companion files**: a companion is a file whose `companionOf` returns a main-file path (for example `x.pdf.ink`). `KindRegistry.mainFile(ofCompanion:)` / `companionPath(_:from:to:)`, `VaultFS.companions(of:)` / `companionMoves(from:to:)` are the shared queries. The file tree (`VaultFS.scan`), `allFiles`, `VaultIndex.files` / `search` and `SyncEngine.recentlyDeleted` exclude companions by default; `VaultFS.fileStats` includes them (indexed and synced as usual). `VaultFS.rename` / `trash` handle companions together; when `SyncEngine` infers an external rename it moves the companion, and restoring a main file restores its companion.
+**Companion files**: a companion is a file whose `companionOf` returns a main-file path (for example `x.pdf.ink`). `KindRegistry.mainFile(ofCompanion:)` / `companionPath(_:from:to:)`, `VaultFS.companions(of:)` / `companionMoves(from:to:)` are the shared queries. The file tree (`VaultFS.scan`), `allFiles`, `VaultIndex.files` / `search` and `SyncEngine.recentlyDeleted` exclude companions by default; `VaultFS.fileStats` includes them (indexed and synced as usual). `VaultFS.rename` / `trash` / `deleteImmediately` handle companions together; when `SyncEngine` infers an external rename it moves the companion, restoring a main file restores its companion, and a permanent delete purges the companion with its main file (see "Permanent delete" below).
 
 **Two-layer registry**: Core has only the UI-free KindRegistry, used by Vault, Index and Sync; PluginRegistry needs SwiftUI (`addEditor` returns a View) and therefore lives in EasyNotesUI. Plugins cannot import the App, so Markdown-specific logic in VaultStore (updating links on rename, pushing external edits to the editor, the autocomplete list) goes through `DocumentKind.renameLinks` and `EditorController`.
 
@@ -139,23 +139,32 @@ create table files (
   size        bigint not null,
   version     bigint not null,           -- incremented only by commit_file
   deleted     boolean not null default false,
+  purged      boolean not null default false,  -- permanently deleted: a tombstone, always also `deleted`
   device_id   text not null,
   updated_at  timestamptz not null default now()
 );
 create unique index files_live_path on files (user_id, path) where not deleted;
+
+-- Every hash a file was ever committed with; lets a permanent delete remove the content only this file used
+create table file_blobs (file_id uuid references files on delete cascade, user_id uuid not null, hash text not null, primary key (file_id, hash));
 -- RLS: user_id = auth.uid(); the Storage bucket is restricted by user_id the same way
 
 -- In one transaction: compare base_version, write, increment version
 -- Returns the new version; null = the remote changed, merge needed
 create function commit_file(p_id uuid, p_base_version bigint, p_path text,
   p_hash text, p_size bigint, p_deleted boolean, p_device text) returns bigint;
+-- A purged row can never be committed over (returns null)
+
+-- Permanent delete, one transaction for all ids: rows become tombstones (path = id, hash = '', size = 0), versions are ignored,
+-- and the hashes no remaining file references are returned so the client can delete those Storage objects
+create function purge_files(p_ids uuid[], p_device text) returns text[];
 ```
 
-File content is stored in Storage keyed by hash (`vault/<user_id>/<hash>`): append-only, deduplicated automatically, old versions double as history, and an interrupted upload can be retried without corrupting data. The publishable key may live in the repo as long as every table and bucket has RLS enabled.
+File content is stored in Storage keyed by hash (`vault/<user_id>/<hash>`): deduplicated automatically, old versions double as history, and an interrupted upload can be retried without corrupting data. Content is never overwritten, and is deleted only by a permanent delete and only when nothing references it any more (a Storage policy enforces that, see [security.md](./security.md)). The publishable key may live in the repo as long as every table and bucket has RLS enabled.
 
 ### Local sync state
 
-- `.easynotes/sync.sqlite` (not synced): one row per file with `file_id`, `path`, `base_version`, `base_hash` and upload-queue state.
+- `.easynotes/sync.sqlite` (not synced): one row per file with `file_id`, `path`, `base_version`, `base_hash` and upload-queue state (including `purge_requested`, which survives restarts so a hard delete made offline is never downgraded to a soft one). Schema changes migrate in place; dropping the tables would lose queued uploads.
 - `.easynotes/device-id` (not synced): this device's id (`VaultFS.deviceID()`), used by `commit_file`'s `device_id` and by review-log file names.
 - Only subfolders that plugins register with `addSyncedMetaFolder` take part in sync (currently Flashcards' `srs/`); everything else (`cache/`, `sync.sqlite`, `device-id`) is local.
 - `.easynotes/cache/base/<hash>`: the content at the last sync, used as the three-way merge base.
@@ -167,9 +176,22 @@ File content is stored in Storage keyed by hash (`vault/<user_id>/<hash>`): appe
 2. **Upload**: content goes to Storage first, then `commit_file(id, base_version, …)` is called. Null means the remote changed and a merge starts.
 3. **Pull**: Realtime subscribes to `files` changes; on returning to the foreground it pulls rows with `updated_at` after the last cursor. Only the path changing = rename, so the local file is moved directly. When the target path of a remote new file or rename already has a local file (including one created after the scan and without a sync record), the local file is never overwritten: identical content adopts the remote id, otherwise it yields to a conflict copy.
 4. **Merge**: remote content and base are downloaded first (network), then the editor is asked to write back (`Hooks.willChange`), local content is read, and `DocumentKind.merge` runs. There is no `await` between reading local and writing back, so edits saved during the download are included in the merge instead of being overwritten. Success → write back locally and upload the merged result; nil → create `Note (conflict iPad 2026-10-01).md`. An open document gets the remote change through its editor (Markdown uses `applyRemote`).
-5. **Delete**: soft delete (`deleted = true`), kept for 30 days. Content stays in Storage (append-only), so restoring works for 30 days.
+5. **Delete**: soft delete (`deleted = true`), kept for 30 days. Content stays in Storage, so restoring works for 30 days. The merge base cached on each device is dropped as soon as the file is gone (a restore downloads the content again).
 6. **Restore**: the sync panel's "Recently Deleted" lists files deleted within 30 days that also do not exist locally (`SyncBackend.deletedFiles`). Restore = download that hash's content to the original path (using conflict-copy naming if occupied), then commit `deleted = false` with the same file id, preserving history and merge base.
-7. **Purge**: pg_cron deletes rows that have been `deleted` for over 30 days every day. Storage content is kept (content-addressed, possibly shared by other versions); garbage collection can be added later if needed.
+7. **Purge**: pg_cron deletes rows that have been soft-deleted for over 30 days every day. Their Storage content is kept (content-addressed, possibly shared). Tombstones of permanent deletes are kept for 365 days (below).
+
+### Permanent delete
+
+"Delete Immediately" (file or folder) and "Delete Permanently" / "Empty Recently Deleted" (in Recently Deleted) skip the 30-day window. The hard parts are other devices and companions, so the design is:
+
+- **A tombstone, not a row delete.** Deleting the row would leave other devices holding a file nobody tells them to remove, because `changes(since:)` only returns rows that exist. `purge_files` instead sets `purged = true` (also `deleted`), clears path, hash and size, and bumps `version` and `updated_at`, so the purge travels through the normal pull and Realtime like any other change. A purged row is never listed in Recently Deleted and `commit_file` refuses it, so it cannot be restored or revived, and a stale device that pushes against it is rejected and then pulls the tombstone. Tombstones are removed by pg_cron after 365 days; a device offline longer keeps its stale copy of the file (accepted).
+- **Content.** `purge_files` returns the hashes that no other file references and the client deletes those objects. Storage is content-addressed, so a blob used by another file or by a soft-deleted one stays. `file_blobs` records every hash a file was committed with, so older versions of a purged file are removed too (versions committed before the table existed are not attributed and stay).
+- **One atomic request for a main file and its companions.** Sidecars (`.pdf.ink`, `.csv.meta.json`) are ordinary synced files with their own ids, so Core never needs to know a type: the same companion lookup used for rename, trash and restore picks them. Other devices then see the main file and its sidecar vanish together. This is what keeps sheets, PDFs and whiteboards consistent: a whiteboard has no sidecar and embeds its images, so it is one row.
+- **Delete Immediately flow** (`VaultStore.deleteImmediately`): the editors flush; `SyncEngine.requestPurge(path)` marks the records of the file (a folder: every record under it) and their companions `purgeRequested` **before** anything is removed from disk, because a scan that finds a vanished file without the mark records a soft delete; `VaultFS.deleteImmediately` then removes files and companions, skipping the system trash (a file in the OS trash would still hold the content). The next sync round purges all marked ids in one request first, then continues as usual. A file that was never uploaded is simply forgotten. Marked files are excluded from rename inference (identical content appearing elsewhere is a new file) and ignore remote changes while the purge is pending.
+- **Recently Deleted flow**: `purge(_:)` (one entry plus the companion deleted next to it, the same one `restore` would bring back) and `purgeAllDeleted()` (everything, including the companions the list hides) call the backend directly; they need the network because no local file is left to carry a pending mark.
+- **Other devices** (`applyPurge`): the file is removed and its record and merge base dropped. The one exception follows "modify beats delete": a file with unsynced local edits is kept and re-registered as a new, never uploaded file, because the tombstone can never be committed over; deleting somebody's unsynced work silently would be worse than a file reappearing.
+- **Local derived data**: after a permanent delete the app prunes the preview cache to the hashes of files still in the index (`PreviewCache.prune(keeping:)`), which also catches thumbnails of files that were soft-deleted earlier and whose hash nobody remembers. The index drops the file through the usual `syncIndex`.
+- **Not removed**: attachments (`Attachments/`) a deleted note referenced, review logs under `.easynotes/srs/`, and `[[links]]` or whiteboard note cards that pointed at the file (they dangle, as after a soft delete). Signed out, "Delete Immediately" only deletes locally; when the same account signs in again the file shows up in Recently Deleted and can be purged from there.
 
 ### Merge strategy per type
 

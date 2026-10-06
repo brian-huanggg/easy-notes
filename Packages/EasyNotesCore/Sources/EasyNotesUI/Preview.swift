@@ -111,6 +111,25 @@ public actor PreviewCache {
         return preview
     }
 
+    /// Deletes every cached preview whose content hash is not in `live` (memory and disk, all kinds). A thumbnail is a picture of the file,
+    /// so after a permanent delete it must not outlive it; pruning by "what is still alive" also catches thumbnails of files that were soft-deleted
+    /// earlier, whose hash nobody remembers. Anything restored or still needed simply regenerates the next time it is shown.
+    public func prune(keeping live: Set<String>) {
+        func hash(of key: String) -> String { String(key.split(separator: "/").last ?? "") }
+        for key in memory.keys where !live.contains(hash(of: key)) {
+            memory[key] = nil
+            images.removeObject(forKey: key as NSString)
+        }
+        order.removeAll { memory[$0] == nil }
+        let folders = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders {
+            for file in (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            where !live.contains(file.deletingPathExtension().lastPathComponent) {
+                try? FileManager.default.removeItem(at: file)
+            }
+        }
+    }
+
     private func readJSON(_ url: URL, key: String) -> DocumentPreview? {
         guard let data = try? Data(contentsOf: url), let cached = try? JSONDecoder().decode(DocumentPreview.self, from: data)
         else { return nil }

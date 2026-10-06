@@ -48,7 +48,7 @@ struct PinButton: View {
     }
 }
 
-/// More menu: reveal in Finder, copy path, open with another app, rename, move to trash
+/// More menu: reveal in Finder, copy path, open with another app, rename, move to trash, delete immediately
 struct DocumentMoreMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell
@@ -70,6 +70,10 @@ struct DocumentMoreMenu: View {
                 Task { await store.delete(path) }
             }
             .accessibilityIdentifier(A11yID.Menu.trash)
+            Button(L("立即刪除"), systemImage: "trash.slash", role: .destructive) {
+                shell.purging = .init(path: path, isFolder: false)
+            }
+            .accessibilityIdentifier(A11yID.Menu.deleteImmediately)
         }
         .help(L("更多"))
         .accessibilityIdentifier(A11yID.Toolbar.more)

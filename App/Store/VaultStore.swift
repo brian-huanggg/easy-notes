@@ -69,6 +69,9 @@ final class VaultStore: DocumentSession {
     @ObservationIgnored var onLocalChange: (() -> Void)?
     /// In-app rename or move: the sync layer updates the path directly and keeps the file id
     @ObservationIgnored var onMove: ((_ from: String, _ to: String) -> Void)?
+    /// "Delete Immediately": the sync layer marks the file (and companions, or everything in a folder) for a permanent remote delete.
+    /// Called before the files are removed, because a scan that sees a vanished file would otherwise record an ordinary, restorable delete
+    @ObservationIgnored var onPurge: ((_ path: String) async throws -> Void)?
 
     init(plugins: PluginRegistry, kinds: KindRegistry, root: URL = VaultStore.defaultRoot()) {
         self.plugins = plugins
@@ -569,6 +572,32 @@ final class VaultStore: DocumentSession {
             await syncIndex()
             onLocalChange?()
         } catch { report(error) }
+    }
+
+    /// Delete for good: no system trash, no "Recently Deleted"; sync purges the file on every device. Companions (PDF ink, sheet display
+    /// settings) go with their main file, and a folder takes everything inside it
+    func deleteImmediately(_ path: String) async {
+        await flushEditors()
+        do {
+            let companions = fs.companions(of: path)
+            try await onPurge?(path)
+            try fs.deleteImmediately(path)
+            for closed in [path] + companions {
+                lastWritten[closed] = nil
+                for editor in editors { editor.close(path: closed) }
+            }
+            routesDeleted(path)
+            refresh()
+            await syncIndex()
+            await prunePreviews()
+            onLocalChange?()
+        } catch { report(error) }
+    }
+
+    /// After a permanent delete (here or on another device): drops cached thumbnails of every file that is no longer in the vault
+    func prunePreviews() async {
+        guard let hashes = try? await index?.files().map(\.hash) else { return }
+        await previews.prune(keeping: Set(hashes))
     }
 
     // MARK: Sync

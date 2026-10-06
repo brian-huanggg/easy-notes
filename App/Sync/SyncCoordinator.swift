@@ -54,6 +54,9 @@ final class SyncCoordinator {
             guard let engine = self?.engine else { return }
             Task { try? await engine.moved(from: from, to: to) }
         }
+        store.onPurge = { [weak self] path in
+            _ = try await self?.engine?.requestPurge(path)
+        }
         switch mode {
         case .supabase:
             Task { await observeAuth() }
@@ -161,7 +164,8 @@ final class SyncCoordinator {
                     didChange: { [weak store] path, oldPath, data in
                         await store?.applySyncChange(path: path, oldPath: oldPath, data: data)
                     },
-                    statusChanged: { [weak self] status in await self?.update(status) }))
+                    statusChanged: { [weak self] status in await self?.update(status) },
+                    didPurge: { [weak store] in await store?.prunePreviews() }))
             self.engine = engine
             userID = id
             deviceID = await engine.deviceID
@@ -232,6 +236,18 @@ final class SyncCoordinator {
         guard let engine else { return }
         let path = try await engine.restore(file)
         store.selection = path
+    }
+
+    /// Permanently deletes one entry of "Recently Deleted" (with its companions) on every device
+    func purge(_ file: RemoteFile) async throws {
+        guard let engine else { return }
+        try await engine.purge(file)
+    }
+
+    /// "Empty": permanently deletes everything in "Recently Deleted"
+    func emptyRecentlyDeleted() async throws {
+        guard let engine else { return }
+        try await engine.purgeAllDeleted()
     }
 
     func dismissConflicts() {

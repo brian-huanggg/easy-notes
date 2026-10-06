@@ -1414,6 +1414,106 @@
           }
         }
       }
+    },
+    "立即刪除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Immediately"
+          }
+        }
+      }
+    },
+    "立即刪除？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete immediately?"
+          }
+        }
+      }
+    },
+    "資料夾和裡面的所有檔案會永久刪除，不會進入「最近刪除」，也無法復原。其他裝置上的也會一併刪除。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The folder and every file in it will be permanently deleted. They will not go to Recently Deleted and cannot be restored. They will also be deleted on your other devices."
+          }
+        }
+      }
+    },
+    "「%@」會永久刪除，不會進入「最近刪除」，也無法復原。其他裝置上的也會一併刪除。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” will be permanently deleted. It will not go to Recently Deleted and cannot be restored. It will also be deleted on your other devices."
+          }
+        }
+      }
+    },
+    "清空最近刪除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty Recently Deleted"
+          }
+        }
+      }
+    },
+    "永久刪除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Permanently"
+          }
+        }
+      }
+    },
+    "永久刪除「%@」？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently delete “%@”?"
+          }
+        }
+      }
+    },
+    "永久刪除「最近刪除」裡的所有檔案？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently delete everything in Recently Deleted?"
+          }
+        }
+      }
+    },
+    "永久刪除後無法還原，其他裝置上的也會一併刪除。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. It will also be deleted on your other devices."
+          }
+        }
+      }
+    },
+    "永久刪除後無法還原，所有裝置上的這些檔案都會一併刪除。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone. These files will also be deleted on all your devices."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

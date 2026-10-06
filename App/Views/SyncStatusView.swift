@@ -132,12 +132,26 @@ struct SyncPanel: View {
     }
 }
 
-/// Files deleted within 30 days (deleted on any device show here), restorable with the same file id
+/// Files deleted within 30 days (deleted on any device show here), restorable with the same file id, or deletable for good
 struct RecentlyDeletedView: View {
+    private enum Purge: Identifiable {
+        case one(RemoteFile)
+        case all
+        var id: String {
+            switch self {
+            case .one(let file): file.id.uuidString
+            case .all: "all"
+            }
+        }
+    }
+
     @Environment(SyncCoordinator.self) private var sync
     @Environment(\.dismiss) private var dismiss
     @State private var files: [RemoteFile]?
+    /// The file being restored or deleted for good
     @State private var restoring: UUID?
+    @State private var emptying = false
+    @State private var confirming: Purge?
     @State private var error: String?
 
     var body: some View {
@@ -157,6 +171,10 @@ struct RecentlyDeletedView: View {
             .navigationTitle(L("最近刪除"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(L("完成")) { dismiss() } }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button(L("清空最近刪除"), role: .destructive) { confirming = .all }
+                        .disabled((files?.isEmpty ?? true) || busy)
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 if let error {
@@ -166,6 +184,31 @@ struct RecentlyDeletedView: View {
         }
         .frame(minWidth: 420, minHeight: 360)
         .task { await load() }
+        .confirmationDialog(confirmTitle, isPresented: Binding(get: { confirming != nil },
+                                                                set: { if !$0 { confirming = nil } }),
+                            titleVisibility: .visible, presenting: confirming) { target in
+            Button(L("永久刪除"), role: .destructive) {
+                switch target {
+                case .one(let file): Task { await purge(file) }
+                case .all: Task { await emptyAll() }
+                }
+            }
+            Button(L("取消"), role: .cancel) {}
+        } message: { target in
+            switch target {
+            case .one: Text(L("永久刪除後無法還原，其他裝置上的也會一併刪除。"))
+            case .all: Text(L("永久刪除後無法還原，所有裝置上的這些檔案都會一併刪除。"))
+            }
+        }
+    }
+
+    private var busy: Bool { restoring != nil || emptying }
+
+    private var confirmTitle: String {
+        switch confirming {
+        case .one(let file): L("永久刪除「\((file.path as NSString).lastPathComponent)」？")
+        case .all, nil: L("永久刪除「最近刪除」裡的所有檔案？")
+        }
     }
 
     private func row(_ file: RemoteFile) -> some View {
@@ -178,8 +221,13 @@ struct RecentlyDeletedView: View {
             if restoring == file.id {
                 ProgressView().controlSize(.small)
             } else {
+                // Borderless: inside a List row, plain buttons make the whole row tappable and both would fire
                 Button(L("還原")) { Task { await restore(file) } }
-                    .disabled(restoring != nil)
+                    .buttonStyle(.borderless)
+                    .disabled(busy)
+                Button(L("永久刪除"), role: .destructive) { confirming = .one(file) }
+                    .buttonStyle(.borderless)
+                    .disabled(busy)
             }
         }
     }
@@ -206,7 +254,33 @@ struct RecentlyDeletedView: View {
             files?.removeAll { $0.id == file.id }
         } catch {
             self.error = error.localizedDescription
+            await load() // For example another device deleted it for good meanwhile
         }
         restoring = nil
+    }
+
+    private func purge(_ file: RemoteFile) async {
+        restoring = file.id
+        error = nil
+        do {
+            try await sync.purge(file)
+            files?.removeAll { $0.id == file.id }
+        } catch {
+            self.error = error.localizedDescription
+        }
+        restoring = nil
+    }
+
+    private func emptyAll() async {
+        emptying = true
+        error = nil
+        do {
+            try await sync.emptyRecentlyDeleted()
+            files = []
+        } catch {
+            self.error = error.localizedDescription
+            await load() // Part of it may have gone
+        }
+        emptying = false
     }
 }

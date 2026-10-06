@@ -50,7 +50,7 @@ These rules are the yardstick for review and changes; violating one is a vulnera
 3. **The WebView has no generic native capability.** The Bridge exposes only the named messages each plugin defines; there is no generic entry such as "read any file", "open any URL" or "run a command". Every field from JS is treated as untrusted input.
 4. **The WebView loads only in-app resources and custom schemes.** No remote pages or scripts; external links in a page are handed to the system browser and never navigated inside the WebView.
 5. **Credentials live only in the Keychain; code and the repo hold only public keys.** Only the Supabase publishable (anon) key is allowed in the app; `service_role` or any private key must not appear; `.env*` is not under version control.
-6. **Cloud writes always go through `commit_file`.** Tables have no insert / update / delete policy; Storage is append-only with no overwrite or delete.
+6. **Cloud writes always go through `commit_file` or `purge_files`.** Tables have no insert / update / delete policy. Storage never overwrites; an owner may delete a blob only when no row of `files` or `file_blobs` references its hash (a policy on `storage.objects`, so a buggy or hostile client cannot delete content a live or restorable file needs).
 7. **Logs and crash information contain no note content.** Outside DEBUG no message content is printed; `os_log` user data is marked `.private`.
 8. **Test hooks exist only in DEBUG.** Release ignores launch arguments such as `-EasyNotesVaultRoot` (see "Testing" in the [README](./README.md)).
 
@@ -77,10 +77,11 @@ These rules are the yardstick for review and changes; violating one is a vulnera
 ### Sync (Supabase)
 
 - **Identity**: Supabase Auth; `files` RLS allows only `select` on one's own rows (`user_id = auth.uid()`).
-- **Writes**: only by calling `commit_file` (`security definer`, `search_path = ''`); `anon` and `public` have no execute permission; the row's owner is decided by `auth.uid()` and the client cannot specify `user_id`.
-- **Blobs**: the Storage bucket `vault` is private with path `<user_id>/<hash>`, the policy matches the folder name against `auth.uid()`; only `select` and `insert` exist, with no `update` / `delete`, so uploaded content cannot be overwritten.
+- **Writes**: only by calling `commit_file` or `purge_files` (`security definer`, `search_path = ''`); `anon` and `public` have no execute permission; the row's owner is decided by `auth.uid()` and the client cannot specify `user_id`. `purge_files` touches only the caller's own rows, ignores unknown ids and is idempotent.
+- **Blobs**: the Storage bucket `vault` is private with path `<user_id>/<hash>`, the policy matches the folder name against `auth.uid()`; `select` and `insert` exist, there is no `update`, so uploaded content cannot be overwritten, and `delete` is allowed only for the caller's own blobs that nothing references (see invariant 6). An upload happens before its commit, so a blob is briefly unreferenced; a permanent delete of another file with identical content in that window could remove it (accepted, the next edit uploads it again).
 - **Content addressing**: the hash is SHA-256 and re-uploading the same hash counts as success; so downloaded content must have its hash verified by the client (invariant 2).
 - **Soft delete**: rows are purged by `pg_cron` after 30 days; Storage content is not deleted (it may be shared by other versions).
+- **Permanent delete**: the row stays as a tombstone (path, hash and size cleared, so it reveals nothing about the file) for 365 days so every device learns about it; the content the file alone used is deleted from Storage. Design in "Permanent delete" of [core.md](./core.md).
 - **Key**: the app holds a publishable key, and permissions are decided entirely by RLS and RPC.
 - **Transport**: default ATS (HTTPS) with no exception domains.
 

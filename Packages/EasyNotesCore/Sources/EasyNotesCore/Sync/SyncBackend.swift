@@ -8,13 +8,16 @@ public struct RemoteFile: Sendable, Equatable {
     public var size: Int
     public var version: Int
     public var deleted: Bool
+    /// Permanently deleted: a tombstone that only tells other devices to drop the file. Always `deleted` too; path is meaningless,
+    /// hash is empty, content is gone and the file cannot be restored or committed again.
+    public var purged: Bool
     public var deviceID: String
     public var updatedAt: Date
 
-    public init(id: UUID, path: String, hash: String, size: Int, version: Int, deleted: Bool,
+    public init(id: UUID, path: String, hash: String, size: Int, version: Int, deleted: Bool, purged: Bool = false,
                 deviceID: String, updatedAt: Date) {
         self.id = id; self.path = path; self.hash = hash; self.size = size; self.version = version
-        self.deleted = deleted; self.deviceID = deviceID; self.updatedAt = updatedAt
+        self.deleted = deleted || purged; self.purged = purged; self.deviceID = deviceID; self.updatedAt = updatedAt
     }
 }
 
@@ -45,6 +48,10 @@ public protocol SyncBackend: Sendable {
     func commit(_ request: CommitRequest) async throws -> Int?
     /// Rows whose `updatedAt` is later than `cursor`, ordered by `updatedAt`. May overlap the last call; the engine skips versions already applied.
     func changes(since cursor: Date?) async throws -> [RemoteFile]
-    /// Files soft-deleted after `since` and not yet purged, newest first ("Recently Deleted")
+    /// Files soft-deleted after `since` and not yet purged, newest first ("Recently Deleted"); permanently deleted files are never listed
     func deletedFiles(since: Date) async throws -> [RemoteFile]
+    /// Permanent delete, one atomic step for all `ids`: the rows become tombstones (`purged`), and stored content that no other file
+    /// still references is deleted. Ignores versions (an explicit hard delete beats a concurrent edit); ids the server does not know or has
+    /// already purged are skipped, so the call is idempotent. After it, `commit` on these ids returns nil.
+    func purge(ids: [UUID], deviceID: String) async throws
 }
