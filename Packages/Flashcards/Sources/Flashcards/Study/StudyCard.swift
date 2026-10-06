@@ -33,6 +33,21 @@ public struct StudyCard: Identifiable, Equatable, Sendable {
     /// 克漏字挖空處的顯示
     public static let clozeBlank = "[…]"
 
+    /// 克漏字這張卡的答案（原始文字）；其他類型為 nil
+    public var clozeAnswer: String? {
+        type == .cloze ? back.first(where: \.emphasized)?.text : nil
+    }
+
+    /// 自己輸入的答案是否與克漏字答案相同：忽略大小寫與空白數量，前後空白不計
+    public func matchesTypedAnswer(_ typed: String) -> Bool {
+        guard let answer = clozeAnswer else { return false }
+        func normalize(_ text: String) -> String {
+            text.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased()
+        }
+        let typed = normalize(typed)
+        return !typed.isEmpty && typed == normalize(answer)
+    }
+
     /// 一筆 note 產生的卡片，順序同 `CardNote.cardIDs`
     public static func cards(path: String, note: CardNote) -> [StudyCard] {
         guard let noteID = note.id else { return [] }

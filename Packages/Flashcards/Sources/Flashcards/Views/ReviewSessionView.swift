@@ -6,6 +6,9 @@ import SwiftUI
 struct ReviewSessionView: View {
     @Bindable private var store = ReviewStore.shared
     @FocusState private var focused: Bool
+    /// 克漏字：自己輸入的答案（每張卡重新開始）與輸入框是否有焦點
+    @State private var typed = ""
+    @FocusState private var typing: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,7 +17,9 @@ struct ReviewSessionView: View {
             ScrollView {
                 Group {
                     if let card = store.session?.current {
-                        CardView(card: card, showingAnswer: store.session?.showingAnswer == true)
+                        CardView(card: card, showingAnswer: store.session?.showingAnswer == true,
+                                 typed: $typed, typing: $typing) { store.showAnswer() }
+                            .id(card.id)
                     } else {
                         finished
                     }
@@ -32,43 +37,72 @@ struct ReviewSessionView: View {
         .focusEffectDisabled()
         .onAppear { focused = true }
         .onKeyPress(action: handleKey)
+        .onChange(of: store.session?.current?.id) { typed = "" }
+        // 輸入框送出或按鈕顯示答案後，焦點回到畫面，快速鍵才有作用
+        .onChange(of: store.session?.showingAnswer) { _, showing in if showing == true { focused = true } }
     }
 
     // MARK: 上方
 
+    /// 寬度不夠時依序退讓：按鈕只留圖示 → 數量移到第二列；數量不縮、不換行，標題最先被截斷
     private var topBar: some View {
-        HStack {
-            HStack(spacing: 10) {
-                IconButton("xmark", help: L("離開（Esc）")) { store.end() }
-                Label(store.session?.title ?? "", systemImage: "rectangle.stack")
-                    .labelStyle(CompactLabelStyle(spacing: 6))
-                    .textStyle(TextStyle(13, .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { title; queueCounts; actions(labels: true) }
+            HStack(spacing: 12) { title; queueCounts; actions(labels: false) }
+            VStack(spacing: 8) {
+                HStack(spacing: 12) { title; actions(labels: false) }
+                queueCounts
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            let counts = store.sessionCounts
-            HStack(spacing: 14) {
-                QueueCount(value: counts.new, label: L("新卡"), color: Palette.cardNew)
-                QueueCount(value: counts.learning, label: L("學習中"), color: Palette.cardLearn)
-                QueueCount(value: counts.review, label: L("到期"), color: Palette.cardDue)
-            }
-            HStack(spacing: 8) {
-                if store.session?.canUndo == true {
-                    Button { store.undo() } label: { Label(L("復原"), systemImage: "arrow.uturn.backward") }
-                        .buttonStyle(SecondaryButtonStyle())
-                        .help(L("復原上一次作答（U）"))
-                }
-                if store.session?.current != nil {
-                    Button { store.editCurrentNote() } label: { Label(L("編輯筆記"), systemImage: "square.and.pencil") }
-                        .buttonStyle(SecondaryButtonStyle())
-                        .help(L("開啟卡片所在的筆記（E）"))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.vertical, 8)
         }
         .padding(.horizontal, 18)
-        .frame(height: 52)
+        .frame(minHeight: 52)
+    }
+
+    private var title: some View {
+        HStack(spacing: 10) {
+            IconButton("xmark", help: L("離開（Esc）")) { store.end() }
+            Label(store.session?.title ?? "", systemImage: "rectangle.stack")
+                .labelStyle(CompactLabelStyle(spacing: 6))
+                .textStyle(TextStyle(13, .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var queueCounts: some View {
+        let counts = store.sessionCounts
+        return HStack(spacing: 14) {
+            QueueCount(value: counts.new, label: L("新卡"), color: Palette.cardNew)
+            QueueCount(value: counts.learning, label: L("學習中"), color: Palette.cardLearn)
+            QueueCount(value: counts.review, label: L("到期"), color: Palette.cardDue)
+        }
+        .fixedSize()
+    }
+
+    private func actions(labels: Bool) -> some View {
+        HStack(spacing: 8) {
+            if store.session?.canUndo == true {
+                Button { store.undo() } label: {
+                    labels ? AnyView(Label(L("復原"), systemImage: "arrow.uturn.backward"))
+                        : AnyView(Image(systemName: "arrow.uturn.backward"))
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .help(L("復原上一次作答（U）"))
+                .accessibilityLabel(L("復原"))
+            }
+            if store.session?.current != nil {
+                Button { store.editCurrentNote() } label: {
+                    labels ? AnyView(Label(L("編輯筆記"), systemImage: "square.and.pencil"))
+                        : AnyView(Image(systemName: "square.and.pencil"))
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .help(L("開啟卡片所在的筆記（E）"))
+                .accessibilityLabel(L("編輯筆記"))
+            }
+        }
+        .fixedSize()
     }
 
     private var progressBar: some View {
@@ -139,7 +173,7 @@ struct ReviewSessionView: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        guard press.modifiers.isEmpty || press.modifiers == .shift else { return .ignored }
+        guard !typing, press.modifiers.isEmpty || press.modifiers == .shift else { return .ignored }
         let showing = store.session?.showingAnswer == true
         switch press.key {
         case .space:
@@ -175,6 +209,7 @@ private struct QueueCount: View {
             Text("\(value)").textStyle(TextStyle(13, .semibold)).monospacedDigit().foregroundStyle(Palette.textPrimary)
             Text(label).textStyle(.meta).foregroundStyle(Palette.textTertiary)
         }
+        .lineLimit(1)
     }
 }
 
@@ -182,6 +217,9 @@ private struct QueueCount: View {
 struct CardView: View {
     let card: StudyCard
     let showingAnswer: Bool
+    @Binding var typed: String
+    var typing: FocusState<Bool>.Binding
+    let reveal: () -> Void
     private var store: ReviewStore { .shared }
 
     var body: some View {
@@ -192,6 +230,7 @@ struct CardView: View {
                          style: TextStyle(card.multiline ? 22 : card.type == .cloze ? 26 : 34, .semibold),
                          highlight: Palette.cardNew)
                     .foregroundStyle(Palette.textPrimary)
+                if card.type == .cloze, !showingAnswer { answerField }
             }
             if showingAnswer {
                 Rectangle().fill(Palette.border).frame(height: 1).padding(.vertical, 30)
@@ -200,6 +239,7 @@ struct CardView: View {
                     CardText(segments: card.back, style: card.multiline ? TextStyle(18) : TextStyle(23, .semibold),
                              highlight: Palette.cardDue)
                         .foregroundStyle(Palette.textPrimary)
+                    if card.type == .cloze, !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { typedResult }
                 }
             }
             footer.padding(.top, 26)
@@ -212,6 +252,32 @@ struct CardView: View {
         .frame(maxWidth: 780)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.surfaceRaised))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.border.color))
+    }
+
+    /// 克漏字正面：先自己輸入答案（可不填），Return 顯示答案
+    private var answerField: some View {
+        TextField(L("輸入答案（可不填）"), text: $typed)
+            .textFieldStyle(.plain)
+            .textStyle(TextStyle(18))
+            .focused(typing)
+            .onSubmit(reveal)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).fill(Palette.bgCanvas))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous)
+                .strokeBorder((typing.wrappedValue ? Palette.accent : Palette.border).color))
+    }
+
+    /// 背面：自己輸入的答案與正確與否
+    private var typedResult: some View {
+        let correct = card.matchesTypedAnswer(typed)
+        return Label {
+            Text(typed).textStyle(TextStyle(16))
+        } icon: {
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+        }
+        .foregroundStyle(correct ? Palette.cardNew : Palette.cardLearn)
+        .labelStyle(CompactLabelStyle(spacing: 8))
     }
 
     private var footer: some View {

@@ -188,6 +188,20 @@ struct StudyTests {
         #expect(cards[0].back == [.init("理論\n- "), .init("信任", emphasized: true), .init("\n\n補充")])
     }
 
+    @Test func typedAnswerComparison() {
+        let cloze = StudyCard.cards(path: "a.md", note: CardNote(
+            id: "c-4", type: .cloze, line: 0, front: "建立 pod：{{kubectl run  nginx}}，補充 {{x}}", back: "",
+            clozes: ["kubectl run  nginx", "x"]))
+        #expect(cloze[0].clozeAnswer == "kubectl run  nginx")
+        #expect(cloze[1].clozeAnswer == "x")
+        #expect(cloze[0].matchesTypedAnswer("  Kubectl run nginx "))
+        #expect(!cloze[0].matchesTypedAnswer("kubectl run"))
+        #expect(!cloze[0].matchesTypedAnswer("   "))
+        let basic = StudyCard.cards(path: "a.md", note: CardNote(id: "c-5", type: .forward, line: 0, front: "Q", back: "A"))
+        #expect(basic[0].clozeAnswer == nil)
+        #expect(!basic[0].matchesTypedAnswer("A"))
+    }
+
     /// 母牌組上限涵蓋子牌組：日文 new 30，兩個子牌組各 20 → 從日文開始只有 30 張；從子牌組開始各 20 張
     @Test func parentLimitCoversChildren() {
         let cards = Self.notes("日文/文法/a.md", 25, prefix: "g") + Self.notes("日文/單字/b.md", 25, prefix: "v")
