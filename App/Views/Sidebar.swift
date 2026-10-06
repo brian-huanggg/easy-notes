@@ -23,7 +23,7 @@ struct Sidebar: View {
                 VStack(alignment: .leading, spacing: 0) {
                     VaultHeader(name: store.vaultName, account: sync.accountEmail, icon: Image("AppLogo"))
                         .padding(.bottom, 10)
-                    SearchFieldButton(L("搜尋"), shortcut: "⌘K") { shell.showQuickOpen = true }
+                    SearchFieldButton(L("搜尋"), shortcut: ShortcutStore.shared.binding(for: .quickOpen).display) { shell.showQuickOpen = true }
                         .accessibilityIdentifier(A11yID.Sidebar.search)
                         .padding(.bottom, 12)
                     navigation

@@ -1934,6 +1934,26 @@
         }
       }
     },
+    "點一下放大" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to enlarge"
+          }
+        }
+      }
+    },
+    "輸入答案（可不填）" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type your answer (optional)"
+          }
+        }
+      }
+    },
     "關閉" : {
       "localizations" : {
         "en" : {
