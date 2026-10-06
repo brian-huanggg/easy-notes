@@ -66,6 +66,30 @@ struct VaultTests {
         #expect(try vault.search("光合").map(\.path) == [a])
         #expect(try vault.scan().first?.children?.count == 2)
     }
+
+    @Test func nameFollowingTitleKeepsExtensionAndAvoidsCollisions() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let vault = VaultFS(root: root, kinds: try KindRegistry([TextKind.self]))
+
+        let note = try vault.create(kind: TextKind.self, title: "未命名", in: "生物")
+        #expect(vault.nameFollowing(title: "葉綠體", for: note) == "葉綠體.txt")
+        #expect(vault.nameFollowing(title: "未命名", for: note) == nil)
+        #expect(vault.nameFollowing(title: "a/b", for: note) == "a-b.txt")
+        #expect(vault.nameFollowing(title: String(repeating: "葉", count: 100), for: note)?.utf8.count == 66 * 3 + 4)
+
+        _ = try vault.create(kind: TextKind.self, title: "葉綠體", in: "生物")
+        #expect(vault.nameFollowing(title: "葉綠體", for: note) == "葉綠體 2.txt")
+
+        // Already numbered because the name was taken: stays as is
+        let second = try vault.create(kind: TextKind.self, title: "葉綠體", in: "生物")
+        #expect(second == "生物/葉綠體 2.txt")
+        #expect(vault.nameFollowing(title: "葉綠體", for: second) == nil)
+
+        // Case-only change: the same file on a case-insensitive volume
+        let english = try vault.create(kind: TextKind.self, title: "cell", in: "生物")
+        #expect(vault.nameFollowing(title: "Cell", for: english) == nil)
+    }
 }
 
 /// Words separated by whitespace that start with `#` count as tags

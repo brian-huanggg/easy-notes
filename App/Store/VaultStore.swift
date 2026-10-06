@@ -22,10 +22,13 @@ final class VaultStore: DocumentSession {
             refreshBacklinks()
             // Leaving an open file: the previously deferred ContentFixer can handle it now
             if let old = oldValue.filePath, old != route.filePath, pendingFixes.contains(old) { scheduleFixes([]) }
+            if let old = oldValue.filePath, old != route.filePath { Task { await renameToTitleIfLeft(old) } }
         }
     }
     /// The file open in the side panel next to the main content (a whiteboard's note card); supported only by the Mac / iPad shell
-    var sidePath: String?
+    var sidePath: String? {
+        didSet { if let old = oldValue, old != sidePath { Task { await renameToTitleIfLeft(old) } } }
+    }
     @ObservationIgnored var supportsSide = false
     private(set) var backStack: [Route] = [] { didSet { tabs.active.back = backStack } }
     private(set) var forwardStack: [Route] = [] { didSet { tabs.active.forward = forwardStack } }
@@ -65,6 +68,10 @@ final class VaultStore: DocumentSession {
     /// Files waiting for a plugin's ContentFixer (local changes); open files wait until they are left
     @ObservationIgnored private var pendingFixes = Set<String>()
     @ObservationIgnored private var fixTask: Task<Void, Never>?
+    /// The title (from the index rule, e.g. the first `#` line) a file had before this visit's in-app edits; compared when it is left
+    @ObservationIgnored private var titleBeforeEdits: [String: String] = [:]
+    /// The latest in-app write per path, awaited before renaming so a late save does not recreate the old name
+    @ObservationIgnored private var inFlightWrites: [String: Task<Void, Never>] = [:]
 
     /// Local content changed (in-app edit or external tool): the sync layer schedules an upload from it
     @ObservationIgnored var onLocalChange: (() -> Void)?
@@ -297,8 +304,11 @@ final class VaultStore: DocumentSession {
         guard VaultFS.isSafe(path: path) else { return } // A path from external input such as the Bridge is never written outside the vault
         let expected = lastWritten[path]
         lastWritten[path] = data
+        if titleBeforeEdits[path] == nil, let expected, let title = title(of: expected, at: path) {
+            titleBeforeEdits[path] = title
+        }
         let device = SyncCoordinator.deviceName
-        Task { [writer, index] in
+        inFlightWrites[path] = Task { [writer, index] in
             do {
                 let result = try await writer.write(data, to: path, expecting: expected, deviceName: device)
                 // When another save arrives later it is handed to this (it compares with the disk once more)
@@ -318,7 +328,32 @@ final class VaultStore: DocumentSession {
             } catch {
                 report(error)
             }
+            // A save that arrives after the file was left (the editor flushes on switching)
+            if !isOpen(path) { Task { await renameToTitleIfLeft(path) } }
         }
+    }
+
+    private func title(of data: Data, at path: String) -> String? {
+        fs.kinds.kind(for: path)?.index(data, fileName: (path as NSString).lastPathComponent).title
+    }
+
+    /// The file name follows the title (a note's first `#` line): when this visit's in-app edits changed the title, the file is renamed after it is left,
+    /// so typing and Zhuyin composition are never interrupted. Edits from sync or external tools never rename (other devices rename on their own edits).
+    /// Types whose title is the file name never change title, so nothing happens for them
+    private func renameToTitleIfLeft(_ path: String) async {
+        guard !isOpen(path), let before = titleBeforeEdits.removeValue(forKey: path) else { return }
+        await flushEditors()
+        await inFlightWrites[path]?.value
+        inFlightWrites[path] = nil
+        guard fs.exists(path), let data = try? fs.read(path),
+              let title = title(of: data, at: path)?.trimmingCharacters(in: .whitespaces), !title.isEmpty,
+              title != before, let name = fs.nameFollowing(title: title, for: path) else { return }
+        // Opened again while waiting: try again when it is left
+        guard !isOpen(path) else {
+            titleBeforeEdits[path] = before
+            return
+        }
+        await rename(path, to: name)
     }
 
     // MARK: External changes
