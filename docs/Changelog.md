@@ -2,6 +2,13 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.1] - 2026-10-06
+
+### Fixed
+
+- Document name follows the note's title (Heading 1)
+- Opening a note no longer crashes the app on iPad
+
 ## [1.3.0] - 2026-10-06
 
 ### Added

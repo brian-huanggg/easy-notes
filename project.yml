@@ -36,7 +36,7 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     # 版本號的唯一來源：scripts/release.sh 改這一行（Info.plist、Sparkle、TestFlight 都讀它）
-    MARKETING_VERSION: "1.3.0"
+    MARKETING_VERSION: "1.3.1"
     CURRENT_PROJECT_VERSION: "1"
     # Sparkle 更新簽章的公鑰（./scripts/sparkle-tools.sh generate-keys 產生）；空的時候 App 不啟動更新檢查
     SPARKLE_PUBLIC_ED_KEY: "qHUM8ofW/waWiQq6XcvQZP4gA37QlEaiOmQyDFCbk9E="
