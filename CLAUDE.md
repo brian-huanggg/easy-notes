@@ -17,7 +17,7 @@
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), format `type: subject`, enforced by `.githooks/commit-msg`; subject ≤ 100 characters, details in the body.
 - In the Changelog: `feat` (Added), `fix` (Fixed), `perf` (Changed), `security` (Security). **The subject is the line users read**: en-US, describing what users can see ("Tables can be reordered by dragging"), not implementation ("Refactor X").
 - Not in the Changelog: `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `style`, `revert`. Fixes users cannot see use these, not `fix`.
-- Stage only the files you changed (never `git add -A`; other sessions may have files in the tree). Never push, never amend.
+- Stage only the files you changed (never `git add -A`; other sessions may have files in the tree).
 
 ## Invariants
 
