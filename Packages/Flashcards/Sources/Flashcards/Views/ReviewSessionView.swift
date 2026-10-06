@@ -44,39 +44,65 @@ struct ReviewSessionView: View {
 
     // MARK: 上方
 
+    /// 寬度不夠時依序退讓：按鈕只留圖示 → 數量移到第二列；數量不縮、不換行，標題最先被截斷
     private var topBar: some View {
-        HStack {
-            HStack(spacing: 10) {
-                IconButton("xmark", help: L("離開（Esc）")) { store.end() }
-                Label(store.session?.title ?? "", systemImage: "rectangle.stack")
-                    .labelStyle(CompactLabelStyle(spacing: 6))
-                    .textStyle(TextStyle(13, .semibold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .lineLimit(1)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { title; queueCounts; actions(labels: true) }
+            HStack(spacing: 12) { title; queueCounts; actions(labels: false) }
+            VStack(spacing: 8) {
+                HStack(spacing: 12) { title; actions(labels: false) }
+                queueCounts
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            let counts = store.sessionCounts
-            HStack(spacing: 14) {
-                QueueCount(value: counts.new, label: L("新卡"), color: Palette.cardNew)
-                QueueCount(value: counts.learning, label: L("學習中"), color: Palette.cardLearn)
-                QueueCount(value: counts.review, label: L("到期"), color: Palette.cardDue)
-            }
-            HStack(spacing: 8) {
-                if store.session?.canUndo == true {
-                    Button { store.undo() } label: { Label(L("復原"), systemImage: "arrow.uturn.backward") }
-                        .buttonStyle(SecondaryButtonStyle())
-                        .help(L("復原上一次作答（U）"))
-                }
-                if store.session?.current != nil {
-                    Button { store.editCurrentNote() } label: { Label(L("編輯筆記"), systemImage: "square.and.pencil") }
-                        .buttonStyle(SecondaryButtonStyle())
-                        .help(L("開啟卡片所在的筆記（E）"))
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.vertical, 8)
         }
         .padding(.horizontal, 18)
-        .frame(height: 52)
+        .frame(minHeight: 52)
+    }
+
+    private var title: some View {
+        HStack(spacing: 10) {
+            IconButton("xmark", help: L("離開（Esc）")) { store.end() }
+            Label(store.session?.title ?? "", systemImage: "rectangle.stack")
+                .labelStyle(CompactLabelStyle(spacing: 6))
+                .textStyle(TextStyle(13, .semibold))
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var queueCounts: some View {
+        let counts = store.sessionCounts
+        return HStack(spacing: 14) {
+            QueueCount(value: counts.new, label: L("新卡"), color: Palette.cardNew)
+            QueueCount(value: counts.learning, label: L("學習中"), color: Palette.cardLearn)
+            QueueCount(value: counts.review, label: L("到期"), color: Palette.cardDue)
+        }
+        .fixedSize()
+    }
+
+    private func actions(labels: Bool) -> some View {
+        HStack(spacing: 8) {
+            if store.session?.canUndo == true {
+                Button { store.undo() } label: {
+                    labels ? AnyView(Label(L("復原"), systemImage: "arrow.uturn.backward"))
+                        : AnyView(Image(systemName: "arrow.uturn.backward"))
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .help(L("復原上一次作答（U）"))
+                .accessibilityLabel(L("復原"))
+            }
+            if store.session?.current != nil {
+                Button { store.editCurrentNote() } label: {
+                    labels ? AnyView(Label(L("編輯筆記"), systemImage: "square.and.pencil"))
+                        : AnyView(Image(systemName: "square.and.pencil"))
+                }
+                .buttonStyle(SecondaryButtonStyle())
+                .help(L("開啟卡片所在的筆記（E）"))
+                .accessibilityLabel(L("編輯筆記"))
+            }
+        }
+        .fixedSize()
     }
 
     private var progressBar: some View {
@@ -183,6 +209,7 @@ private struct QueueCount: View {
             Text("\(value)").textStyle(TextStyle(13, .semibold)).monospacedDigit().foregroundStyle(Palette.textPrimary)
             Text(label).textStyle(.meta).foregroundStyle(Palette.textTertiary)
         }
+        .lineLimit(1)
     }
 }
 
