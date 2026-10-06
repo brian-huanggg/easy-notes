@@ -2,6 +2,15 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-06
+
+### Added
+
+- Add sync and close-window shortcuts, and customizable shortcuts in Settings (#27)
+- Images can be pasted into notes or picked from the iOS photo library (#29)
+- Files can be deleted immediately, and Recently Deleted can be emptied (#30)
+- Settings can export a diagnostics file for bug reports
+
 ## [1.2.0] - 2026-10-05
 
 ### Added
