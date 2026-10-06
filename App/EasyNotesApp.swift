@@ -88,35 +88,35 @@ struct EasyNotesApp: App {
                 NewDocumentItems(store: store, shell: shell)
                 Divider()
                 Button(L("新分頁")) { store.newTab() }
-                    .keyboardShortcut("t")
+                    .shortcut(.newTab)
                     .disabled(!store.supportsTabs)
                 Button(L("關閉分頁")) { closeTabOrWindow() }
-                    .keyboardShortcut("w")
+                    .shortcut(.closeTab)
                     .disabled(!store.supportsTabs)
                 #if os(macOS)
                 Button(L("關閉視窗")) { NSApp.keyWindow?.performClose(nil) }
-                    .keyboardShortcut("w", modifiers: [.command, .option])
+                    .shortcut(.closeWindow)
                 #endif
                 Divider()
                 Button(L("立即同步")) { sync.syncNow() }
-                    .keyboardShortcut("s")
+                    .shortcut(.syncNow)
             }
             CommandMenu(L("前往")) {
                 Button(L("快速開啟…")) { shell.showQuickOpen = true }
-                    .keyboardShortcut("k")
+                    .shortcut(.quickOpen)
                 Divider()
                 Button(L("上一頁")) { store.goBack() }
-                    .keyboardShortcut("[")
+                    .shortcut(.back)
                     .disabled(store.backStack.isEmpty)
                 Button(L("下一頁")) { store.goForward() }
-                    .keyboardShortcut("]")
+                    .shortcut(.forward)
                     .disabled(store.forwardStack.isEmpty)
                 Divider()
                 Button(L("下一個分頁")) { store.cycleTab(1) }
-                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                    .shortcut(.nextTab)
                     .disabled(!store.supportsTabs)
                 Button(L("上一個分頁")) { store.cycleTab(-1) }
-                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                    .shortcut(.previousTab)
                     .disabled(!store.supportsTabs)
                 Divider()
                 Button(L("所有文件")) { store.navigate(.all) }
