@@ -52,13 +52,18 @@ public actor SyncEngine {
         /// both nil = deleted
         public var didChange: @Sendable (_ path: String, _ oldPath: String?, _ data: Data?) async -> Void
         public var statusChanged: @Sendable (Status) async -> Void
+        /// Files were permanently deleted by another device or from "Recently Deleted" (called after `didChange`, so the app's view of what is
+        /// alive is current): the app drops what it derived from them, such as preview thumbnails
+        public var didPurge: @Sendable () async -> Void
 
         public init(willChange: @escaping @Sendable (String) async -> Void = { _ in },
                     didChange: @escaping @Sendable (String, String?, Data?) async -> Void = { _, _, _ in },
-                    statusChanged: @escaping @Sendable (Status) async -> Void = { _ in }) {
+                    statusChanged: @escaping @Sendable (Status) async -> Void = { _ in },
+                    didPurge: @escaping @Sendable () async -> Void = {}) {
             self.willChange = willChange
             self.didChange = didChange
             self.statusChanged = statusChanged
+            self.didPurge = didPurge
         }
     }
 
@@ -189,6 +194,64 @@ public actor SyncEngine {
         return path
     }
 
+    // MARK: Permanent delete
+
+    /// "Delete Immediately": marks the file at `path` (a folder = every file under it) and their companions, so the next upload purges
+    /// them on the server instead of soft-deleting them. **Call this before removing the files from disk**: a scan that sees a vanished
+    /// file without the mark would soft-delete it. Companions are found through the record table, so a PDF's sidecar or a sheet's
+    /// `.meta.json` goes with its main file without this layer knowing any type. Returns the paths marked.
+    @discardableResult
+    public func requestPurge(_ path: String) async throws -> [String] {
+        let live = state.records.values.filter { !$0.localDeleted }
+        let mains = Set(live.filter { $0.path == path || $0.path.hasPrefix(path + "/") }.map(\.path))
+        let targets = live.filter { r in
+            mains.contains(r.path) || fs.kinds.mainFile(ofCompanion: r.path).map { mains.contains($0) } == true
+        }
+        for var r in targets {
+            r.purgeRequested = true
+            try state.save(r)
+        }
+        await publish()
+        return targets.map(\.path).sorted()
+    }
+
+    /// Permanently deletes one entry of "Recently Deleted" together with the companion deleted next to it (the same companion `restore` would bring back).
+    /// Needs the network: unlike "Delete Immediately" there is no file left to carry a pending mark.
+    public func purge(_ file: RemoteFile) async throws {
+        var files = [file]
+        var latest: [String: RemoteFile] = [:]
+        for c in try await deletedLocally() where fs.kinds.mainFile(ofCompanion: c.path) == file.path {
+            if latest[c.path].map({ c.updatedAt > $0.updatedAt }) ?? true { latest[c.path] = c }
+        }
+        files += latest.values
+        try await purgeRemote(files)
+    }
+
+    /// "Empty Trash": permanently deletes everything in "Recently Deleted", including the companions that the list hides.
+    /// Returns the number of files deleted.
+    @discardableResult
+    public func purgeAllDeleted() async throws -> Int {
+        var total = 0
+        var seen = Set<UUID>()
+        // The backend lists in pages; deleted rows leave the list, so ask again until nothing new shows up
+        while true {
+            let batch = try await deletedLocally().filter { seen.insert($0.id).inserted }
+            guard !batch.isEmpty else { return total }
+            try await purgeRemote(batch)
+            total += batch.count
+        }
+    }
+
+    private func purgeRemote(_ files: [RemoteFile]) async throws {
+        try await backend.purge(ids: files.map(\.id), deviceID: deviceID)
+        Self.log.info("purge \(files.count) files")
+        for f in files {
+            if let r = state.records[f.id] { try state.remove(r.id) }
+            dropBase(f.hash)
+        }
+        await hooks.didPurge()
+    }
+
     private func publish() async {
         status.pending = state.records.values.filter(\.needsPush).count
         await hooks.statusChanged(status)
@@ -218,7 +281,9 @@ public actor SyncEngine {
             try state.save(r)
         }
         // Both vanished files and files deleted earlier but not yet uploaded can be the source of a rename
-        var vanished = unseen.values.map { state.records[$0]! } + state.records.values.filter(\.localDeleted)
+        // A file marked for permanent delete never counts as renamed: the user chose to destroy it, not move it
+        var vanished = (unseen.values.map { state.records[$0]! } + state.records.values.filter(\.localDeleted))
+            .filter { !$0.purgeRequested }
         var renamed: [(from: String, to: String)] = []
         for path in added.sorted() {
             let stat = disk[path]!
@@ -305,6 +370,12 @@ public actor SyncEngine {
             if !row.deleted { try await applyNew(row) }
             return
         }
+        if row.purged {
+            try await applyPurge(row, known: known)
+            return
+        }
+        // This device is deleting the file for good: remote edits or renames must not bring it back
+        if known.purgeRequested { return }
         if let base = known.baseVersion, row.version <= base { return } // Our own commit, or already applied
         // Download first (network), then have the editor write back: text typed during the download is included in the merge and not overwritten by remote content
         var remoteData: Data?
@@ -321,6 +392,7 @@ public actor SyncEngine {
         if row.deleted {
             if r.localDeleted {
                 try state.remove(r.id)
+                dropBase(r.baseHash)
             } else if r.needsPush {
                 // Modify beats delete: keep local and revive it on the next upload
                 r.baseVersion = row.version
@@ -329,6 +401,7 @@ public actor SyncEngine {
             } else {
                 try FileManager.default.removeItem(at: fs.url(for: r.path))
                 try state.remove(r.id)
+                dropBase(r.baseHash) // A restore downloads the content again; the merge base of a deleted file is dead weight (and stays readable on disk)
                 await hooks.didChange(r.path, nil, nil)
             }
             return
@@ -390,6 +463,37 @@ public actor SyncEngine {
         }
     }
 
+    /// Another device (or this one, earlier) permanently deleted the file: drops it locally. A file with unsynced local edits is the one exception
+    /// (the same "modify beats delete" rule as soft delete): it is kept and re-registered as a new, never uploaded file, because the
+    /// tombstone can never be committed over.
+    private func applyPurge(_ row: RemoteFile, known: SyncRecord) async throws {
+        if known.localDeleted || known.purgeRequested {
+            try state.remove(known.id)
+            dropBase(known.baseHash)
+            return
+        }
+        await hooks.willChange(known.path)
+        guard var r = state.records[row.id] else { return }
+        try refreshHash(&r)
+        if r.hash != r.baseHash {
+            Self.log.info("purged on another device but edited here: keeping \(r.path, privacy: .public) as a new file")
+            let oldBase = r.baseHash
+            try state.remove(r.id)
+            r.id = UUID()
+            r.baseVersion = nil
+            r.baseHash = nil
+            r.basePath = nil
+            try state.save(r)
+            dropBase(oldBase)
+            return
+        }
+        try? FileManager.default.removeItem(at: fs.url(for: r.path))
+        try state.remove(r.id)
+        dropBase(r.baseHash)
+        await hooks.didChange(r.path, nil, nil)
+        await hooks.didPurge()
+    }
+
     /// A remote file whose id local does not have
     private func applyNew(_ row: RemoteFile) async throws {
         let remote = try await content(hash: row.hash)
@@ -433,6 +537,15 @@ public actor SyncEngine {
     /// Returns the number rejected by the server (version mismatch)
     private func push() async throws -> Int {
         var rejected = 0
+        // Permanent deletes first, in one request, so a main file and its companion disappear for other devices together
+        let purging = state.records.values.filter(\.purgeRequested)
+        if !purging.isEmpty {
+            let ids = purging.filter { $0.baseVersion != nil }.map(\.id) // Never uploaded: nothing on the server
+            if !ids.isEmpty { try await backend.purge(ids: ids, deviceID: deviceID) }
+            Self.log.info("purge \(ids.count) files")
+            for r in purging { try state.remove(r.id) }
+            for r in purging { dropBase(r.baseHash) }
+        }
         for var r in state.records.values.sorted(by: { $0.path < $1.path }) where r.needsPush {
             if r.localDeleted {
                 guard let baseVersion = r.baseVersion, let baseHash = r.baseHash else {
@@ -444,6 +557,7 @@ public actor SyncEngine {
                 if let version = try await backend.commit(request) {
                     Self.log.info("commit delete \(request.path, privacy: .public) v\(version)")
                     try state.remove(r.id)
+                    dropBase(baseHash)
                 } else {
                     rejected += 1
                 }

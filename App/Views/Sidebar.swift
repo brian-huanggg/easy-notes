@@ -261,7 +261,7 @@ private struct SettingsButton: View {
     }
 }
 
-/// Context menu for files and folders: rename, reveal in Finder, move to trash
+/// Context menu for files and folders: rename, reveal in Finder, move to trash, delete immediately
 struct NodeMenu: View {
     @Environment(VaultStore.self) private var store
     @Environment(ShellState.self) private var shell
@@ -286,5 +286,9 @@ struct NodeMenu: View {
             Task { await store.delete(path) }
         }
         .accessibilityIdentifier(A11yID.Menu.trash)
+        Button(L("立即刪除"), systemImage: "trash.slash", role: .destructive) {
+            shell.purging = .init(path: path, isFolder: isFolder)
+        }
+        .accessibilityIdentifier(A11yID.Menu.deleteImmediately)
     }
 }

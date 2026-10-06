@@ -241,6 +241,16 @@ public struct VaultFS: Sendable {
         for companion in companions { try FileManager.default.trashItem(at: url(for: companion), resultingItemURL: nil) }
     }
 
+    /// Delete for good, skipping the system trash (a file in the OS trash would still hold the content); the file's companions go with it.
+    /// A folder is removed with everything in it. Keeps going when one item fails and throws the first error at the end.
+    public func deleteImmediately(_ path: String) throws {
+        var failure: (any Error)?
+        for target in [path] + companions(of: path) where exists(target) {
+            do { try FileManager.default.removeItem(at: url(for: target)) } catch { failure = failure ?? error }
+        }
+        if let failure { throw failure }
+    }
+
     /// Companions in the same folder as `path` whose main file is `path`
     public func companions(of path: String) -> [String] {
         let parent = (path as NSString).deletingLastPathComponent

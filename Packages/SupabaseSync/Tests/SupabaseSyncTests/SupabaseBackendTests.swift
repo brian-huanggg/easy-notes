@@ -96,6 +96,53 @@ struct SupabaseBackendTests {
         #expect(try await backend.deletedFiles(since: Date().addingTimeInterval(3_600)).isEmpty)
     }
 
+    /// Hard delete: tombstone for other devices, content removed only when no other file references it
+    @Test func purgeTombstonesRowsAndDeletesOnlyUnreferencedBlobs() async throws {
+        let backend = SupabaseBackend(client: try await Local.newUser().client)
+        let alone = Data("only mine".utf8), shared = Data("shared".utf8)
+        let aloneHash = SyncEngine.sha256(alone), sharedHash = SyncEngine.sha256(shared)
+        try await backend.upload(alone, hash: aloneHash)
+        try await backend.upload(shared, hash: sharedHash)
+        let a = UUID(), b = UUID(), c = UUID()
+        #expect(try await backend.commit(request(a, base: nil, path: "a.md", hash: aloneHash)) == 1)
+        #expect(try await backend.commit(request(b, base: nil, path: "b.md", hash: sharedHash)) == 1)
+        #expect(try await backend.commit(request(c, base: nil, path: "c.md", hash: sharedHash)) == 1)
+
+        try await backend.purge(ids: [a, b, UUID()], deviceID: "test")
+        try await backend.purge(ids: [a, b], deviceID: "test") // Idempotent
+
+        let rows = try await backend.changes(since: nil)
+        let tomb = try #require(rows.first { $0.id == a })
+        #expect(tomb.purged && tomb.deleted && tomb.hash.isEmpty && tomb.version == 2 && tomb.path != "a.md")
+        #expect(try await backend.deletedFiles(since: .distantPast).isEmpty)
+        #expect(try await backend.commit(request(a, base: 2, path: "a.md", hash: aloneHash)) == nil)
+        await #expect(throws: (any Error).self) { try await backend.download(hash: aloneHash) }
+        #expect(try await backend.download(hash: sharedHash) == shared) // `c` still needs it
+    }
+
+    /// The Storage delete policy refuses content a row still references, whoever asks and however
+    @Test func storagePolicyRefusesToDeleteReferencedOrForeignBlobs() async throws {
+        let (_, ownerClient) = try await Local.newUser()
+        let owner = SupabaseBackend(client: ownerClient)
+        let data = Data("still used".utf8)
+        let hash = SyncEngine.sha256(data)
+        try await owner.upload(data, hash: hash)
+        #expect(try await owner.commit(request(UUID(), base: nil, hash: hash)) == 1)
+        let ownerID = try await ownerClient.auth.session.user.id.uuidString.lowercased()
+
+        let removed = try await ownerClient.storage.from(SupabaseBackend.bucket).remove(paths: ["\(ownerID)/\(hash)"])
+        #expect(removed.isEmpty)
+        #expect(try await owner.download(hash: hash) == data)
+
+        let (_, otherClient) = try await Local.newUser()
+        let stray = Data("unreferenced".utf8)
+        let strayHash = SyncEngine.sha256(stray)
+        try await owner.upload(stray, hash: strayHash)
+        let foreign = try await otherClient.storage.from(SupabaseBackend.bucket).remove(paths: ["\(ownerID)/\(strayHash)"])
+        #expect(foreign.isEmpty) // Another user cannot delete it even though nothing references it
+        #expect(try await owner.download(hash: strayHash) == stray)
+    }
+
     /// 驗收：用另一個帳號讀不到任何列與 Storage 物件
     @Test func rowLevelSecurityIsolatesUsers() async throws {
         let owner = SupabaseBackend(client: try await Local.newUser().client)

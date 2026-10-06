@@ -41,6 +41,27 @@ struct FolderSyncBackendTests {
         #expect(try await backend.deletedFiles(since: .distantPast).map(\.id) == [a])
     }
 
+    @Test func purgeLeavesTombstoneAndDeletesUnreferencedBlobs() async throws {
+        let backend = try makeBackend()
+        let a = UUID(), b = UUID(), keep = UUID()
+        try await backend.upload(Data("a".utf8), hash: "ha")
+        try await backend.upload(Data("shared".utf8), hash: "hs")
+        _ = try await backend.commit(request(a, base: nil, path: "a.note", hash: "ha"))
+        _ = try await backend.commit(request(b, base: nil, path: "b.note", hash: "hs"))
+        _ = try await backend.commit(request(keep, base: nil, path: "c.note", hash: "hs"))
+
+        try await backend.purge(ids: [a, b, UUID()], deviceID: "d") // Unknown ids are skipped
+        try await backend.purge(ids: [a], deviceID: "d")            // Idempotent
+
+        let rows = try await backend.changes(since: nil)
+        let tomb = try #require(rows.first { $0.id == a })
+        #expect(tomb.purged && tomb.deleted && tomb.hash.isEmpty && tomb.version == 2)
+        #expect(try await backend.deletedFiles(since: .distantPast).isEmpty) // Never listed in Recently Deleted
+        #expect(try await backend.commit(request(a, base: 2, path: "a.note")) == nil) // Nobody can commit over a tombstone
+        await #expect(throws: (any Error).self) { try await backend.download(hash: "ha") }
+        #expect(try await backend.download(hash: "hs") == Data("shared".utf8)) // Still referenced by `keep`
+    }
+
     @Test func blobsAreContentAddressed() async throws {
         let backend = try makeBackend()
         try await backend.upload(Data("x".utf8), hash: "k")

@@ -34,6 +34,19 @@ struct ContentView: View {
                 guard case .success(let urls) = result else { return }
                 Task { for url in urls { await store.importFile(url) } }
             }
+            .confirmationDialog(L("立即刪除？"), isPresented: Binding(get: { shell.purging != nil },
+                                                                  set: { if !$0 { shell.purging = nil } }),
+                                titleVisibility: .visible, presenting: shell.purging) { request in
+                Button(L("立即刪除"), role: .destructive) {
+                    Task { await store.deleteImmediately(request.path) }
+                }
+                .accessibilityIdentifier(A11yID.Menu.confirmDeleteImmediately)
+                Button(L("取消"), role: .cancel) {}
+            } message: { request in
+                Text(request.isFolder
+                     ? L("資料夾和裡面的所有檔案會永久刪除，不會進入「最近刪除」，也無法復原。其他裝置上的也會一併刪除。")
+                     : L("「\(store.displayName(request.path))」會永久刪除，不會進入「最近刪除」，也無法復原。其他裝置上的也會一併刪除。"))
+            }
             .alert(L("重新命名"), isPresented: Binding(get: { shell.renaming != nil },
                                                 set: { if !$0 { shell.renaming = nil } })) {
                 TextField(L("名稱"), text: $shell.newName)

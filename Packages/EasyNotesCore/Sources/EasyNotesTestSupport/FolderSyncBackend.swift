@@ -36,7 +36,7 @@ public struct FolderSyncBackend: SyncBackend {
         try locked { () throws -> Int? in
             var rows = try readRows()
             let current = rows.first { $0.id == request.id }
-            guard current?.version == request.baseVersion else { return nil }
+            guard current?.version == request.baseVersion, current?.purged != true else { return nil }
             if !request.deleted,
                rows.contains(where: { $0.id != request.id && $0.path == request.path && !$0.deleted }) { return nil }
             // updatedAt increases monotonically: several commits within the same millisecond can still be fetched in order by `changes(since:)`
@@ -60,8 +60,28 @@ public struct FolderSyncBackend: SyncBackend {
 
     public func deletedFiles(since: Date) async throws -> [RemoteFile] {
         try locked { try readRows() }
-            .filter { $0.deleted && $0.updatedAt > since }
+            .filter { $0.deleted && !$0.purged && $0.updatedAt > since }
             .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    public func purge(ids: [UUID], deviceID: String) async throws {
+        try locked { () throws -> Void in
+            var rows = try readRows()
+            var freed: [String] = []
+            var last = rows.map(\.updatedAt).max() ?? .distantPast
+            for id in ids {
+                guard let i = rows.firstIndex(where: { $0.id == id }), !rows[i].purged else { continue }
+                freed.append(rows[i].hash)
+                last = max(Date(), last.addingTimeInterval(0.001))
+                rows[i] = RemoteFile(id: id, path: id.uuidString, hash: "", size: 0, version: rows[i].version + 1,
+                                     deleted: true, purged: true, deviceID: deviceID, updatedAt: last)
+            }
+            try writeRows(rows)
+            // Content that no remaining row references is deleted, like the Supabase backend's unreferenced-blob delete
+            for hash in freed where !rows.contains(where: { $0.hash == hash }) {
+                try? FileManager.default.removeItem(at: blobURL(hash))
+            }
+        }
     }
 
     // MARK: Storage
@@ -73,16 +93,18 @@ public struct FolderSyncBackend: SyncBackend {
         var size: Int
         var version: Int
         var deleted: Bool
+        var purged: Bool?
         var deviceID: String
         var updatedAt: Double
 
         init(_ r: RemoteFile) {
             id = r.id; path = r.path; hash = r.hash; size = r.size; version = r.version
-            deleted = r.deleted; deviceID = r.deviceID; updatedAt = r.updatedAt.timeIntervalSince1970
+            deleted = r.deleted; purged = r.purged ? true : nil; deviceID = r.deviceID
+            updatedAt = r.updatedAt.timeIntervalSince1970
         }
 
         var remote: RemoteFile {
-            RemoteFile(id: id, path: path, hash: hash, size: size, version: version, deleted: deleted,
+            RemoteFile(id: id, path: path, hash: hash, size: size, version: version, deleted: deleted, purged: purged ?? false,
                        deviceID: deviceID, updatedAt: Date(timeIntervalSince1970: updatedAt))
         }
     }

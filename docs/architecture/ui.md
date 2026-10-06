@@ -17,7 +17,7 @@ The shell follows `design/easy-notes-ui.pen`; the design file does not change th
 | New Document menu (⌘N, ⇧⌘N, import PDF / CSV, new folder) | `addNewFile` plus `addImport` (copies an external file into the vault) |
 | Document icon, cover, tags | frontmatter `icon`, `cover` (image path in the vault), `tags` |
 | Review | Registered by the Flashcards plugin with `addPanel`; hidden when not registered |
-| Recently Deleted (kept 30 days) | "Recently Deleted" |
+| Recently Deleted (kept 30 days) | "Recently Deleted": restore, "Delete Permanently" per entry, and "Empty Recently Deleted" (both confirmed). Not renamed to "Archive": it expires, which an archive does not |
 | Synced · 2 min ago | Sync status (synced / pending upload / conflict) |
 | Folder icon (`folder-open`) | Reveal in Finder (iOS: show in the Files app) |
 | Me (Mobile tab) | Account, sync panel, settings |
@@ -42,6 +42,7 @@ The shell follows `design/easy-notes-ui.pen`; the design file does not change th
 - Interface language follows the system between zh-Hant and English (US); see [translation.md](./translation.md).
 - Shortcuts: ⌘K quick open (reuses FTS5 search), Markdown "[[link]]" ⇧⌘K, new note ⌘N, new whiteboard ⇧⌘N, new folder ⇧⌘F.
 - Sidebar file tree: on Mac, double-clicking a file or folder renames it in place (Return confirms, Esc cancels, losing focus confirms; for files only the name changes and the extension is kept); the context-menu "Rename" is still a dialog. Files and folders can be dragged to another folder, and dragging onto the "Spaces" header = move to the vault root; moving does not change the file name, so `[[links]]` need no rewriting; nothing moves when the destination has an item with the same name or a folder is dragged into itself (including its subfolders). Companions, sync (file id preserved), editor and navigation are handled the same as rename. The drag payload is a vault-relative path string, and the drop checks the path exists before moving.
+- **Deleting**: "Move to Trash" (OS trash; sync records a soft delete that shows in Recently Deleted for 30 days) and "Delete Immediately" are both in the file and folder context menu and the editor's more menu. "Delete Immediately" asks for confirmation (`ShellState.purging` → one `confirmationDialog` in `ContentView`, shared by every entry point), skips the OS trash and Recently Deleted, and purges on every device; a folder takes everything inside it. Companions go with their main file. See "Permanent delete" in [core.md](./core.md).
 - The import destination = the current folder (folder page = that folder, editor = the document's folder, other list pages = vault root); there is no separate `Inbox/`.
 
 ## Document list

@@ -25,6 +25,14 @@ final class ShellState {
     var renaming: String?
     var newName = ""
 
+    /// "Delete Immediately" waiting for the user's confirmation
+    struct PurgeRequest: Identifiable {
+        var path: String
+        var isFolder: Bool
+        var id: String { path }
+    }
+    var purging: PurgeRequest?
+
     func startImport(_ command: PluginRegistry.ImportCommand) {
         importTypes = command.kind.fileExtensions.compactMap { UTType(filenameExtension: $0) }
         isImporting = true

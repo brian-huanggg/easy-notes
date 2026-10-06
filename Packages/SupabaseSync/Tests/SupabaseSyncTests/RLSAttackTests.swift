@@ -48,13 +48,14 @@ struct RLSAttackTests {
         #expect(own.count == 1 && own[0].hash == "mine" && own[0].version == 1)
     }
 
-    /// 只增不覆寫：自己上傳的 blob 也不能被 upsert 覆寫或刪除
+    /// 不能覆寫；仍被任何列引用的 blob 也不能刪除（沒被引用的才可以刪，見 purge_files 與 SupabaseBackendTests）
     @Test func ownBlobsCannotBeOverwrittenOrDeleted() async throws {
         let (_, client) = try await Local.newUser()
         let backend = SupabaseBackend(client: client)
         let data = Data("原文".utf8)
         let hash = SyncEngine.sha256(data)
         try await backend.upload(data, hash: hash)
+        #expect(try await backend.commit(request(UUID(), base: nil, hash: hash)) == 1)
 
         let bucket = client.storage.from(SupabaseBackend.bucket)
         let path = "\(try await userID(client))/\(hash)"
@@ -110,6 +111,34 @@ struct RLSAttackTests {
         await #expect(throws: (any Error).self) {
             let _: Int = try await anon.rpc("purge_deleted_files").execute().value
         }
+    }
+
+    /// purge_files: not callable signed out, and another user's call leaves your rows and content alone
+    @Test func purgeFilesOnlyTouchesTheCallersOwnRows() async throws {
+        let (_, ownerClient) = try await Local.newUser()
+        let owner = SupabaseBackend(client: ownerClient)
+        let data = Data("mine".utf8)
+        let hash = SyncEngine.sha256(data)
+        let id = UUID()
+        try await owner.upload(data, hash: hash)
+        #expect(try await owner.commit(request(id, base: nil, hash: hash)) == 1)
+
+        let anon = Local.client()
+        await #expect(throws: (any Error).self) {
+            let _: [String] = try await anon.rpc("purge_files", params: ["p_ids": AnyJSON.array([.string(id.uuidString)]), "p_device": AnyJSON.string("x")])
+                .execute().value
+        }
+
+        let (_, otherClient) = try await Local.newUser()
+        try await SupabaseBackend(client: otherClient).purge(ids: [id], deviceID: "attacker")
+        let row = try #require(try await owner.changes(since: nil).first)
+        #expect(!row.purged && row.version == 1 && row.hash == hash)
+        #expect(try await owner.download(hash: hash) == data)
+
+        // The blob bookkeeping is not writable directly either
+        _ = try? await ownerClient.from("file_blobs").delete().eq("file_id", value: id.uuidString).execute()
+        let blobs: [[String: AnyJSON]] = try await ownerClient.from("file_blobs").select().execute().value
+        #expect(blobs.count == 1)
     }
 
     /// 客戶端送來的 user_id 不被採用：commit_file 一律用 auth.uid()

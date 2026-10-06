@@ -38,7 +38,7 @@ actor FakeBackend: SyncBackend {
             throw URLError(.networkConnectionLost)
         }
         let current = rows[r.id]
-        guard current?.version == r.baseVersion else { return nil }
+        guard current?.version == r.baseVersion, current?.purged != true else { return nil }
         if !r.deleted, rows.values.contains(where: { $0.id != r.id && $0.path == r.path && !$0.deleted }) { return nil }
         clock += 1
         let version = (current?.version ?? 0) + 1
@@ -53,7 +53,23 @@ actor FakeBackend: SyncBackend {
     }
 
     func deletedFiles(since: Date) async throws -> [RemoteFile] {
-        rows.values.filter { $0.deleted }.sorted { $0.updatedAt > $1.updatedAt }
+        rows.values.filter { $0.deleted && !$0.purged }.sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    var purges = 0
+
+    /// Like the `purge_files` RPC: tombstones the rows, then drops blobs no remaining row references
+    func purge(ids: [UUID], deviceID: String) async throws {
+        purges += 1
+        var freed: [String] = []
+        for id in ids {
+            guard let row = rows[id], !row.purged else { continue }
+            freed.append(row.hash)
+            clock += 1
+            rows[id] = RemoteFile(id: id, path: id.uuidString, hash: "", size: 0, version: row.version + 1, deleted: true,
+                                  purged: true, deviceID: deviceID, updatedAt: clock)
+        }
+        for hash in freed where !rows.values.contains(where: { $0.hash == hash }) { blobs[hash] = nil }
     }
 
     func setFailNextCommit() { failNextCommit = true }
@@ -312,6 +328,151 @@ struct SyncEngineTests {
         #expect(mac.read("a.note") == "新\n")
         await mac.sync()
         #expect(await mac.engine.currentStatus.pending == 0)
+    }
+
+    // MARK: Permanent delete
+
+    @Test func hardDeleteReachesOtherDeviceAndLeavesNothingBehind() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("機密\n", "a.note")
+        try mac.write("留著\n", "b.note")
+        try await converge(mac, ipad)
+        let id = try #require(await backend.rows.values.first { $0.path == "a.note" }?.id)
+
+        try await mac.engine.requestPurge("a.note")
+        try mac.delete("a.note")
+        try await converge(mac, ipad)
+
+        #expect(!ipad.exists("a.note"))
+        #expect(ipad.read("b.note") == "留著\n")
+        let row = try #require(await backend.rows[id])
+        #expect(row.purged && row.deleted && row.hash.isEmpty && row.path != "a.note")
+        // Only the other file's content is left on the server; nothing lists the purged one
+        #expect(await backend.blobs.count == 1)
+        #expect(try await mac.engine.recentlyDeleted().isEmpty)
+        #expect(try await ipad.engine.recentlyDeleted().isEmpty)
+        #expect(await mac.engine.currentStatus.pending == 0)
+        #expect(await ipad.engine.currentStatus.pending == 0)
+    }
+
+    @Test func hardDeleteQueuedOfflineSurvivesRestart() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("x\n", "a.note")
+        try await converge(mac, ipad)
+
+        try await mac.engine.requestPurge("a.note")
+        try mac.delete("a.note")
+        // The app quits before it ever syncs: the intent must not degrade to a soft delete
+        let restarted = try Device("Mac", backend: backend, root: mac.fs.root)
+        await restarted.sync()
+        await ipad.sync()
+
+        #expect(await backend.rows.values.allSatisfy { $0.purged })
+        #expect(!ipad.exists("a.note"))
+        #expect(try await ipad.engine.recentlyDeleted().isEmpty)
+    }
+
+    @Test func hardDeletedFileIsNotMistakenForARename() async throws {
+        let mac = try Device("Mac", backend: backend)
+        try mac.write("x\n", "a.note")
+        await mac.sync()
+        let id = try #require(await backend.rows.keys.first)
+
+        try await mac.engine.requestPurge("a.note")
+        try mac.delete("a.note")
+        try mac.write("x\n", "b.note") // Same content appears elsewhere: a new file, not the old one moved
+        await mac.sync()
+
+        #expect(await backend.rows[id]?.purged == true)
+        let live = await backend.rows.values.filter { !$0.deleted }
+        #expect(live.map(\.path) == ["b.note"])
+        #expect(live.first?.id != id)
+    }
+
+    @Test func purgeSharedContentKeepsBlobForTheOtherFile() async throws {
+        let mac = try Device("Mac", backend: backend)
+        try mac.write("same\n", "a.note")
+        try mac.write("same\n", "b.note")
+        await mac.sync()
+        #expect(await backend.blobs.count == 1)
+
+        try await mac.engine.requestPurge("a.note")
+        try mac.delete("a.note")
+        await mac.sync()
+        #expect(await backend.blobs.count == 1)
+        #expect(mac.read("b.note") == "same\n")
+    }
+
+    @Test func hardDeleteOfFolderPurgesEveryFileInside() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("1\n", "資料夾/a.note")
+        try mac.write("2\n", "資料夾/b.note")
+        try mac.write("3\n", "c.note")
+        try await converge(mac, ipad)
+
+        #expect(try await mac.engine.requestPurge("資料夾") == ["資料夾/a.note", "資料夾/b.note"])
+        try mac.fs.deleteImmediately("資料夾")
+        try await converge(mac, ipad)
+
+        #expect(try ipad.snapshot() == ["c.note": "3\n"])
+        #expect(await backend.rows.values.filter(\.purged).count == 2)
+        #expect(await backend.blobs.count == 1)
+    }
+
+    @Test func emptyTrashPurgesEverythingDeleted() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("1\n", "a.note")
+        try mac.write("2\n", "b.note")
+        try mac.write("3\n", "keep.note")
+        try await converge(mac, ipad)
+        try mac.delete("a.note")
+        try mac.delete("b.note")
+        try await converge(mac, ipad)
+        #expect(try await ipad.engine.recentlyDeleted().count == 2)
+
+        #expect(try await ipad.engine.purgeAllDeleted() == 2)
+        #expect(try await mac.engine.recentlyDeleted().isEmpty)
+        #expect(try await ipad.engine.purgeAllDeleted() == 0)
+        try await converge(mac, ipad)
+        #expect(try mac.snapshot() == ["keep.note": "3\n"])
+        #expect(await backend.rows.values.filter(\.purged).count == 2)
+        #expect(await backend.blobs.count == 1)
+    }
+
+    @Test func purgedFileCannotBeRestoredOrRecommitted() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("x\n", "a.note")
+        try await converge(mac, ipad)
+        try mac.delete("a.note")
+        try await converge(mac, ipad)
+        let stale = try #require(try await ipad.engine.recentlyDeleted().first) // iPad opens the list...
+        try await mac.engine.purge(stale)                                       // ...Mac empties it meanwhile
+
+        // The content is gone with it, so the restore fails before it can commit
+        await #expect(throws: (any Error).self) { try await ipad.engine.restore(stale) }
+        let request = CommitRequest(id: stale.id, baseVersion: stale.version + 1, path: "a.note", hash: "h", size: 1,
+                                    deleted: false, deviceID: "x")
+        #expect(try await backend.commit(request) == nil)
+    }
+
+    @Test func editedOnAnotherDeviceBeatsPurge() async throws {
+        let mac = try Device("Mac", backend: backend), ipad = try Device("iPad", backend: backend)
+        try mac.write("x\n", "a.note")
+        try await converge(mac, ipad)
+        let id = try #require(await backend.rows.keys.first)
+
+        try await mac.engine.requestPurge("a.note")
+        try mac.delete("a.note")
+        await mac.sync()
+        try ipad.write("x 改\n", "a.note") // Unsynced work on the iPad is never destroyed by a remote purge
+        await ipad.sync()
+
+        #expect(ipad.read("a.note") == "x 改\n")
+        #expect(await backend.rows[id]?.purged == true)
+        let live = await backend.rows.values.filter { !$0.deleted }
+        #expect(live.map(\.path) == ["a.note"])
+        #expect(live.first?.id != id)
+        #expect(await ipad.engine.currentStatus.pending == 0)
     }
 
     @Test func interruptedCommitIsRetried() async throws {
