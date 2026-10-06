@@ -22,7 +22,7 @@
   - Subject ≤ 100 characters; details go in the body. Stage only the files you changed (never `git add -A`; other sessions may have files in the tree); never push, never amend.
 - **Releasing** (design in "Release flow" of the [README](./docs/architecture/README.md)):
   1. `./scripts/release.sh`: runs tests, generates the Changelog from commits, updates `MARKETING_VERSION` and the "What's New" content, and creates the `chore(release): vX.Y.Z` commit and tag (local, no push; `--dry-run` previews first).
-  2. `./scripts/publish-release.sh`: builds the DMG, signs the appcast, pushes, and creates the GitHub Release (`--testflight` also uploads iOS / iPadOS). Pushing and creating a Release are outward-facing: **ask the user first**, and never add `--yes` to skip the confirmation.
+  2. `./scripts/publish-release.sh`: builds the DMG, signs the appcast, pushes, creates the GitHub Release, and uploads iOS / iPadOS to TestFlight (`--skip-testflight` publishes the Mac release only). Pushing and creating a Release are outward-facing: **ask the user first**, and never add `--yes` to skip the confirmation.
   - The version lives only in `MARKETING_VERSION` in `project.yml` (changed by `release.sh`); never edit it or tag by hand.
 
 ## Rules that must not be broken

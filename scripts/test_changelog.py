@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""changelog.py 的單元測試：python3 scripts/test_changelog.py"""
+"""Unit tests for changelog.py: python3 scripts/test_changelog.py"""
 import pathlib
 import sys
 import unittest

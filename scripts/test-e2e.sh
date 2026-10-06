@@ -1,18 +1,19 @@
 #!/bin/bash
-# E2E（XCUITest）：從外部操作 App，並以磁碟上的檔案驗證結果。測試程式在 Tests/E2E。
+# E2E (XCUITest): drives the app from outside and verifies results through files on disk. Tests live in Tests/E2E.
 #
 #   ./scripts/test-e2e.sh [smoke|sync|perf|all] [mac|ipad] [--ci]
 #
-#   smoke  開啟 Vault、新增 / 改名 / 搬移 / 釘選 / 刪除、外部修改、各類型開啟、搜尋、重建索引（預設）
-#   sync   兩台裝置的同步：App 與測試程序共用資料夾 backend（不需要 Docker 或網路）
-#   perf   啟動、1,000 元素白板、打字、外部一次改 50 個檔案（EASYNOTES_E2E_PERF=1）
-#   all    以上全部
-#   mac    macOS（預設）；ipad 用 iPad 模擬器（IPAD_SIMULATOR 可指定機型）
-#   --ci   不用開發者憑證簽署（GitHub Actions 等沒有登入 Apple ID 的機器）
+#   smoke  open vault, create / rename / move / pin / delete, external edits, open each kind, search, reindex (default)
+#   sync   two-device sync: the app and the test runner share a folder backend (no Docker or network needed)
+#   perf   launch, 1,000-element whiteboard, typing, 50 files changed externally at once (EASYNOTES_E2E_PERF=1)
+#   all    all of the above
+#   mac    macOS (default); ipad uses an iPad Simulator (IPAD_SIMULATOR picks the model)
+#   --ci   sign without a developer certificate (machines with no Apple ID signed in, e.g. GitHub Actions)
 #
-# 結果在 build/E2E-<suite>-<dest>.xcresult（含失敗時的截圖與錄影），用 Xcode 開啟。
-# 執行期間不要操作滑鼠鍵盤（XCUITest 送的是真實的輸入事件）；macOS 測試會自動切到 ABC 輸入法並在結束後還原。
-# 第一次在 macOS 執行時，系統會要求允許「Xcode Helper」/ 終端機控制電腦（輔助使用）。
+# Results go to build/E2E-<suite>-<dest>.xcresult (with screenshots and recordings on failure); open it in Xcode.
+# Do not touch the mouse or keyboard while it runs (XCUITest sends real input events); macOS tests switch to the
+# ABC input source and restore it afterwards.
+# On the first macOS run, the system asks to allow "Xcode Helper" / Terminal to control the computer (Accessibility).
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -25,7 +26,7 @@ for arg in "$@"; do
     smoke|sync|perf|all) SUITE=$arg ;;
     mac|ipad) DEST=$arg ;;
     --ci) CI=1 ;;
-    *) echo "用法：$0 [smoke|sync|perf|all] [mac|ipad] [--ci]" >&2; exit 2 ;;
+    *) echo "Usage: $0 [smoke|sync|perf|all] [mac|ipad] [--ci]" >&2; exit 2 ;;
   esac
 done
 
@@ -40,7 +41,7 @@ esac
 ONLY=()
 for c in "${CLASSES[@]}"; do ONLY+=("-only-testing:$TARGET/$c"); done
 
-# 傳給測試程序的環境變數要加 TEST_RUNNER_ 前綴
+# Environment variables for the test runner need the TEST_RUNNER_ prefix
 if [[ "$SUITE" == perf || "$SUITE" == all ]]; then
   export TEST_RUNNER_EASYNOTES_E2E_PERF=1
 fi
@@ -53,7 +54,7 @@ esac
 SIGNING=()
 if [[ $CI == 1 ]]; then
   if [[ "$DEST" == mac ]]; then
-    # ad-hoc 簽署；拿掉 Sign in with Apple 的 entitlement（沒有描述檔時 macOS 不讓 App 啟動，E2E 也不登入）
+    # Ad-hoc signing; drop the Sign in with Apple entitlement (macOS refuses to launch the app without a profile, and E2E does not sign in)
     SIGNING=(CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= CODE_SIGN_ENTITLEMENTS= PROVISIONING_PROFILE_SPECIFIER=)
   else
     SIGNING=(CODE_SIGNING_ALLOWED=NO)

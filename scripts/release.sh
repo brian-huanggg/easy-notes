@@ -1,16 +1,16 @@
 #!/bin/bash
-# 準備發版（只動本機：不 build、不 push）：
-#   測試 → Changelog → App 內的「新功能」內容 → MARKETING_VERSION → commit → tag
-# 之後用 ./scripts/publish-release.sh 打包、推送、建立 GitHub Release 與 Sparkle 更新。
+# Prepares a release (local only: no build, no push):
+#   tests → Changelog → in-app "What's New" content → MARKETING_VERSION → commit → tag
+# Then ./scripts/publish-release.sh packages, pushes, and creates the GitHub Release and Sparkle update.
 #
-#   ./scripts/release.sh                 版本號依 commit 類型決定（feat → minor、fix → patch、`!` → major）
-#   ./scripts/release.sh 1.3.0           指定版本號
+#   ./scripts/release.sh                 version from commit types (feat → minor, fix → patch, `!` → major)
+#   ./scripts/release.sh 1.3.0           explicit version
 #   ./scripts/release.sh minor           patch / minor / major
-#   ./scripts/release.sh --dry-run       只印出版本號與 Changelog 區塊，不改任何檔案
-#   ./scripts/release.sh --skip-tests    略過測試（check-l10n、web、EasyNotesCore）
+#   ./scripts/release.sh --dry-run       print the version and Changelog block only; change no files
+#   ./scripts/release.sh --skip-tests    skip tests (check-l10n, web, EasyNotesCore)
 #
-# Changelog 內容來自上個 tag 以來的 feat / fix / perf / security commit（cliff.toml）。
-# 想手寫的版本：發版前在 docs/Changelog.md 放一個 `## [Unreleased]` 區塊，會直接改名成這個版本，不再產生。
+# The Changelog comes from feat / fix / perf / security commits since the last tag (cliff.toml).
+# To hand-write a version, add a `## [Unreleased]` block to docs/Changelog.md first; it is renamed, not regenerated.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -26,21 +26,21 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
     --skip-tests) SKIP_TESTS=1 ;;
-    -*) echo "不認得的參數：$arg" >&2; exit 2 ;;
+    -*) echo "Unknown argument: $arg" >&2; exit 2 ;;
     *) REQUEST="$arg" ;;
   esac
 done
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-# MARK: 依賴（git-cliff 與 web 測試用；--frozen-lockfile 只照 lockfile 安裝，不會改動它。根目錄與 web 是同一個 pnpm workspace）
+# MARK: Dependencies (git-cliff and web tests; --frozen-lockfile installs from the lockfile without changing it. Root and web share one pnpm workspace)
 
 pnpm install --frozen-lockfile --silent
 
-# MARK: 版本號
+# MARK: Version
 
 CURRENT=$(sed -nE 's/^ *MARKETING_VERSION: "([^"]+)".*/\1/p' project.yml)
-[[ -n "$CURRENT" ]] || die "project.yml 找不到 MARKETING_VERSION"
+[[ -n "$CURRENT" ]] || die "MARKETING_VERSION not found in project.yml"
 
 bump() {
   local major minor patch
@@ -57,37 +57,37 @@ case "$REQUEST" in
   major|minor|patch) VERSION=$(bump "$REQUEST") ;;
   *) VERSION=${REQUEST#v} ;;
 esac
-[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "版本號格式要像 1.2.3（得到「${VERSION}」）"
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "Version must look like 1.2.3 (got \"${VERSION}\")"
 TAG="v$VERSION"
 
-# MARK: 檢查
+# MARK: Checks
 
 if [[ $DRY_RUN == 0 ]]; then
-  [[ "$(git rev-parse --abbrev-ref HEAD)" == main ]] || die "請在 main 上發版"
-  [[ -z "$(git status --porcelain)" ]] || die "工作目錄不乾淨，先 commit 或 stash"
+  [[ "$(git rev-parse --abbrev-ref HEAD)" == main ]] || die "Release from main"
+  [[ -z "$(git status --porcelain)" ]] || die "Working tree is not clean: commit or stash first"
 fi
-git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag ${TAG} 已經存在"
+git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "Tag ${TAG} already exists"
 LAST_TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
-[[ -n "$LAST_TAG" && "${LAST_TAG#v}" == "$VERSION" ]] && die "${VERSION} 已經是最新的 tag"
+[[ -n "$LAST_TAG" && "${LAST_TAG#v}" == "$VERSION" ]] && die "${VERSION} is already the latest tag"
 
-# MARK: Changelog 區塊
+# MARK: Changelog block
 
 if python3 scripts/changelog.py has-unreleased; then
-  SOURCE="手寫的 [Unreleased]"
+  SOURCE="hand-written [Unreleased]"
   BLOCK=""
 else
-  SOURCE="${LAST_TAG}..HEAD 的 commit"
+  SOURCE="commits in ${LAST_TAG}..HEAD"
   BLOCK=$(cliff --unreleased --tag "$TAG")
-  grep -q '^- ' <<<"$BLOCK" || die "${SOURCE} 沒有 feat / fix / perf / security，沒有東西可以發版"
+  grep -q '^- ' <<<"$BLOCK" || die "${SOURCE}: no feat / fix / perf / security, nothing to release"
 fi
 
-echo "版本  ${CURRENT} → ${VERSION}（${SOURCE}）"
+echo "Version  ${CURRENT} → ${VERSION} (${SOURCE})"
 if [[ $DRY_RUN == 1 ]]; then
   [[ -n "$BLOCK" ]] && { echo; echo "$BLOCK"; } || sed -n '/^## \[Unreleased\]/,/^## \[/p' "$CHANGELOG" | sed '$d'
   exit 0
 fi
 
-# MARK: 測試
+# MARK: Tests
 
 if [[ $SKIP_TESTS == 0 ]]; then
   ./scripts/check-l10n.py
@@ -96,7 +96,7 @@ if [[ $SKIP_TESTS == 0 ]]; then
   (cd Packages/EasyNotesCore && swift test)
 fi
 
-# MARK: 寫入
+# MARK: Write
 
 if [[ -z "$BLOCK" ]]; then
   python3 scripts/changelog.py promote "$VERSION"
@@ -112,5 +112,5 @@ git add "$CHANGELOG" "$WHATS_NEW" project.yml EasyNotes.xcodeproj
 git commit -q -m "chore(release): $TAG"
 git tag -a "$TAG" -m "EasyNotes $VERSION"
 
-echo "✓ 已建立 commit 與 tag ${TAG}（尚未 push）"
-echo "  下一步：./scripts/publish-release.sh   （--testflight 一併上傳 iOS / iPadOS）"
+echo "✓ Created commit and tag ${TAG} (not pushed)"
+echo "  Next: ./scripts/publish-release.sh   (includes TestFlight; --skip-testflight for the Mac release only)"

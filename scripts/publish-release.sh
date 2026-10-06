@@ -1,63 +1,65 @@
 #!/bin/bash
-# 發佈 ./scripts/release.sh 建好的 tag：
-#   打包 DMG → 產生 Sparkle appcast（簽章）→ push main 與 tag → 建立 GitHub Release（DMG + appcast.xml）
-# 已安裝的 Mac 版 App 之後會從 Release 的 appcast.xml 收到更新（SUFeedURL 在 project.yml）。
+# Publishes the tag created by ./scripts/release.sh:
+#   build DMG → sign Sparkle appcast → push main and tag → create GitHub Release (DMG + appcast.xml)
+#   → upload iOS / iPadOS to TestFlight
+# Installed Mac apps then receive the update from the Release's appcast.xml (SUFeedURL is in project.yml).
 #
-#   ./scripts/publish-release.sh              發佈 HEAD 上的版本 tag
-#   ./scripts/publish-release.sh --testflight 之後一併上傳 iOS / iPadOS 到 TestFlight
-#   ./scripts/publish-release.sh --yes        不再確認（push 與發佈是對外的動作，預設會問）
+#   ./scripts/publish-release.sh                   publish the version tag at HEAD
+#   ./scripts/publish-release.sh --skip-testflight publish the Mac release only, no TestFlight upload
+#   ./scripts/publish-release.sh --yes             skip the confirmation (pushing and publishing are outward-facing)
 #
-# 第一次使用前：./scripts/sparkle-tools.sh generate-keys，把印出的公鑰填進 project.yml 的 SPARKLE_PUBLIC_ED_KEY。
+# Before the first use: run ./scripts/sparkle-tools.sh generate-keys and put the printed public key in
+# SPARKLE_PUBLIC_ED_KEY in project.yml.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-TESTFLIGHT=0
+TESTFLIGHT=1
 ASSUME_YES=0
 for arg in "$@"; do
   case "$arg" in
-    --testflight) TESTFLIGHT=1 ;;
+    --skip-testflight) TESTFLIGHT=0 ;;
     --yes) ASSUME_YES=1 ;;
-    *) echo "不認得的參數：$arg" >&2; exit 2 ;;
+    *) echo "Unknown argument: $arg" >&2; exit 2 ;;
   esac
 done
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-# MARK: 檢查
+# MARK: Checks
 
-TAG=$(git describe --tags --exact-match --match 'v[0-9]*' HEAD 2>/dev/null) || die "HEAD 不是版本 tag：先跑 ./scripts/release.sh"
+TAG=$(git describe --tags --exact-match --match 'v[0-9]*' HEAD 2>/dev/null) || die "HEAD is not a version tag: run ./scripts/release.sh first"
 VERSION=${TAG#v}
-[[ -z "$(git status --porcelain)" ]] || die "工作目錄不乾淨"
-[[ "$(git rev-parse --abbrev-ref HEAD)" == main ]] || die "請在 main 上發佈"
+[[ -z "$(git status --porcelain)" ]] || die "Working tree is not clean"
+[[ "$(git rev-parse --abbrev-ref HEAD)" == main ]] || die "Publish from main"
 PROJECT_VERSION=$(sed -nE 's/^ *MARKETING_VERSION: "([^"]+)".*/\1/p' project.yml)
-[[ "$PROJECT_VERSION" == "$VERSION" ]] || die "project.yml 的 MARKETING_VERSION（${PROJECT_VERSION}）與 tag（${VERSION}）不同"
+[[ "$PROJECT_VERSION" == "$VERSION" ]] || die "MARKETING_VERSION in project.yml (${PROJECT_VERSION}) does not match the tag (${VERSION})"
 grep -qE '^ *SPARKLE_PUBLIC_ED_KEY: "[^"]+"' project.yml \
-  || die "project.yml 的 SPARKLE_PUBLIC_ED_KEY 是空的：./scripts/sparkle-tools.sh generate-keys"
-gh release view "$TAG" >/dev/null 2>&1 && die "GitHub Release ${TAG} 已經存在"
+  || die "SPARKLE_PUBLIC_ED_KEY in project.yml is empty: run ./scripts/sparkle-tools.sh generate-keys"
+gh release view "$TAG" >/dev/null 2>&1 && die "GitHub Release ${TAG} already exists"
 
 REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 if [[ $ASSUME_YES == 0 ]]; then
-  echo "即將發佈 ${TAG}："
-  echo "  1. 打包 DMG、簽章 appcast"
+  echo "About to publish ${TAG}:"
+  echo "  1. Build the DMG and sign the appcast"
   echo "  2. git push origin main ${TAG}"
-  echo "  3. 在 ${REPO} 建立 Release（DMG + appcast.xml）"
-  [[ $TESTFLIGHT == 1 ]] && echo "  4. 上傳 TestFlight"
-  read -r -p "繼續？[y/N] " answer
+  echo "  3. Create the Release on ${REPO} (DMG + appcast.xml)"
+  [[ $TESTFLIGHT == 1 ]] && echo "  4. Upload to TestFlight"
+  read -r -p "Continue? [y/N] " answer
   [[ "$answer" == y || "$answer" == Y ]] || exit 1
 fi
 
-# MARK: 打包與 appcast
+# MARK: Package and appcast
 
 ./scripts/make-dmg.sh
 DMG="build/EasyNotes-${VERSION}.dmg"
-[[ -f "$DMG" ]] || die "找不到 $DMG"
+[[ -f "$DMG" ]] || die "$DMG not found"
 
 STAGING=build/appcast
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
 cp "$DMG" "$STAGING/"
-# 與 DMG 同檔名的 .md 會成為 Sparkle 更新視窗的說明
+# A .md with the DMG's file name becomes the release notes in Sparkle's update window
 python3 scripts/changelog.py show "$VERSION" > "$STAGING/EasyNotes-${VERSION}.md"
 cp "$STAGING/EasyNotes-${VERSION}.md" build/release-notes.md
 
@@ -65,9 +67,9 @@ cp "$STAGING/EasyNotes-${VERSION}.md" build/release-notes.md
   --download-url-prefix "https://github.com/${REPO}/releases/download/${TAG}/" \
   --embed-release-notes \
   "$STAGING"
-[[ -f "$STAGING/appcast.xml" ]] || die "沒有產生 appcast.xml"
+[[ -f "$STAGING/appcast.xml" ]] || die "appcast.xml was not generated"
 
-# MARK: 推送與 Release
+# MARK: Push and Release
 
 git push origin main "$TAG"
 gh release create "$TAG" "$DMG" "$STAGING/appcast.xml" \
@@ -75,8 +77,9 @@ gh release create "$TAG" "$DMG" "$STAGING/appcast.xml" \
   --notes-file build/release-notes.md \
   --verify-tag
 
-echo "✓ 已發佈 $(gh release view "$TAG" --json url --jq .url)"
+echo "✓ Published $(gh release view "$TAG" --json url --jq .url)"
 
 if [[ $TESTFLIGHT == 1 ]]; then
-  ./scripts/upload-testflight.sh
+  # The Release is public now, so rerunning this script stops at "already exists": retry the upload alone
+  ./scripts/upload-testflight.sh || die "TestFlight upload failed (the GitHub Release is already published): fix it, then run ./scripts/upload-testflight.sh"
 fi
