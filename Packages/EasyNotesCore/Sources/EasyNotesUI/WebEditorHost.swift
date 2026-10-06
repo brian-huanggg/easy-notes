@@ -9,7 +9,17 @@ public final class WebEditorHost {
     private static let log = DiagnosticsLog.logger("editor")
     public private(set) var isReady = false
 
-    @ObservationIgnored public let webView: WKWebView
+    /// Created on first use, not in `init`: a host may be made inside `App.init`, before UIKit has set up event handling
+    /// (see `EditorController.launched`). `prewarm()` creates it ahead of the first editor.
+    public var webView: WKWebView {
+        if let made { return made }
+        let view = makeWebView()
+        made = view
+        return view
+    }
+    @ObservationIgnored private var made: WKWebView?
+    @ObservationIgnored private let configuration: WKWebViewConfiguration
+    @ObservationIgnored private let page: URL?
     /// Called after JS sends `ready` (pre-warming finished)
     @ObservationIgnored public var onReady: (() -> Void)?
     /// Other JS → Swift messages: the `type` and the whole message
@@ -49,8 +59,23 @@ public final class WebEditorHost {
             let source = "{const s=document.createElement('style');s.id='theme';s.textContent=\(literal);document.documentElement.appendChild(s);}"
             config.userContentController.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         }
+        configuration = config
+        self.page = page
+        messageProxy.host = self
+        navigationPolicy.pageURL = page
+    }
+
+    /// Creates the WebView and starts loading the page, so the first editor opens without waiting
+    public func prewarm() {
+        _ = webView
+    }
+
+    private func makeWebView() -> WKWebView {
+        let webView: WKWebView
         #if os(iOS)
-        webView = EditorWebView(frame: .zero, configuration: config)
+        let editorView = EditorWebView(frame: .zero, configuration: configuration)
+        editorView.accessory = makeInputAccessory?()
+        webView = editorView
         webView.isOpaque = false
         webView.backgroundColor = .clear
         // Scrolling is left to the page's own scroller to avoid two levels of scrolling
@@ -58,14 +83,12 @@ public final class WebEditorHost {
         webView.scrollView.bounces = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         #else
-        webView = WKWebView(frame: .zero, configuration: config)
+        webView = WKWebView(frame: .zero, configuration: configuration)
         webView.setValue(false, forKey: "drawsBackground")
         #endif
         #if DEBUG
         webView.isInspectable = true // Safari → Develop → the WebView can be inspected; off in Release so external programs cannot attach to the WebView
         #endif
-        messageProxy.host = self
-        navigationPolicy.pageURL = page
         webView.navigationDelegate = navigationPolicy
 
         if let page {
@@ -73,14 +96,12 @@ public final class WebEditorHost {
         } else {
             assertionFailure("Editor bundle missing; run `npm run build` in web/")
         }
+        return webView
     }
 
     #if os(iOS)
-    /// The native toolbar above the keyboard
-    public var inputAccessoryView: UIView? {
-        get { (webView as? EditorWebView)?.accessory }
-        set { (webView as? EditorWebView)?.accessory = newValue }
-    }
+    /// Makes the native toolbar above the keyboard; called when the WebView is created (the toolbar is a platform view too)
+    @ObservationIgnored public var makeInputAccessory: (() -> UIView?)?
     #endif
 
     // MARK: Swift → JS

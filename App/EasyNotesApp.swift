@@ -62,6 +62,7 @@ struct EasyNotesApp: App {
                 .environment(shell)
                 .environment(\.documentSession, store)
                 .appTheme(theme)
+                .onAppear { store.windowAppeared() }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {

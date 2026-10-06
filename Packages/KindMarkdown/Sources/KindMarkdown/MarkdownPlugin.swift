@@ -4,7 +4,7 @@ import SwiftUI
 /// .md：CodeMirror 6 編輯器（WebView）。和其他外掛走同一套介面，沒有特權通道。
 public enum MarkdownPlugin: EasyNotesPlugin {
     public static func register(in registry: PluginRegistry) {
-        let editor = MarkdownEditor.shared // 啟動時就預先載入 WebView，打開第一篇筆記時不會卡頓
+        let editor = MarkdownEditor.shared // The WebView is pre-warmed in `launched()`, after the window appears
         registry.addKind(MarkdownKind.self, name: L("筆記"), symbol: "doc.text", tint: .neutral)
         registry.addPreview(for: MarkdownKind.id, MarkdownPreview())
         registry.addEditor(for: MarkdownKind.id) { MarkdownEditorView(path: $0) }

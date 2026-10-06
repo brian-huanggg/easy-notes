@@ -109,6 +109,14 @@ final class VaultStore: DocumentSession {
     }
 
     private var editors: [any EditorController] { plugins.controllers }
+    @ObservationIgnored private var hasLaunched = false
+
+    /// The first window appeared: editors may now create platform views (see `EditorController.launched`)
+    func windowAppeared() {
+        guard !hasLaunched else { return }
+        hasLaunched = true
+        for editor in editors { editor.launched() }
+    }
 
     /// Makes editors write back changes not yet reported; called before rename, delete and going to the background
     func flushEditors() async {
