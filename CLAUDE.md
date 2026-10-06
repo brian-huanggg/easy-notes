@@ -1,52 +1,35 @@
 # EasyNotes
 
-## 文件（來源是 `docs/` 的本地 md，三份內容不重複）
+## Language
 
-- [Architecture](./docs/architecture/README.md)：現在的設計與理由（不放進度、日期）；README 放跨功能原則與依賴規則，每個功能一個檔（`core` / `ui` / `markdown` / `whiteboard` / `pdf` / `sheets` / `flashcards` / `translation`）
-- [Roadmap](./docs/Roadmap.md)：勾選清單、驗收、Bug；進度以勾選為準（不放設計理由）
-- [Changelog](./docs/Changelog.md)：給使用者看的版本變更（由 commit 訊息產生，不手改）
+- **en-US** for everything in the repository except product strings: docs, code comments, script output, commit messages, test names, identifiers.
+- Product strings (UI text, the zh-Hant source keys in `L("…")` / `t(…)`, `.xcstrings`, Chinese and Zhuyin test data, sample notes, the in-app "What's New" content) stay Traditional Chinese for now and are translated later. Do not translate them as part of unrelated changes.
 
-## 工作流程
+## Docs (local md under `docs/`, no duplicated content)
 
-- **實作前**：只讀 Roadmap 的「狀態總覽」與目前 Phase 小節，再依「設計」欄讀 `docs/architecture/` 對應的檔案（整份讀，不必 offset / limit）；跨外掛或改 Core 才讀 README 與 `core.md`；同一內容一個 session 只讀一次。
-- **實作中**：設計有變動，先改 `docs/architecture/` 對應檔再改程式；直接寫成現行規則，不加日期。
-- **實作後**：Roadmap 勾選（沒實際驗證的不勾，寫「尚未驗證」）、測試通過後 commit；Roadmap 與程式放同一個 commit。**不要手改 Changelog**：它由 commit 訊息產生（見下）。
-- **Commit**：[Conventional Commits](https://www.conventionalcommits.org/zh-hant/v1.0.0/)，格式 `type: 主旨`，由 `.githooks/commit-msg`（commitlint）檢查，不合格式的 commit 會被擋下。type 決定 Changelog：
-  - 進 Changelog：`feat`（Added）、`fix`（Fixed）、`perf`（Changed）、`security`（Security）。**主旨就是使用者看到的那一行**：繁體中文、寫使用者看得到的變化（「表格可以拖曳排序」），不寫實作細節（「重構 X」「加入 Y 測試」）。
-  - 不進 Changelog：`docs`、`refactor`、`test`、`chore`、`build`、`ci`、`style`、`revert`；使用者看不到的修正（腳本、測試、內部重構）用這些 type，不要用 `fix`。
-  - 主旨 ≤ 100 字；細節放內文。只 stage 自己改的檔案（不用 `git add -A`，可能有其他 session 的檔案）；不 push、不 amend。
-- **發版**（設計見 [README](./docs/architecture/README.md)「發版流程」）：
-  1. `./scripts/release.sh`：測試、由 commit 產生 Changelog、更新 `MARKETING_VERSION`、「新功能」內容，建立 `chore(release): vX.Y.Z` commit 與 tag（本機，不 push；`--dry-run` 先預覽）。
-  2. `./scripts/publish-release.sh`：打包 DMG、簽章 appcast、push、建立 GitHub Release（`--testflight` 一併上傳 iOS / iPadOS）。push 與建立 Release 是對外的動作，**先問使用者**；不要加 `--yes` 繞過確認。
-  - 版本號只改 `project.yml` 的 `MARKETING_VERSION`（由 `release.sh` 改），不手改；不手動打 tag。
+- [Architecture](./docs/architecture/README.md): the current design and its reasons (no progress, no dates). The README holds cross-feature principles and dependency rules; each feature has one file (`core` / `ui` / `markdown` / `whiteboard` / `pdf` / `sheets` / `flashcards` / `translation` / `security`).
+- [Status](./docs/Status.md): only what is still open (device verification pending, unfinished work, security review, risks). No design reasons. Completed work is deleted, not checked off; git history keeps it.
+- [Changelog](./docs/Changelog.md): user-facing version changes, generated from commit messages; never edit by hand.
+- [README](./README.md): project overview and developer setup.
 
-## 不可違反的規則
+## Workflow
 
-- 檔案即真相：資料庫只是可重建的索引。
-- 核心（`Packages/EasyNotesCore`）不認識任何檔案類型；功能一律做成編譯期外掛。
-- 外掛只依賴 EasyNotesCore / EasyNotesUI，外掛之間不互相 import。
-- 打字熱路徑不跨 Swift ⇄ JS Bridge。
-- **繁體中文**，注音輸入相容性是必要條件。
-- 介面文字不寫死：中文字面值一律經過模組的 `L("…")`（見 [translation.md](./docs/architecture/translation.md)）；路徑、檔名慣例與同步協定的字串是例外，集中成常數並標 `// l10n:fixed`。提交前跑 `./scripts/check-l10n.py`。
+- **Before implementing**: read the matching file in `docs/architecture/` in full (no offset / limit); read the README and `core.md` only for cross-plugin work or Core changes; read each file once per session. Check [Status](./docs/Status.md) for related open items.
+- **After implementing**: update [Status](./docs/Status.md) (delete verified items, add anything newly left unverified), commit after tests pass, with Status and code in the same commit. Never claim verification that was not actually done.
+- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), format `type: subject`, enforced by `.githooks/commit-msg` (commitlint); malformed commits are rejected. The type decides the Changelog:
+  - In the Changelog: `feat` (Added), `fix` (Fixed), `perf` (Changed), `security` (Security). **The subject is the line users read**: en-US, describing what users can see ("Tables can be reordered by dragging"), not implementation details ("Refactor X", "Add tests for Y").
+  - Not in the Changelog: `docs`, `refactor`, `test`, `chore`, `build`, `ci`, `style`, `revert`. Fixes users cannot see (scripts, tests, internal refactors) use these types, not `fix`.
+  - Subject ≤ 100 characters; details go in the body. Stage only the files you changed (never `git add -A`; other sessions may have files in the tree); never push, never amend.
+- **Releasing** (design in "Release flow" of the [README](./docs/architecture/README.md)):
+  1. `./scripts/release.sh`: runs tests, generates the Changelog from commits, updates `MARKETING_VERSION` and the "What's New" content, and creates the `chore(release): vX.Y.Z` commit and tag (local, no push; `--dry-run` previews first).
+  2. `./scripts/publish-release.sh`: builds the DMG, signs the appcast, pushes, and creates the GitHub Release (`--testflight` also uploads iOS / iPadOS). Pushing and creating a Release are outward-facing: **ask the user first**, and never add `--yes` to skip the confirmation.
+  - The version lives only in `MARKETING_VERSION` in `project.yml` (changed by `release.sh`); never edit it or tag by hand.
 
-## 指令
+## Rules that must not be broken
 
-```sh
-pnpm install                                # 根目錄（root 與 web 同一個 workspace）：安裝依賴並啟用 commit-msg hook（clone 後先跑一次）
-(cd web && pnpm build)                      # 修改 web/src 後
-(cd web && pnpm test)                       # Web 端單元測試（Node，不需要瀏覽器）
-(cd web && node test/ime.e2e.mjs)           # 注音組字 e2e（Chromium 模擬輸入法，需要 playwright；先 pnpm build）
-(cd web && node test/blocks.e2e.mjs)        # 表格、公式、屬性面板 e2e（同上）
-(cd web && node test/sheet.e2e.mjs)         # CSV / TSV 工具列、編輯列、狀態列 e2e（同上）
-xcodegen generate                           # 修改 project.yml 後
-(cd Packages/EasyNotesCore && swift test)   # 核心單元測試（含同步引擎，用假 backend）
-./scripts/test-sync.sh                      # SupabaseSync 整合測試（本地 Supabase，需要 Docker）
-./scripts/test-e2e.sh [smoke|sync|perf|all] [mac|ipad]  # E2E（XCUITest，Tests/E2E）；結果在 build/E2E-*.xcresult
-supabase db push                            # 把 supabase/migrations 套到雲端專案
-./scripts/check-l10n.py                     # 找出沒有經過 L("…") 的中文字面值（提交前）
-./scripts/fsrs-vectors.py                   # 重新產生 FSRS 參考向量（升級 swift-fsrs 後，需要 uv）
-./scripts/whiteboard-stress.py 1000 <路徑>   # 產生 1,000 個元素的白板（4c 效能驗收）
-./scripts/install-mac.sh                    # 本機快速更新 /Applications/EasyNotes.app 並重開（--web 先打包 web/src）
-./scripts/make-dmg.sh                       # macOS 只走 DMG 安裝更新 → build/EasyNotes-<版本>.dmg
-./scripts/upload-testflight.sh              # iOS / iPadOS 上傳 TestFlight（build 號碼自動遞增；Mac 不走 TestFlight）
-```
+- Core (`Packages/EasyNotesCore`) knows no file types; every feature is a compile-time plugin.
+- Plugins depend only on EasyNotesCore / EasyNotesUI (and shared libraries such as ExcalidrawKit); plugins never import each other.
+- The typing hot path never crosses the Swift ⇄ JS Bridge.
+- Zhuyin (Bopomofo) input compatibility is a hard requirement; the UI language is Traditional Chinese first.
+- No hardcoded UI text: Chinese literals always go through the module's `L("…")` (see [translation.md](./docs/architecture/translation.md)); path, file-name-convention and sync-protocol strings are the exception, collected into constants marked `// l10n:fixed`. Run `./scripts/check-l10n.py` before committing.
+
