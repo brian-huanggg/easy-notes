@@ -68,8 +68,9 @@ final class VaultStore: DocumentSession {
     /// Files waiting for a plugin's ContentFixer (local changes); open files wait until they are left
     @ObservationIgnored private var pendingFixes = Set<String>()
     @ObservationIgnored private var fixTask: Task<Void, Never>?
-    /// The title (from the index rule, e.g. the first `#` line) a file had before this visit's in-app edits; compared when it is left
-    @ObservationIgnored private var titleBeforeEdits: [String: String] = [:]
+    /// The title (from the index rule, e.g. the first `#` line) a file had before this visit's in-app edits, and the title its latest in-app write produced;
+    /// compared when it is left, so a title changed by sync or an external tool meanwhile is not taken as the user's
+    @ObservationIgnored private var titleEdits: [String: (before: String, after: String?)] = [:]
     /// The latest in-app write per path, awaited before renaming so a late save does not recreate the old name
     @ObservationIgnored private var inFlightWrites: [String: Task<Void, Never>] = [:]
 
@@ -304,8 +305,8 @@ final class VaultStore: DocumentSession {
         guard VaultFS.isSafe(path: path) else { return } // A path from external input such as the Bridge is never written outside the vault
         let expected = lastWritten[path]
         lastWritten[path] = data
-        if titleBeforeEdits[path] == nil, let expected, let title = title(of: expected, at: path) {
-            titleBeforeEdits[path] = title
+        if let before = titleEdits[path]?.before ?? expected.flatMap({ title(of: $0, at: path) }) {
+            titleEdits[path] = (before, title(of: data, at: path))
         }
         let device = SyncCoordinator.deviceName
         inFlightWrites[path] = Task { [writer, index] in
@@ -341,19 +342,21 @@ final class VaultStore: DocumentSession {
     /// so typing and Zhuyin composition are never interrupted. Edits from sync or external tools never rename (other devices rename on their own edits).
     /// Types whose title is the file name never change title, so nothing happens for them
     private func renameToTitleIfLeft(_ path: String) async {
-        guard !isOpen(path), let before = titleBeforeEdits.removeValue(forKey: path) else { return }
+        guard !isOpen(path), let edits = titleEdits.removeValue(forKey: path) else { return }
         await flushEditors()
-        await inFlightWrites[path]?.value
-        inFlightWrites[path] = nil
-        guard fs.exists(path), let data = try? fs.read(path),
-              let title = title(of: data, at: path)?.trimmingCharacters(in: .whitespaces), !title.isEmpty,
-              title != before, let name = fs.nameFollowing(title: title, for: path) else { return }
-        // Opened again while waiting: try again when it is left
-        guard !isOpen(path) else {
-            titleBeforeEdits[path] = before
-            return
+        // Drain every save to this path, including ones that arrive while waiting; only clear a handle that is still the awaited one
+        while let pending = inFlightWrites[path] {
+            await pending.value
+            if inFlightWrites[path] == pending { inFlightWrites[path] = nil }
         }
-        await rename(path, to: name)
+        guard fs.exists(path), let data = try? fs.read(path), let current = title(of: data, at: path),
+              current == edits.after, current != edits.before,
+              case let title = current.trimmingCharacters(in: .whitespaces), !title.isEmpty,
+              let name = fs.nameFollowing(title: title, for: path) else { return }
+        // Opened again while waiting (here or inside rename's awaits): try again when it is left
+        if await !rename(path, to: name, unlessOpen: true), titleEdits[path] == nil {
+            titleEdits[path] = edits
+        }
     }
 
     // MARK: External changes
@@ -536,10 +539,12 @@ final class VaultStore: DocumentSession {
         } catch { report(error) }
     }
 
-    /// After a rename, also updates `[[old name]]` in other notes (keeping aliases)
-    func rename(_ path: String, to newName: String) async {
+    /// After a rename, also updates `[[old name]]` in other notes (keeping aliases).
+    /// `unlessOpen`: skipped when the file is open at the moment it would move (an automatic rename must never move an open editor). Returns whether it moved
+    @discardableResult
+    func rename(_ path: String, to newName: String, unlessOpen: Bool = false) async -> Bool {
         let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty else { return false }
         await flushEditors()
         let ext = (path as NSString).pathExtension
         let name = isFolder(path) || ext.isEmpty || trimmed.hasSuffix("." + ext) ? trimmed : "\(trimmed).\(ext)"
@@ -549,6 +554,8 @@ final class VaultStore: DocumentSession {
             let sources = isFolder(path) ? [] : (try await index?.sources(linkingTo: oldTitle) ?? [])
             let newPathGuess = ((path as NSString).deletingLastPathComponent as NSString).appendingPathComponent(name)
             let companions = isFolder(path) ? [] : fs.companionMoves(from: path, to: newPathGuess)
+            // No await between this check and the move
+            if unlessOpen && isOpen(path) { return false }
             let newPath = try fs.rename(path, to: name)
             didMove(from: path, to: newPath, companions: companions)
 
@@ -565,7 +572,11 @@ final class VaultStore: DocumentSession {
             }
             await syncIndex()
             onLocalChange?()
-        } catch { report(error) }
+            return true
+        } catch {
+            report(error)
+            return false
+        }
     }
 
     /// Drag to another folder (`""` = root): the name is unchanged, so links need no rewriting
