@@ -219,6 +219,29 @@ public struct VaultFS: Sendable {
         return newPath
     }
 
+    /// The file name (extension kept) for `path` once its title became `title`; nil when the name already follows it.
+    /// A taken name gets a number like `create`; a case-only difference is left alone (the same file on a case-insensitive volume)
+    public func nameFollowing(title: String, for path: String) -> String? {
+        let parent = (path as NSString).deletingLastPathComponent
+        let current = (path as NSString).lastPathComponent
+        let ext = (current as NSString).pathExtension
+        // Leaves room for " 99" and the extension within the 255-byte name limit
+        var stem = Self.safeFileName(title)
+        while stem.utf8.count > 200 { stem.removeLast() }
+        func name(_ n: Int) -> String {
+            let numbered = n == 1 ? stem : "\(stem) \(n)"
+            return ext.isEmpty ? numbered : "\(numbered).\(ext)"
+        }
+        guard name(1).lowercased() != current.lowercased() else { return nil }
+        var n = 1
+        while true {
+            let candidate = name(n)
+            if candidate == current { return nil }
+            if !exists(join(parent, candidate)) { return candidate }
+            n += 1
+        }
+    }
+
     /// Moves to another folder (`""` = root) with the name unchanged; companions move together.
     /// Throws when the destination has an item with the same name or a folder is moved into itself
     public func move(_ path: String, toFolder folder: String) throws -> String {

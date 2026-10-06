@@ -44,6 +44,35 @@ final class DocumentLifecycleTests: E2ETestCase {
         app.waitFor(A11yID.List.document("Projects/Plan B.md"))
     }
 
+    /// The file name follows the first `#` line: renamed after the note is left, never while typing
+    @MainActor
+    func testEditingTitleRenamesFileAfterLeaving() {
+        let vault = TestVault()
+        Fixture.standard(vault)
+        let app = launch(vault)
+        app.waitFor(A11yID.List.document(Fixture.Path.plan)).tapOrClick()
+        app.waitForEditor("markdown")
+
+        let web = app.editorWebView
+        let content = web.textViews.firstMatch.exists ? web.textViews.firstMatch : web
+        content.tapOrClick()
+        #if os(macOS)
+        content.typeKey(.upArrow, modifierFlags: .command)
+        content.typeKey(.rightArrow, modifierFlags: .command)
+        #else
+        web.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.05)).tap()
+        #endif
+        content.typeText(" v2")
+        XCTAssertTrue(waitUntil { vault.read(Fixture.Path.plan)?.hasPrefix("# 專案計畫 v2\n") == true }, "標題沒有存檔")
+        XCTAssertTrue(vault.exists(Fixture.Path.plan), "還在編輯時就改名了")
+
+        app.tap(A11yID.Sidebar.node("Study"))
+        XCTAssertTrue(waitUntil { vault.exists("Projects/專案計畫 v2.md") && !vault.exists(Fixture.Path.plan) },
+                      "離開後檔名沒有跟著標題")
+        XCTAssertTrue(waitUntil { vault.read(Fixture.Path.meeting)?.contains("[[專案計畫 v2]]") == true },
+                      "其他筆記的連結沒有更新")
+    }
+
     @MainActor
     func testPinIsStoredInFrontmatter() {
         let vault = TestVault()
