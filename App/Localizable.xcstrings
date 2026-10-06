@@ -1215,12 +1215,82 @@
         }
       }
     },
+    "鍵盤快速鍵" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keyboard Shortcuts"
+          }
+        }
+      }
+    },
+    "按下按鍵…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Press keys…"
+          }
+        }
+      }
+    },
+    "還原預設" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore Default"
+          }
+        }
+      }
+    },
+    "全部還原預設" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore All Defaults"
+          }
+        }
+      }
+    },
+    "需包含 ⌘、⌃ 或 ⌥" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Must include ⌘, ⌃ or ⌥"
+          }
+        }
+      }
+    },
+    "已使用此快速鍵" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " already uses this shortcut"
+          }
+        }
+      }
+    },
     "關閉分頁" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Close Tab"
+          }
+        }
+      }
+    },
+    "關閉視窗" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Window"
           }
         }
       }
