@@ -23,8 +23,10 @@ public final class MarkdownEditor: EditorController {
         /// 選擇封面圖片的檔案面板
         case coverFile
         case icon(current: String?)
-        /// 格式工具列的插入圖片
+        /// 格式工具列的插入圖片（檔案面板）
         case image
+        /// 從照片圖庫選圖片（iOS）：插入內文，或當封面
+        case photoLibrary(cover: Bool)
     }
 
     /// Spike S1 量測：JS 端切換文件耗時（ms）
@@ -113,7 +115,7 @@ public final class MarkdownEditor: EditorController {
         #endif
     }
 
-    /// 把剪貼簿的圖片存成暫存 PNG 當封面（⌘V）；`chooseCover` 會再複製到附件資料夾
+    /// 把剪貼簿的圖片當封面（封面選單的「貼上」）；`chooseCover` 會再複製到附件資料夾
     @discardableResult
     func pasteCover() async -> Bool {
         #if os(iOS)
@@ -124,15 +126,15 @@ public final class MarkdownEditor: EditorController {
             .flatMap { NSBitmapImageRep(data: $0)?.representation(using: .png, properties: [:]) }
         #endif
         guard let png else { return false }
-        let stamp = Int(Date().timeIntervalSince1970)
-        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let url = dir.appendingPathComponent(L("貼上的圖片-\(stamp).png"))
-        do {
-            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-            try png.write(to: url)
-        } catch { return false }
-        defer { try? FileManager.default.removeItem(at: dir) }
-        await chooseCover(url)
+        return await importImage(png, asCover: true)
+    }
+
+    /// 圖片資料（貼上、照片圖庫）存進附件資料夾，再插入內文或設為封面；不是圖片就什麼都不做
+    @discardableResult
+    func importImage(_ data: Data, asCover: Bool) async -> Bool {
+        guard let staged = ImageImport.stage(data) else { return false }
+        defer { staged.cleanup() }
+        if asCover { await chooseCover(staged.url) } else { await insertImage(staged.url) }
         return true
     }
 
@@ -152,9 +154,21 @@ public final class MarkdownEditor: EditorController {
                 ToolItem("3.square", help: L("標題 3")) { self.exec("heading3") },
             ]),
             ToolItem("checklist", help: L("待辦事項")) { self.exec("task") },
-            ToolItem("photo", help: L("插入圖片")) { self.picker = .image },
+            photoItem,
             ToolItem("tablecells", help: L("插入表格")) { self.exec("table") },
         ]
+    }
+
+    /// iOS: a menu offering the photo library and the Files app (the file importer cannot browse Photos); Mac: the file panel
+    private var photoItem: ToolItem {
+        #if os(iOS)
+        ToolItem("photo", help: L("插入圖片"), menu: [
+            ToolItem("photo.on.rectangle", help: L("照片圖庫")) { self.picker = .photoLibrary(cover: false) },
+            ToolItem("folder", help: L("選擇圖片…")) { self.picker = .image },
+        ])
+        #else
+        ToolItem("photo", help: L("插入圖片")) { self.picker = .image }
+        #endif
     }
 
     private static func meta(_ modified: Date?) -> [String: Any] {
@@ -249,6 +263,12 @@ public final class MarkdownEditor: EditorController {
             if let target = msg["target"] as? String { session?.openLink(target) }
         case "openTag":
             if let tag = msg["tag"] as? String { session?.search("#" + tag) }
+        case "pasteImage":
+            // Pasted image from the page (base64). Size is checked before decoding; `ImageImport` rejects non-images
+            if let text = msg["data"] as? String, text.utf8.count <= ImageImport.maxBytes * 4 / 3 + 4,
+               let data = Data(base64Encoded: text) {
+                Task { await importImage(data, asCover: false) }
+            }
         case "pickCover":
             picker = .cover(hasCover: msg["hasCover"] as? Bool ?? false)
         case "pickIcon":
