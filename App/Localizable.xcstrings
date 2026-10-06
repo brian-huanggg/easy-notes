@@ -1225,6 +1225,16 @@
         }
       }
     },
+    "關閉視窗" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Window"
+          }
+        }
+      }
+    },
     "關閉分頁（⌘W）" : {
       "localizations" : {
         "en" : {

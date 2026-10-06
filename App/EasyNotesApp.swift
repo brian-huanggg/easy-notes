@@ -42,6 +42,17 @@ struct EasyNotesApp: App {
         _sync = State(initialValue: SyncCoordinator(store: store))
     }
 
+    /// ⌘W: closes the current tab; with only one tab left it closes the window (macOS).
+    private func closeTabOrWindow() {
+        #if os(macOS)
+        if store.tabs.tabs.count <= 1 {
+            NSApp.keyWindow?.performClose(nil)
+            return
+        }
+        #endif
+        store.closeTab(store.tabs.activeID)
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -79,9 +90,16 @@ struct EasyNotesApp: App {
                 Button(L("新分頁")) { store.newTab() }
                     .keyboardShortcut("t")
                     .disabled(!store.supportsTabs)
-                Button(L("關閉分頁")) { store.closeTab(store.tabs.activeID) }
+                Button(L("關閉分頁")) { closeTabOrWindow() }
                     .keyboardShortcut("w")
                     .disabled(!store.supportsTabs)
+                #if os(macOS)
+                Button(L("關閉視窗")) { NSApp.keyWindow?.performClose(nil) }
+                    .keyboardShortcut("w", modifiers: [.command, .option])
+                #endif
+                Divider()
+                Button(L("立即同步")) { sync.syncNow() }
+                    .keyboardShortcut("s")
             }
             CommandMenu(L("前往")) {
                 Button(L("快速開啟…")) { shell.showQuickOpen = true }

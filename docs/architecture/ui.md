@@ -37,7 +37,7 @@ The shell follows `design/easy-notes-ui.pen`; the design file does not change th
   - Opening a file (sidebar, list, ⌘K, `[[link]]`, new, import) opens it in a new tab by default (right of the current tab); a file already open in a tab is switched to instead of duplicated. Folders, tags, lists and plugin panels navigate within the current tab with normal history.
   - Rename / move updates all tabs; deleting a file or folder closes background tabs pointing to it and the current tab goes up one level. Closing the last tab = replace with "All Documents". After closing a file tab, if nothing else has it open, the editor is told to drop its retained state.
   - The tab list is stored in `UserDefaults` (per device, not in the vault, not synced), location only and no history; it is restored the first time SplitShell shows on the next launch, skipping files that no longer exist. E2E (`-EasyNotesVaultRoot`, `-EasyNotesOpen`) neither restores nor keeps it.
-  - Shortcuts: ⌘T new tab, ⌘W close, ⇧⌘] / ⇧⌘[ next / previous tab.
+  - Shortcuts: ⌘T new tab, ⌘W close the tab (with only one tab, closes the window on Mac), ⌥⌘W close the window (Mac), ⇧⌘] / ⇧⌘[ next / previous tab, ⌘S sync now (`SyncCoordinator.syncNow`: flush editors, then sync immediately).
 - Plugins add sidebar items with `addPanel`; the App hardcodes none. The backlinks inspector was removed (the index still keeps backlink data).
 - Interface language follows the system between zh-Hant and English (US); see [translation.md](./translation.md).
 - Shortcuts: ⌘K quick open (reuses FTS5 search), Markdown "[[link]]" ⇧⌘K, new note ⌘N, new whiteboard ⇧⌘N, new folder ⇧⌘F.
