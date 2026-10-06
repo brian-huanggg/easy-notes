@@ -16,7 +16,7 @@ public actor SyncEngine {
     public static func isConflictCopy(_ name: String, of stem: String) -> Bool {
         name.hasPrefix("\(stem) (\(conflictMarker)")
     }
-    static let log = Logger(subsystem: "app.easynotes", category: "sync")
+    static let log = DiagnosticsLog.logger("sync")
 
     public enum RestoreError: Error, LocalizedError {
         case changedOnServer
@@ -124,7 +124,7 @@ public actor SyncEngine {
                 status.lastError = nil
             } catch {
                 status.lastError = "\(error)"
-                Self.log.error("sync failed: \(error, privacy: .public)")
+                Self.log.error("sync failed: \(DiagnosticsLog.describe(error), privacy: .public)")
             }
             status.isSyncing = false
             await publish()
@@ -181,7 +181,7 @@ public actor SyncEngine {
         let request = CommitRequest(id: file.id, baseVersion: file.version, path: path, hash: file.hash,
                                     size: data.count, deleted: false, deviceID: deviceID)
         guard let version = try await backend.commit(request) else { throw RestoreError.changedOnServer }
-        Self.log.info("restore \(path, privacy: .public) v\(version)")
+        Self.log.info("restore \(path, privacy: .private) v\(version)")
         var r = SyncRecord(id: file.id, path: path, hash: file.hash, mtime: 0, size: data.count)
         try write(data, to: path, record: &r)
         r.baseVersion = version
@@ -321,7 +321,7 @@ public actor SyncEngine {
                     r.path = move.to
                     try state.save(r)
                 }
-                Self.log.info("companion \(move.from, privacy: .public) → \(move.to, privacy: .public)")
+                Self.log.info("companion \(move.from, privacy: .private) → \(move.to, privacy: .private)")
                 moves.append(move)
             }
         }
@@ -476,7 +476,7 @@ public actor SyncEngine {
         guard var r = state.records[row.id] else { return }
         try refreshHash(&r)
         if r.hash != r.baseHash {
-            Self.log.info("purged on another device but edited here: keeping \(r.path, privacy: .public) as a new file")
+            Self.log.info("purged on another device but edited here: keeping \(r.path, privacy: .private) as a new file")
             let oldBase = r.baseHash
             try state.remove(r.id)
             r.id = UUID()
@@ -555,7 +555,7 @@ public actor SyncEngine {
                 let request = CommitRequest(id: r.id, baseVersion: baseVersion, path: r.basePath ?? r.path,
                                             hash: baseHash, size: r.size, deleted: true, deviceID: deviceID)
                 if let version = try await backend.commit(request) {
-                    Self.log.info("commit delete \(request.path, privacy: .public) v\(version)")
+                    Self.log.info("commit delete \(request.path, privacy: .private) v\(version)")
                     try state.remove(r.id)
                     dropBase(baseHash)
                 } else {
@@ -571,7 +571,7 @@ public actor SyncEngine {
             let request = CommitRequest(id: r.id, baseVersion: r.baseVersion, path: r.path, hash: r.hash,
                                         size: data.count, deleted: false, deviceID: deviceID)
             if let version = try await backend.commit(request) {
-                Self.log.info("commit \(r.path, privacy: .public) v\(version) \(data.count) bytes")
+                Self.log.info("commit \(r.path, privacy: .private) v\(version) \(data.count) bytes")
                 try cacheBase(data, hash: r.hash)
                 let oldBase = r.baseHash
                 r.baseVersion = version

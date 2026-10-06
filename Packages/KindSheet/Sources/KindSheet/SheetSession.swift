@@ -1,3 +1,4 @@
+import EasyNotesCore
 import EasyNotesUI
 import Foundation
 import Observation
@@ -8,6 +9,7 @@ import Observation
 /// 顯示設定（欄寬、凍結欄、標題列）由 JS 改、以 `meta` 送來，寫進旁檔 `<檔名>.meta.json`。
 @MainActor @Observable
 final class SheetSession {
+    private static let log = DiagnosticsLog.logger("sheet")
     let path: String
     private(set) var encoding: SheetDocument.TextEncoding
 
@@ -99,7 +101,7 @@ final class SheetSession {
             scheduleSave()
         } catch {
             // 模型與畫面對不上（例如外部變動刪掉了 Undo 要改的列）：以模型為準重新載入
-            print("[sheet] edit failed: \(error)")
+            Self.log.error("sheet edit failed: \(DiagnosticsLog.describe(error), privacy: .public)")
             scheduleSave()
             sendLoad()
         }

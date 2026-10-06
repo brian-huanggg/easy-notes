@@ -1514,6 +1514,46 @@
           }
         }
       }
+    },
+    "診斷" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics"
+          }
+        }
+      }
+    },
+    "匯出診斷資料…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Diagnostics…"
+          }
+        }
+      }
+    },
+    "包含最近的執行紀錄、當機與效能報告、App 版本與裝置型號，不含筆記內容；檔案只存到你選的位置。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes recent logs, crash and performance reports, the app version and the device model. No note content. The file is saved only where you choose."
+          }
+        }
+      }
+    },
+    "無法產生診斷資料" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not create the diagnostics file"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
