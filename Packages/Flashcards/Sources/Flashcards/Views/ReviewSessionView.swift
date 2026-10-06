@@ -6,6 +6,9 @@ import SwiftUI
 struct ReviewSessionView: View {
     @Bindable private var store = ReviewStore.shared
     @FocusState private var focused: Bool
+    /// 克漏字：自己輸入的答案（每張卡重新開始）與輸入框是否有焦點
+    @State private var typed = ""
+    @FocusState private var typing: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,7 +17,9 @@ struct ReviewSessionView: View {
             ScrollView {
                 Group {
                     if let card = store.session?.current {
-                        CardView(card: card, showingAnswer: store.session?.showingAnswer == true)
+                        CardView(card: card, showingAnswer: store.session?.showingAnswer == true,
+                                 typed: $typed, typing: $typing) { store.showAnswer() }
+                            .id(card.id)
                     } else {
                         finished
                     }
@@ -32,6 +37,9 @@ struct ReviewSessionView: View {
         .focusEffectDisabled()
         .onAppear { focused = true }
         .onKeyPress(action: handleKey)
+        .onChange(of: store.session?.current?.id) { typed = "" }
+        // 輸入框送出或按鈕顯示答案後，焦點回到畫面，快速鍵才有作用
+        .onChange(of: store.session?.showingAnswer) { _, showing in if showing == true { focused = true } }
     }
 
     // MARK: 上方
@@ -139,7 +147,7 @@ struct ReviewSessionView: View {
     }
 
     private func handleKey(_ press: KeyPress) -> KeyPress.Result {
-        guard press.modifiers.isEmpty || press.modifiers == .shift else { return .ignored }
+        guard !typing, press.modifiers.isEmpty || press.modifiers == .shift else { return .ignored }
         let showing = store.session?.showingAnswer == true
         switch press.key {
         case .space:
@@ -182,6 +190,9 @@ private struct QueueCount: View {
 struct CardView: View {
     let card: StudyCard
     let showingAnswer: Bool
+    @Binding var typed: String
+    var typing: FocusState<Bool>.Binding
+    let reveal: () -> Void
     private var store: ReviewStore { .shared }
 
     var body: some View {
@@ -192,6 +203,7 @@ struct CardView: View {
                          style: TextStyle(card.multiline ? 22 : card.type == .cloze ? 26 : 34, .semibold),
                          highlight: Palette.cardNew)
                     .foregroundStyle(Palette.textPrimary)
+                if card.type == .cloze, !showingAnswer { answerField }
             }
             if showingAnswer {
                 Rectangle().fill(Palette.border).frame(height: 1).padding(.vertical, 30)
@@ -200,6 +212,7 @@ struct CardView: View {
                     CardText(segments: card.back, style: card.multiline ? TextStyle(18) : TextStyle(23, .semibold),
                              highlight: Palette.cardDue)
                         .foregroundStyle(Palette.textPrimary)
+                    if card.type == .cloze, !typed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { typedResult }
                 }
             }
             footer.padding(.top, 26)
@@ -212,6 +225,32 @@ struct CardView: View {
         .frame(maxWidth: 780)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Palette.surfaceRaised))
         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Palette.border.color))
+    }
+
+    /// 克漏字正面：先自己輸入答案（可不填），Return 顯示答案
+    private var answerField: some View {
+        TextField(L("輸入答案（可不填）"), text: $typed)
+            .textFieldStyle(.plain)
+            .textStyle(TextStyle(18))
+            .focused(typing)
+            .onSubmit(reveal)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous).fill(Palette.bgCanvas))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusMedium, style: .continuous)
+                .strokeBorder((typing.wrappedValue ? Palette.accent : Palette.border).color))
+    }
+
+    /// 背面：自己輸入的答案與正確與否
+    private var typedResult: some View {
+        let correct = card.matchesTypedAnswer(typed)
+        return Label {
+            Text(typed).textStyle(TextStyle(16))
+        } icon: {
+            Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
+        }
+        .foregroundStyle(correct ? Palette.cardNew : Palette.cardLearn)
+        .labelStyle(CompactLabelStyle(spacing: 8))
     }
 
     private var footer: some View {
