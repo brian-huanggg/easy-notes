@@ -9,25 +9,33 @@ struct CardText: View {
     let segments: [StudyCard.Segment]
     let style: TextStyle
     let highlight: ColorToken
+    /// 排版寬度；行內公式比它寬時縮小，避免超出卡片（0 = 還不知道）
+    @State private var width: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: style.size * 0.4) {
             ForEach(Array(CardMarkup.blocks(segments).enumerated()), id: \.offset) { _, block in
                 switch block {
                 case .paragraph(let inlines):
-                    Self.text(inlines, size: style.size, highlight: highlight).textStyle(style)
+                    Self.text(inlines, size: style.size, highlight: highlight, maxWidth: width)
+                        .textStyle(style)
+                        .fixedSize(horizontal: false, vertical: true)
                 case .math(let latex, let mathStyle):
                     DisplayMath(latex: latex, size: style.size, highlight: mathStyle.contains(.cloze) ? highlight : nil)
                 case .listItem(let level, let marker, let inlines):
                     HStack(alignment: .firstTextBaseline, spacing: style.size * 0.4) {
                         Text(marker ?? "").textStyle(style).foregroundStyle(Palette.textTertiary)
                             .frame(minWidth: style.size * 0.6, alignment: .trailing)
-                        Self.text(inlines, size: style.size, highlight: highlight).textStyle(style)
+                        Self.text(inlines, size: style.size, highlight: highlight,
+                                  maxWidth: width - CGFloat(level + 1) * style.size * 1.2)
+                            .textStyle(style)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .padding(.leading, CGFloat(level) * style.size * 1.2)
                 case .code(let code):
                     Text(code)
                         .font(.system(size: style.size * 0.8, design: .monospaced))
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(10)
                         .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.bgHover))
@@ -38,6 +46,7 @@ struct CardText: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
     }
 
     /// 單一個 `Text`（列表等需要 `lineLimit` 的地方）：獨立公式也排在行內，區塊之間換行，圖片顯示為檔名
@@ -56,13 +65,14 @@ struct CardText: View {
         return text(inlines, size: size, highlight: highlight)
     }
 
-    static func text(_ inlines: [CardMarkup.Inline], size: CGFloat, highlight: ColorToken) -> Text {
+    static func text(_ inlines: [CardMarkup.Inline], size: CGFloat, highlight: ColorToken,
+                     maxWidth: CGFloat = 0) -> Text {
         inlines.reduce(Text("")) { result, inline in
             switch inline {
             case .text(let string, let style, let link):
                 return result + Text(attributed(string, style, link: link, highlight: highlight))
             case .math(let latex, let style):
-                return result + MathImage.text(latex, size: size, color: style.contains(.cloze) ? highlight : nil)
+                return result + MathImage.text(latex, size: size, color: style.contains(.cloze) ? highlight : nil, maxWidth: maxWidth)
             }
         }
     }
@@ -93,6 +103,7 @@ private struct CardImage: View {
     let width: Double?
     @State private var image: PlatformImage?
     @State private var failed = false
+    @State private var previewing = false
 
     var body: some View {
         Group {
@@ -101,6 +112,10 @@ private struct CardImage: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: min(width.map { CGFloat($0) } ?? .infinity, image.size.width), maxHeight: 400)
+                    .contentShape(Rectangle())
+                    .onTapGesture { previewing = true }
+                    .help(L("點一下放大"))
+                    .sheet(isPresented: $previewing) { ImagePreview(image: image) }
             } else if failed {
                 Text("![[" + (path as NSString).lastPathComponent + "]]") // l10n:fixed 嵌入語法
                     .textStyle(.meta)
@@ -114,6 +129,40 @@ private struct CardImage: View {
             image = await ReviewStore.shared.cardImage(path)
             failed = image == nil
         }
+    }
+}
+
+/// 圖片放大檢視：預設縮放到視窗大小（小圖會放大），點一下切換原始大小（可捲動）
+private struct ImagePreview: View {
+    let image: PlatformImage
+    @Environment(\.dismiss) private var dismiss
+    @State private var actualSize = false
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Group {
+                if actualSize {
+                    ScrollView([.horizontal, .vertical]) {
+                        Image(platformImage: image)
+                            .resizable()
+                            .frame(width: image.size.width, height: image.size.height)
+                    }
+                } else {
+                    Image(platformImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .padding(24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { actualSize.toggle() }
+            IconButton("xmark", help: L("關閉")) { dismiss() }.padding(14)
+        }
+        #if os(macOS)
+        .frame(minWidth: 640, idealWidth: 900, minHeight: 480, idealHeight: 680)
+        #endif
+        .background(Palette.bgCanvas)
     }
 }
 
@@ -263,8 +312,15 @@ enum MathImage {
         return Rendered(image: image, size: image.size, baseline: baseline)
     }
 
-    static func text(_ latex: String, size: CGFloat, color: ColorToken?) -> Text {
-        guard let rendered = render(latex, size: size, display: false) else { return fallback(latex, display: false) }
+    /// `maxWidth` > 0 且公式比它寬時，縮小字級讓公式排進一行（最小縮到 40%）
+    static func text(_ latex: String, size: CGFloat, color: ColorToken?, maxWidth: CGFloat = 0) -> Text {
+        guard var rendered = render(latex, size: size, display: false) else { return fallback(latex, display: false) }
+        if maxWidth > 0, rendered.size.width > maxWidth {
+            let scaled = max(size * 0.4, size * maxWidth / rendered.size.width)
+            // 視窗縮放時寬度連續變動，字級以 0.5pt 為單位才不會塞滿快取
+            let fitted = (scaled * 2).rounded(.down) / 2
+            if let smaller = render(latex, size: fitted, display: false) { rendered = smaller }
+        }
         let text = Text(Image(platformImage: rendered.image).renderingMode(.template)).baselineOffset(-rendered.baseline)
         return color.map { text.foregroundColor($0.color) } ?? text
     }

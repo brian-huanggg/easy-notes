@@ -29,6 +29,9 @@ struct MeView: View {
                 }
                 #endif
             }
+            #if os(macOS)
+            ShortcutSettingsSection()
+            #endif
             Section(L("帳號與同步")) {
                 SyncPanel()
                     .padding(.vertical, 4)
@@ -59,6 +62,70 @@ struct MeView: View {
 }
 
 #if os(macOS)
+/// Keyboard shortcut list; click a shortcut, then press the new key combination (Esc cancels).
+private struct ShortcutSettingsSection: View {
+    @State private var store = ShortcutStore.shared
+    @State private var recording: ShortcutAction?
+    @State private var monitor: Any?
+    @State private var message: String?
+
+    var body: some View {
+        Section(L("鍵盤快速鍵")) {
+            ForEach(ShortcutAction.allCases) { action in
+                LabeledContent(action.title) {
+                    HStack {
+                        Button(recording == action ? L("按下按鍵…") : store.binding(for: action).display) {
+                            recording == action ? stopRecording() : startRecording(action)
+                        }
+                        .monospaced()
+                        Button(L("還原預設"), systemImage: "arrow.uturn.backward") { store.reset(action) }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.borderless)
+                            .disabled(!store.isCustomized(action))
+                    }
+                }
+            }
+            if let message { Text(message).font(.caption).foregroundStyle(.red) }
+            Button(L("全部還原預設")) { store.resetAll() }
+                .disabled(!ShortcutAction.allCases.contains { store.isCustomized($0) })
+        }
+        .onDisappear { stopRecording() }
+    }
+
+    private func startRecording(_ action: ShortcutAction) {
+        stopRecording()
+        message = nil
+        recording = action
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handle(event, for: action)
+            return nil
+        }
+    }
+
+    private func stopRecording() {
+        if let monitor { NSEvent.removeMonitor(monitor) }
+        monitor = nil
+        recording = nil
+    }
+
+    private func handle(_ event: NSEvent, for action: ShortcutAction) {
+        if event.keyCode == 53 { stopRecording(); return } // Esc
+        guard let key = event.charactersIgnoringModifiers?.lowercased(), key.count == 1,
+              key.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) && $0.value < 0xF700 }) else { return }
+        let flags = event.modifierFlags
+        let binding = ShortcutBinding(key, command: flags.contains(.command), shift: flags.contains(.shift),
+                                      option: flags.contains(.option), control: flags.contains(.control))
+        guard binding.isValid else { message = L("需包含 ⌘、⌃ 或 ⌥"); return }
+        if let other = store.conflict(for: binding, excluding: action) {
+            message = other.title + L("已使用此快速鍵")
+            return
+        }
+        store.set(binding, for: action)
+        message = nil
+        stopRecording()
+    }
+}
+
 /// Writes `AppleLanguages`, taking effect after a restart (no live switching, see translation.md). iOS uses system Settings
 enum AppLanguage: String, CaseIterable, Identifiable {
     case system, zhHant = "zh-Hant", en
