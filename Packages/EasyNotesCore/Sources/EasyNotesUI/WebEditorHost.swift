@@ -1,3 +1,4 @@
+import EasyNotesCore
 import SwiftUI
 import WebKit
 
@@ -5,6 +6,7 @@ import WebKit
 /// Typing never goes through the Bridge; the JS side sends messages only when typing stops or on blur. The Bridge protocol is defined by each plugin.
 @MainActor @Observable
 public final class WebEditorHost {
+    private static let log = DiagnosticsLog.logger("editor")
     public private(set) var isReady = false
 
     @ObservationIgnored public let webView: WKWebView
@@ -87,7 +89,10 @@ public final class WebEditorHost {
     public func call(_ js: String, _ args: [String: Any] = [:]) {
         guard isReady else { return }
         webView.callAsyncJavaScript(js, arguments: args, in: nil, in: .page) { result in
-            if case .failure(let error) = result { print("[editor] \(js) failed: \(error)") }
+            if case .failure(let error) = result {
+                // `js` is the app's own script, `args` (which may hold note text) is never logged
+                Self.log.error("editor script failed: \(js, privacy: .public) \(DiagnosticsLog.describe(error), privacy: .public)")
+            }
         }
     }
 

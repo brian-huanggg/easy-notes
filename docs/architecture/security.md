@@ -93,6 +93,16 @@ These rules are the yardstick for review and changes; violating one is a vulnera
 - **Numeric values from the Bridge**: integers from JS such as column indexes and row ids are always range-checked (`SheetDocument.maxColumns`, row ids limited to 53 bits), and out-of-range values are rejected and must never be used to index arrays or allocate memory.
 - PDF is rendered by PDFKit; the app never modifies the original file and annotations go into the sidecar.
 
+### Diagnostics (logs and crash reports)
+
+Design: find bugs and crashes across devices without any telemetry service; nothing leaves the device unless the user exports it.
+
+- **Logging**: every module makes its logger through `DiagnosticsLog.logger(category)` (subsystem `app.easynotes`), so the export can filter to our own entries. Vault paths and anything that may be note content are interpolated `.private`; an error is logged as `DiagnosticsLog.describe(error)` (`domain:code`), never `localizedDescription` or `"\(error)"`, which can embed a file name. The only `print` left is the Bridge trace inside `#if DEBUG`.
+- **Crashes and hangs**: MetricKit (`MXMetricManager`, subscribed at launch in `App/Support/Diagnostics.swift`, skipped in UI tests) delivers diagnostic and metric payloads, at most daily and on the launch after the crash. `DiagnosticsStore` keeps the newest 30 as JSON in Application Support (`<bundle id>/Diagnostics`), not in the vault: the vault is watched, indexed and handed to other tools, and diagnostics are not note data. They are never synced and never uploaded. MetricKit stacks hold symbols and addresses, no note content.
+- **Export**: Settings > Diagnostics > "Export Diagnostics…" writes one JSON file (recent log lines of our subsystem, the stored payloads, app version, build, OS version, hardware model) to a location the user picks (`fileExporter`). Reading the log store is the only moment content-adjacent data is touched, and `.private` values stay redacted in it.
+- **Log store scope**: macOS reads the system-wide store (`OSLogStore(scope: .system)`), which needs no entitlement for an admin user (checked on macOS 15), and falls back to this process only for a non-admin user; iOS has no system scope, so an export there holds the current launch only and relies on the MetricKit payloads for earlier crashes. The report records which scope it read.
+- **No third-party SDK** and no network code in this path. Adding any uploader later changes the threat model: it needs its own entry here first.
+
 ### Distribution and signing
 
 - iOS / iPadOS: TestFlight (Apple signing and review).

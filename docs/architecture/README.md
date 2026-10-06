@@ -121,7 +121,7 @@ Supabase (SyncBackend implementation, assembled by the App)
 ```
 Packages/
   EasyNotesCore/     Core (knows no file types)
-    EasyNotesCore    Vault, Index, Sync, DocumentKind and KindRegistry (no UI dependency, unit-testable)
+    EasyNotesCore    Vault, Index, Sync, DocumentKind and KindRegistry, Diagnostics (logger factory, MetricKit payload store, export report; no UI dependency, unit-testable)
     EasyNotesUI      PluginRegistry, EasyNotesPlugin, DocumentSession, EditorController,
                      WebEditorHost (pre-warming, Bridge, local resources), DesignSystem (tokens, shared components),
                      ink toolbar (InkSettings, StraightLineAssist; shared by whiteboard and PDF)

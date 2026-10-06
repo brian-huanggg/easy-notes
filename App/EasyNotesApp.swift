@@ -33,6 +33,7 @@ struct EasyNotesApp: App {
         #if os(iOS)
         if TestHooks.isUITest { UIView.setAnimationsEnabled(false) }
         #endif
+        Diagnostics.start()
         let registry = PluginRegistry()
         for plugin in plugins { plugin.register(in: registry) }
         let kinds: KindRegistry

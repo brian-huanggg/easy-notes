@@ -77,6 +77,10 @@ controller.reveal(path:, line:)     // Markdown: scrolls to the line and puts th
 
 // EasyNotesCore: this device's identity, stored in `.easynotes/device-id` (not synced); shared by SyncEngine and Flashcards
 vaultFS.deviceID() -> String
+
+// EasyNotesCore: shared logging; plugins and Core make loggers here (never `print`) so the diagnostics export finds them (see security.md "Diagnostics")
+DiagnosticsLog.logger("sync")           // subsystem `app.easynotes`
+DiagnosticsLog.describe(error)          // `domain:code`, safe to log publicly
 ```
 
 **How Flashcards uses the extension points**:

@@ -6,6 +6,11 @@ import SwiftUI
 struct MeView: View {
     @Environment(VaultStore.self) private var store
     @State private var showDeleted = false
+    @State private var diagnostics: DiagnosticsDocument?
+    @State private var diagnosticsName = ""
+    @State private var showDiagnosticsExporter = false
+    @State private var preparingDiagnostics = false
+    @State private var diagnosticsError: String?
     @AppStorage(AppTheme.storageKey) private var theme = AppTheme.system
     #if os(macOS)
     @State private var language = AppLanguage.current
@@ -50,14 +55,44 @@ struct MeView: View {
                 }
                 Button(revealTitle, systemImage: "folder") { reveal(store.fs.root) }
             }
+            Section(L("診斷")) {
+                Button(L("匯出診斷資料…"), systemImage: "stethoscope") { exportDiagnostics() }
+                    .disabled(preparingDiagnostics)
+                Text(L("包含最近的執行紀錄、當機與效能報告、App 版本與裝置型號，不含筆記內容；檔案只存到你選的位置。"))
+                    .font(.caption).foregroundStyle(.secondary)
+                if let diagnosticsError {
+                    Text(diagnosticsError).font(.caption).foregroundStyle(.red)
+                }
+            }
         }
         .formStyle(.grouped)
+        .fileExporter(isPresented: $showDiagnosticsExporter, document: diagnostics, contentType: .json,
+                      defaultFilename: diagnosticsName) { result in
+            if case .failure(let error) = result { diagnosticsError = error.localizedDescription }
+            diagnostics = nil
+        }
         .sheet(isPresented: $showDeleted) { RecentlyDeletedView() }
         .navigationTitle(L("設定"))
         #if os(macOS)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
         #endif
+    }
+
+    private func exportDiagnostics() {
+        preparingDiagnostics = true
+        diagnosticsError = nil
+        Task {
+            do {
+                let export = try await Diagnostics.makeExport()
+                diagnostics = DiagnosticsDocument(data: export.data)
+                diagnosticsName = export.fileName
+                showDiagnosticsExporter = true
+            } catch {
+                diagnosticsError = L("無法產生診斷資料")
+            }
+            preparingDiagnostics = false
+        }
     }
 }
 

@@ -8,6 +8,7 @@ import Observation
 /// Knows no file types: type-specific behavior goes to DocumentKind and editor state to each plugin's EditorController.
 @MainActor @Observable
 final class VaultStore: DocumentSession {
+    private static let log = DiagnosticsLog.logger("vault")
     let fs: VaultFS
     @ObservationIgnored let plugins: PluginRegistry
     private(set) var tree: [VaultNode] = []
@@ -811,7 +812,7 @@ final class VaultStore: DocumentSession {
 
     private func report(_ error: Error) {
         lastError = error.localizedDescription
-        print("[vault] \(error)")
+        Self.log.error("vault operation failed: \(DiagnosticsLog.describe(error), privacy: .public)")
     }
 
     // MARK: The vault's CLAUDE.md
